@@ -48,7 +48,7 @@ export function RunView() {
           </motion.div>
         ))}
       </motion.div>
-      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(360px,1fr)_minmax(0,360px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} custom={2} className="flex min-h-0 flex-col">
           <Panel className="flex-1">
             <PanelHeader title="Kilomètres par semaine" icon={Footprints} />

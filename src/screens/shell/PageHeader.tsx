@@ -66,7 +66,7 @@ function CompactBar({ title }: { title: string }) {
           initial={{ y: -12, opacity: 0 }}
           animate={{ y: 0, opacity: 1, transition: { duration: t.short * 1.5, ease: t.entry } }}
           exit={{ y: -12, opacity: 0, transition: { duration: t.short, ease: t.exit } }}
-          className="pointer-events-none fixed inset-x-0 top-0 z-30 px-3 pt-[calc(env(safe-area-inset-top)+6px)]"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto max-w-[744px] px-3 pt-[calc(env(safe-area-inset-top)+6px)]"
         >
           <div ref={glass} className="liquid liquid-bar pointer-events-auto flex h-11 items-center justify-center rounded-full px-5">
             <span className="truncate text-title-s text-text-primary">{title}</span>

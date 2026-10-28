@@ -36,7 +36,7 @@ export function SessionView() {
   const reveal = revealVariants();
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,340px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(440px,1fr)_minmax(0,340px)] gap-4 pb-1 max-md:grid-cols-1">
         <div className="relative flex min-h-0 flex-col">
         <motion.ul initial="hidden" animate="show" className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1 pb-24">
           {active.exercises.map((e, ei) => {
@@ -52,7 +52,10 @@ export function SessionView() {
                   </span>
                 </div>
                 <div className="grid grid-cols-[72px_minmax(0,150px)_minmax(0,170px)_1fr] items-center gap-x-3 gap-y-1.5 max-md:grid-cols-[20px_minmax(0,1fr)_minmax(0,1.2fr)_auto] max-md:gap-x-2">
-                  <span className="text-caption text-text-muted">Série</span>
+                  <span className="text-caption text-text-muted">
+                    <span className="max-md:hidden">Série</span>
+                    <span className="md:hidden">N°</span>
+                  </span>
                   <span className="text-caption text-text-muted">Répétitions</span>
                   <span className="text-caption text-text-muted">Charge</span>
                   <span />
@@ -128,8 +131,8 @@ function SetRow({ index, reps, weight, done, onReps, onWeight, onToggle }: { ind
   return (
     <>
       <span className={cn('tnum text-label-m', done ? 'text-text-signal' : 'text-text-secondary')}>{index + 1}</span>
-      <NumberStepper label={`répétitions série ${index + 1}`} value={reps} min={0} max={100} onChange={onReps} className={cn('h-9', done && 'opacity-70')} />
-      <NumberStepper label={`charge série ${index + 1}`} value={weight} step={2.5} max={500} decimals={1} suffix="kg" onChange={onWeight} className={cn('h-9', done && 'opacity-70')} />
+      <NumberStepper label={`répétitions série ${index + 1}`} value={reps} min={0} max={100} onChange={onReps} className={cn('h-9 max-md:h-11', done && 'opacity-70')} />
+      <NumberStepper label={`charge série ${index + 1}`} value={weight} step={2.5} max={500} decimals={1} suffix="kg" onChange={onWeight} className={cn('h-9 max-md:h-11', done && 'opacity-70')} />
       <div className="flex justify-end">
         <CheckCircle checked={done} onChange={onToggle} label={done ? `Annuler la série ${index + 1}` : `Valider la série ${index + 1}`} />
       </div>

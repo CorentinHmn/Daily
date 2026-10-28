@@ -1,7 +1,7 @@
 /**
  * Shell. Signed out: the sign-in screen; signed in without a household: its setup (AuthScreens.tsx). Then the app:
  * on a computer, .app-window with the aurora behind the frosted panels, the rail on the left (Aujourd'hui, Semaine,
- * Sport, Objectifs, Courses; + = quick add); on a phone (below 768 px), MobileShell, the same menus in a floating tab
+ * Sport, Objectifs, Courses; + = quick add); on a phone or a tablet (below 1200 px), MobileShell, the same menus in a floating tab
  * bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';

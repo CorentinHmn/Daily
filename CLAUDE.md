@@ -13,7 +13,9 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
    vrai Supabase (URL et clé publique par défaut dans `src/sync/client.ts`).
 3. Vérifier : `npx tsc -b --noEmit`, `npx eslint .`, `npx vitest run`, puis de bout en bout :
    `npm run build && npx vite preview --port 4320` et `npx tsx scripts/e2e.ts` (4 comptes de test, 15 étapes ;
-   supprimer ensuite les comptes `cadence-e2e-%@example.com`, requête affichée à la fin).
+   supprimer ensuite les comptes `cadence-e2e-%@example.com`, requête affichée à la fin). Revue visuelle :
+   `npx tsx scripts/shoot.ts [url] [dossier] [tailles]` (captures de chaque écran, vue et fenêtre sur 8 tailles,
+   clair / sombre, + rapport : débordements, textes coupés, petites cibles tactiles, erreurs console).
 4. Mise en ligne : chaque push sur `main` est déployé par Vercel (projet relié au repo GitHub, réglages dans
    `vercel.json`, aucune variable à saisir). Mode d'emploi et sécurité : `docs/mise-en-ligne.md`.
 
@@ -41,12 +43,22 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   qu'un popover est encore dans la page (y compris pendant ses 140 ms de sortie).
 - Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : ne pas mettre de flou
   d'entrée sur un conteneur de verre.
-- Mobile (< 768 px, `useIsMobile`, CSS `max-md:`) : toute la page défile dans `MobileShell` ; un `fixed` dans un écran
+- Mise en page téléphone **sous 1200 px** (`--breakpoint-md: 75rem` dans tokens.css, `MOBILE_QUERY` dans
+  useMedia.ts, et les deux `@media` d'app.css : les trois ensemble) : téléphones, tablettes portrait et paysage. La
+  mise en page bureau (rail, 3 colonnes, semaine sur 7 colonnes) a besoin d'environ 1200 px ; sur tablette la colonne
+  reste à 720 px, centrée.
+- Grilles bureau : la colonne principale (fluide) a un vrai minimum (`minmax(300px,1fr)`…), les colonnes de côté
+  `minmax(0,Npx)` cèdent d'abord. Avec `minmax(0,1fr)` la colonne principale tombait à 0 (les côtés prennent leur
+  maximum avant que le `fr` se partage le reste).
+- Mobile (`useIsMobile`, CSS `max-md:`) : toute la page défile dans `MobileShell` ; un `fixed` dans un écran
   est piégé par le parent animé (transform) → le porter dans `<body>` (barre compacte, minuteur).
 - La semaine type ne remplit une nouvelle semaine qu'après un premier rattrapage réussi (`caughtUp`) : sinon un
   appareil revenu hors ligne pouvait recréer (et décocher) des tâches déjà cochées par l'autre.
 - Toute donnée remplacée depuis le serveur passe par `replaceData()` (sync.ts), sinon elle repartirait dans la file
   d'envoi.
+- Dialogues : seul un champ marqué `data-autofocus` (titre d'un nouvel élément) prend le focus ; sur écran tactile,
+  sinon c'est le dialogue (pas de clavier qui surgit pour lire les Paramètres ou ouvrir une tâche existante).
+- Bouton `ghost` + couleur : le gris du variant passe après dans la feuille de style, d'où `text-text-danger!`.
 - Les popovers (menus, listes) sont dans `<body>` mais React fait remonter leurs clics aux ancêtres du bouton qui les
   ouvre : `popover.tsx` arrête la propagation (sinon « Supprimer » dans le menu d'une tâche ouvrait aussi la tâche).
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli

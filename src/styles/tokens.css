@@ -15,6 +15,11 @@
   --blur-*: initial;
   --font-*: initial;
 
+  /* Phone layout (tab bar, one column) below 1200 px: tablets (portrait and landscape) and phones in landscape too.
+     The desktop layout (rail, 3 columns, 7-day week) needs about 1200 px to breathe. `max-md:` / `md:` switch here;
+     JS: ui/useMedia.ts. */
+  --breakpoint-md: 75rem;
+
   /* ── App / Color · Day ───────────────────────────────── */
   --color-bg-canvas: #eef1f5;
   --color-bg-panel: #f7f8fa;

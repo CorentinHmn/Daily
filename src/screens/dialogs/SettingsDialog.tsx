@@ -67,7 +67,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <Button variant="secondary" size="s" icon={Upload} onClick={() => file.current?.click()}>
                 Importer
               </Button>
-              <Button variant="ghost" size="s" icon={Eraser} onClick={() => setConfirm('vide')}>
+              <Button variant="ghost" size="s" icon={Eraser} className="text-text-danger! hover:bg-danger-soft" onClick={() => setConfirm('vide')}>
                 Tout vider
               </Button>
               <Button variant="ghost" size="s" icon={RotateCcw} onClick={() => setConfirm('modele')}>
@@ -112,17 +112,17 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 
 const CONFIRM: Record<StartMode, { title: string; text: string; label: string }> = {
   vide: {
-    title: 'Tout vider ?',
+    title: 'Tout vider\u00a0?',
     text: 'Les tâches, la semaine type, les programmes, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. Les personnes restent. Exporte avant si tu veux garder une copie.',
     label: 'Tout vider',
   },
   modele: {
-    title: 'Repartir de la semaine de départ ?',
+    title: 'Repartir de la semaine de départ\u00a0?',
     text: 'Les tâches, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. La semaine type et les programmes de salle de départ sont recréés ; les personnes restent.',
     label: 'Tout effacer',
   },
   exemple: {
-    title: "Recharger l'exemple ?",
+    title: "Recharger l'exemple\u00a0?",
     text: "Les données du foyer seront remplacées par l'exemple (historique de séances, sorties, objectifs), pour vous deux. Exporte-les avant si tu veux les garder.",
     label: "Charger l'exemple",
   },

@@ -1,5 +1,5 @@
 /**
- * Phone shell (below 768 px, Halo Guide « rail en barre basse »): the whole page scrolls under two pieces of glass —
+ * Phone shell (below 1200 px, Halo Guide « rail en barre basse »; on a tablet the column stays phone-width, centred): the whole page scrolls under two pieces of glass —
  * the compact title bar (PageHeader, once scrolled) and the floating tab bar at the bottom, with the round + next to it
  * (the rail's FAB). Safe areas of the iPhone (notch, home bar) are kept clear.
  */
@@ -55,7 +55,7 @@ export function MobileShell<T extends string>({
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={screenKey}
-              className="flex flex-col"
+              className="mx-auto flex w-full max-w-[720px] flex-col"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }}
               exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
@@ -74,7 +74,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
   const bar = useLiquidGlass<HTMLElement>({ bezel: 20, strength: 14 });
   const plus = useLiquidGlass<HTMLButtonElement>({ bezel: 20, strength: 14 });
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex items-end gap-2.5 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[640px] items-end gap-2.5 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
       <nav ref={bar} aria-label="Navigation principale" className="liquid liquid-bar pointer-events-auto flex h-16 min-w-0 flex-1 items-stretch gap-0.5 rounded-full p-1.5">
         {items.map((item) => {
           const on = item.id === active;

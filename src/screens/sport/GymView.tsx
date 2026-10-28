@@ -48,7 +48,7 @@ export function GymView() {
           </motion.div>
         ))}
       </motion.div>
-      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,340px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,260px)_minmax(400px,1fr)_minmax(0,320px)] 2xl:grid-cols-[minmax(0,280px)_minmax(400px,1fr)_minmax(0,340px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} custom={2} className="flex min-h-0 flex-col">
           <Panel className="flex-1">
             <PanelHeader title="Programmes" icon={Dumbbell}>
@@ -142,7 +142,7 @@ function ProgramPanel({ program }: { program: Program }) {
         {program.exercises.length} exercices, environ {duration(Math.round(minutes / 5) * 5)}
         {nextTask ? `. Prévue ${nextTask.date === todayIso() ? "aujourd'hui" : `le ${shortDate(nextTask.date)}`}${nextTask.time ? ` à ${nextTask.time}` : ''}.` : '.'}
       </p>
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_64px_64px_80px_64px_32px] items-center gap-2 border-b border-border-subtle px-5 pb-2 text-label-s text-text-muted max-md:grid-cols-[minmax(0,1fr)_36px_36px_60px_20px] max-md:px-4">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_48px_48px_72px_56px_28px] items-center gap-2 border-b border-border-subtle px-5 pb-2 text-label-s text-text-muted max-md:grid-cols-[minmax(0,1fr)_36px_36px_60px_20px] max-md:px-4">
         <span>Exercice</span>
         <span className="text-right">Séries</span>
         <span className="text-right">Rép.</span>
@@ -155,7 +155,7 @@ function ProgramPanel({ program }: { program: Program }) {
           const expanded = open === e.id;
           return (
             <li key={e.id} className={cn('rounded-lg transition-colors', expanded && 'bg-bg-card/70')}>
-              <button type="button" onClick={() => setOpen(expanded ? null : e.id)} aria-expanded={expanded} className="grid w-full grid-cols-[minmax(0,1fr)_64px_64px_80px_64px_32px] items-center gap-2 rounded-lg px-2 py-2.5 text-left hover:bg-bg-card/60 max-md:grid-cols-[minmax(0,1fr)_36px_36px_60px_20px] max-md:py-3">
+              <button type="button" onClick={() => setOpen(expanded ? null : e.id)} aria-expanded={expanded} className="grid w-full grid-cols-[minmax(0,1fr)_48px_48px_72px_56px_28px] items-center gap-2 rounded-lg px-2 py-2.5 text-left hover:bg-bg-card/60 max-md:grid-cols-[minmax(0,1fr)_36px_36px_60px_20px] max-md:py-3">
                 <span className="truncate text-label-m text-text-primary">{e.name}</span>
                 <span className="tnum text-right text-body-s text-text-primary">{e.sets}</span>
                 <span className="tnum text-right text-body-s text-text-primary">{e.reps}</span>

@@ -231,7 +231,7 @@ export function CheckCircle({ checked, onChange, label, size = 'm', className }:
         onChange();
       }}
       className={cn(
-        'relative inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-[background-color,border-color,transform] duration-(--v-duree-courte) active:scale-90',
+        'relative inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] transition-[background-color,border-color,transform] duration-(--v-duree-courte) active:scale-90 pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:rounded-full pointer-coarse:before:content-[\'\']',
         size === 's' ? 'size-5' : 'size-6',
         checked ? 'border-signal-default bg-signal-default text-text-on-accent' : 'border-border-strong bg-bg-card/70 text-transparent hover:border-signal-default',
         className,

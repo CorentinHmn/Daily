@@ -73,7 +73,7 @@
     -webkit-text-size-adjust: 100%;
   }
   /* iOS zooms into any field under 16 px when it gets the focus. */
-  @media (max-width: 767.98px) {
+  @media (max-width: 1199.98px) {
     input,
     textarea,
     select {
@@ -103,7 +103,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
   /* Phone: a little more opaque and less blur (text over moving content, smooth scrolling in Safari). */
-  @media (max-width: 767.98px) {
+  @media (max-width: 1199.98px) {
     background: var(--glass-panel-mobile);
     -webkit-backdrop-filter: blur(16px) saturate(1.7);
     backdrop-filter: blur(16px) saturate(1.7);

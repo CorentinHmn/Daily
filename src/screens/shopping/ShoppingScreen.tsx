@@ -64,7 +64,7 @@ export function ShoppingScreen() {
           <span className="md:hidden">Copier</span>
         </Button>
       </PageHeader>
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,250px)_minmax(0,1fr)_minmax(0,320px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,250px)_minmax(340px,1fr)_minmax(0,320px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} className="flex min-h-0 flex-col">
           <Lists />
         </motion.div>
@@ -181,8 +181,8 @@ function ListPanel() {
   return (
     <Panel className="flex-1">
       <PanelHeader title={list.name} count={`${todo.length} à prendre`}>
-        <Button variant="ghost" size="s" icon={ListX} aria-label="Retirer les cochés" onClick={() => app.clearChecked()} disabled={inCart.length === 0}>
-          <span className="max-md:hidden">Retirer les cochés</span>
+        <Button variant="ghost" size="s" icon={ListX} aria-label="Retirer les cochés" title="Retirer les cochés" onClick={() => app.clearChecked()} disabled={inCart.length === 0}>
+          <span className="max-xl:hidden">Retirer les cochés</span>
         </Button>
       </PanelHeader>
       <div className="px-4 pt-2">

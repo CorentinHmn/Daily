@@ -37,7 +37,7 @@ export function GoalsScreen() {
       <PageHeader title="Objectifs">
         <SegmentedControl label="Période" value={period} onChange={(v) => app.set({ goalPeriod: v })} options={(['semaine', 'mois', 'annee'] as const).map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} />
       </PageHeader>
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,380px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(380px,1fr)_minmax(0,380px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} className="flex min-h-0 flex-col">
           <Panel className="flex-1">
             <PanelHeader title={mobile ? SHORT_TITLES[period] : TITLES[period]} icon={Target} count={goals.length ? `${reached} / ${goals.length} atteints` : undefined}>

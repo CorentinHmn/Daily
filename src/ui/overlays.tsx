@@ -42,8 +42,12 @@ export function Dialog({
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     const t = window.setTimeout(() => {
-      const first = panel.current?.querySelector<HTMLElement>('[data-autofocus], input, select, textarea, button:not([data-close])');
-      first?.focus();
+      const p = panel.current;
+      // The marked field first (a new item's title). Otherwise the first control, except on a touch screen where
+      // focusing a field opens the keyboard: there the dialog itself takes the focus (Paramètres, an existing task).
+      const touch = window.matchMedia('(pointer: coarse)').matches;
+      const first = p?.querySelector<HTMLElement>('[data-autofocus]') ?? (touch ? p : p?.querySelector<HTMLElement>('input, select, textarea, button:not([data-close])'));
+      first?.focus({ preventScroll: true });
     }, 40);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('[data-popover]')) {
@@ -80,8 +84,9 @@ export function Dialog({
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            tabIndex={-1}
             className={cn(
-              'liquid liquid-dialog flex max-h-full w-full flex-col overflow-hidden rounded-2xl max-md:max-h-[88dvh]',
+              'liquid liquid-dialog flex max-h-full w-full flex-col overflow-hidden rounded-2xl outline-none focus-visible:shadow-none max-md:max-h-[88dvh]',
               width === 's' && 'max-w-[440px]',
               width === 'm' && 'max-w-[560px]',
               width === 'l' && 'max-w-[760px]',
@@ -100,7 +105,7 @@ export function Dialog({
               {dismissible && <IconButton icon={X} label="Fermer" variant="ghost" size="s" onClick={onClose} data-close="" />}
             </div>
             {children && <div className="min-h-0 overflow-y-auto px-6 pt-1 pb-5 text-body-m text-text-secondary">{children}</div>}
-            {footer && <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border-subtle px-6 py-4">{footer}</div>}
+            {footer && <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border-subtle px-6 py-4 max-md:px-4 max-md:[&>*]:flex-1">{footer}</div>}
           </motion.div>
         </motion.div>
       )}
@@ -177,7 +182,7 @@ function Toast({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: string)
 
 export function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: string) => void }) {
   return createPortal(
-    <div aria-live="polite" className="pointer-events-none fixed right-8 bottom-8 z-[1400] flex w-[380px] flex-col gap-2.5 max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+86px)] max-md:w-auto">
+    <div aria-live="polite" className="pointer-events-none fixed right-8 bottom-8 z-[1400] flex w-[380px] flex-col gap-2.5 max-md:inset-x-3 max-md:mx-auto max-md:max-w-[560px] max-md:bottom-[calc(env(safe-area-inset-bottom)+86px)] max-md:w-auto">
       <AnimatePresence initial={false}>
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onDismiss={onDismiss} />

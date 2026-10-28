@@ -43,7 +43,7 @@ function Footer({ onDelete, deleteLabel = 'Supprimer', onCancel, submitLabel, di
   return (
     <>
       {onDelete && (
-        <Button variant="ghost" icon={Trash2} className="mr-auto text-text-danger hover:bg-danger-soft hover:text-text-danger" onClick={onDelete}>
+        <Button variant="ghost" icon={Trash2} className="mr-auto text-text-danger! hover:bg-danger-soft hover:text-text-danger!" onClick={onDelete}>
           {deleteLabel}
         </Button>
       )}
@@ -101,7 +101,7 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
         <Field label="Titre" htmlFor="task-title">
           <TextInput
             id="task-title"
-            data-autofocus=""
+            data-autofocus={task ? undefined : ''}
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -175,7 +175,7 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
         <Field label="Titre" htmlFor="routine-title">
           <TextInput
             id="routine-title"
-            data-autofocus=""
+            data-autofocus={routine ? undefined : ''}
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -241,7 +241,7 @@ function GoalDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
         }}
       >
         <Field label="Objectif" htmlFor="goal-title">
-          <TextInput id="goal-title" data-autofocus="" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex. Courir 40 km" />
+          <TextInput id="goal-title" data-autofocus={goal ? undefined : ''} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex. Courir 40 km" />
         </Field>
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
           <Field label="Période">
@@ -344,7 +344,7 @@ function HabitDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind:
         }}
       >
         <Field label="Habitude" htmlFor="habit-title">
-          <TextInput id="habit-title" data-autofocus="" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex. 10 min de méditation" />
+          <TextInput id="habit-title" data-autofocus={habit ? undefined : ''} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex. 10 min de méditation" />
         </Field>
         <Field label="Icône">
           <ChoiceChips label="Icône" iconOnly value={icon} onChange={setIcon} options={(Object.keys(HABIT_ICONS) as HabitIcon[]).map((k) => ({ value: k, label: HABIT_ICONS[k].label, icon: HABIT_ICONS[k].icon }))} />
@@ -408,7 +408,7 @@ function ProgramDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
         }}
       >
         <Field label="Nom" htmlFor="program-name">
-          <TextInput id="program-name" data-autofocus="" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex. Haut du corps" />
+          <TextInput id="program-name" data-autofocus={program ? undefined : ''} value={name} onChange={(e) => setName(e.target.value)} placeholder="ex. Haut du corps" />
         </Field>
         {several && (
           <Field label="Pour qui ?">
@@ -486,7 +486,7 @@ function FinishDialog({ open, onClose }: { open: boolean; onClose: () => void })
     <Dialog
       open={open}
       onClose={onClose}
-      title={`Terminer la séance ${active.programName} ?`}
+      title={`Terminer la séance ${active.programName}\u00a0?`}
       icon={Flag}
       footer={
         <>

@@ -63,6 +63,17 @@
   devient « Semaine de départ ») ; supprimer une tâche depuis son menu ouvrait une fenêtre « Nouvelle tâche » (clic
   du menu remonté à la ligne, bug déjà présent dans l'app PC) → corrigé ; « Aucun objectif pour le moment » au lieu
   de « Tous tes objectifs sont atteints » quand il n'y en a aucun. e2e 15/15.
+- Audit visuel (`scripts/shoot.ts`, 8 tailles, clair / sombre, toutes les fenêtres) puis corrections :
+  - tablette (768–1200 px) : la colonne des tâches d'Aujourd'hui tombait à 0 de large, la semaine en 7 colonnes était
+    illisible, l'avatar sortait de l'écran → mise en page téléphone sous 1200 px (colonne centrée de 720 px) ;
+  - grilles bureau : colonne principale avec un minimum (Aujourd'hui, Courses, Objectifs, Salle, Running, séance) ;
+    noms d'exercices entiers à 1280 px (colonnes de chiffres resserrées) ; colonnes équilibrées en très grand écran ;
+  - séance sur téléphone : « SérieRépétitions » collés → « N° » ; sélecteurs de 44 px ; cases rondes avec une zone
+    tactile de 40 px ;
+  - « ? » seul en début de ligne (espace insécable) ; boutons des dialogues sur toute la largeur au téléphone ; plus
+    de clavier qui surgit en ouvrant Paramètres ou une tâche existante ; « Supprimer » enfin rouge ; « Tout vider » en
+    rouge ; « Retirer les cochés » ne déborde plus.
+  - Rien à corriger : console sans erreur, aucune page plus large que l'écran, mode sombre propre.
 - **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer son compte et
   le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
 

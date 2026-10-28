@@ -52,7 +52,7 @@ export function TodayScreen() {
           </motion.div>
         ))}
       </motion.div>
-      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,380px)_minmax(0,330px)] gap-4 pb-1 max-md:grid-cols-1">
+      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(300px,1fr)_minmax(0,380px)_minmax(0,330px)] gap-4 pb-1 max-md:grid-cols-1 2xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,0.85fr)]">
         <motion.div initial="hidden" animate="show" variants={reveal} custom={2} className="flex min-h-0 flex-col">
           <DayPanel tasks={tasks} overdue={overdue} habits={habits} />
         </motion.div>
