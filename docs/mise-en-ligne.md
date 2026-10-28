@@ -22,12 +22,13 @@ https://supabase.com/dashboard/project/dyqqvtpdttwzwkxtpzfp/auth/url-configurati
 - **Site URL** : l'adresse Vercel du site (ex. `https://cadence-khaki-two.vercel.app`).
 - **Redirect URLs** : ajouter `https://<adresse-du-site>/**`.
 
-Sans ce réglage, le lien de réinitialisation renvoie vers `localhost`. Le reste (connexion, création de compte, foyer)
+Sans ce réglage, le lien de réinitialisation renvoie vers `localhost` (page qui ne charge pas). Le service d'e-mails
+gratuit de Supabase n'envoie que 2 e-mails par heure pour tout le projet : au-delà, « Limite d'e-mails atteinte ». Le reste (connexion, création de compte, foyer)
 marche sans. Les comptes sont créés déjà confirmés (fonction Edge `signup`) : aucun e-mail à attendre.
 
 ## 3. Corentin
-1. Ouvrir le site › **Connexion** avec `corentinhamon@outlook.fr` (le compte existe déjà ; mot de passe oublié →
-   « Mot de passe oublié ? », après l'étape 2).
+1. Ouvrir le site › **Créer un compte** (prénom, `corentinhamon@outlook.fr`, mot de passe) : connecté aussitôt.
+   (L'ancien compte, vide, a été supprimé le 28/10 : il était bloqué faute de réglage de l'étape 2.)
 2. **Créer notre foyer** : prénom, nom du foyer, puis « Ma semaine » (semaine type de départ), « Un exemple », ou
    **« Mes données »** pour reprendre l'appli PC (dans l'appli PC : menu du compte › Exporter mes données → fichier
    `.json`).

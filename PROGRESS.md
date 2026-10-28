@@ -54,8 +54,11 @@
   reprise des données de l'ancienne version, mauvais mot de passe), puis comptes et foyers de test supprimés.
 - Vercel : projet « cadence » relié au repo par l'utilisateur ; premier déploiement GitHub le 28/10 (même adresse
   https://cadence-khaki-two.vercel.app). Captures PC et iPhone conformes à l'original.
-- **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer le foyer,
-  inviter Léa (voir `docs/mise-en-ligne.md`).
+- Retours : carte de connexion fixée en haut (elle remontait en passant sur « Créer un compte ») ; « Mot de passe
+  oublié » bloqué (Site URL = localhost, puis limite de 2 e-mails/heure) → ancien compte vide supprimé à sa demande,
+  il le recrée avec « Créer un compte ».
+- **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer son compte et
+  le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
