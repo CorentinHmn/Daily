@@ -3,7 +3,7 @@
  * its code). Same Halo look as the app: the aurora behind one liquid-glass card, the logo on top.
  */
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Eye, EyeOff, FileUp, History, Home, KeyRound, Lock, LogOut, Mail, RefreshCw, Repeat, Sparkles, User, WifiOff } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { clearInvite, clearLegacy, createHousehold, finishRecovery, joinHousehold, legacyData, pendingInvite, requestPasswordReset, retry, signIn, signOut, signUp, useSync } from '../../sync/sync';
@@ -27,7 +27,8 @@ function AuthLayout({ children, wide }: { children: ReactNode; wide?: boolean })
         <i />
         <b />
       </div>
-      <div className="relative z-10 flex min-h-full items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+24px)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      {/* Anchored at the top, not centred: when the form grows (Créer un compte), the card extends downwards. */}
+      <div className="relative z-10 flex min-h-full items-start justify-center px-4 pt-[max(calc(env(safe-area-inset-top)+24px),10vh)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }} className={cn('w-full', wide ? 'max-w-[560px]' : 'max-w-[440px]')}>
           <Liquid strong glass={{ bezel: 28, strength: 14 }} className="rounded-2xl p-8 max-md:p-6">
             {children}
@@ -117,7 +118,10 @@ export function frenchError(m: string): string {
   if (m === 'weak_password' || /password should|weak password/i.test(m)) return 'Mot de passe trop faible : au moins 8 caractères.';
   if (m === 'invalid_email' || /invalid.*email|email.*invalid/i.test(m)) return 'Adresse e-mail invalide.';
   if (/different from the old/i.test(m)) return "Choisis un mot de passe différent de l'ancien.";
-  if (/rate limit|too many|security purposes/i.test(m)) return "Trop de demandes d'affilée : attends une minute avant de réessayer.";
+  if (/email rate limit/i.test(m)) return "Limite d'e-mails atteinte : le service d'envoi gratuit de Supabase n'en envoie que quelques-uns par heure. Réessaie dans une heure.";
+  const wait = /after (\d+) seconds?/i.exec(m);
+  if (wait) return `Attends ${wait[1]} secondes avant de redemander un e-mail.`;
+  if (/rate limit|too many|security purposes/i.test(m)) return "Trop de tentatives d'affilée : attends une minute avant de réessayer.";
   if (/failed to fetch|network|load failed/i.test(m)) return 'Pas de connexion à Internet.';
   if (/failed to send a request|functions/i.test(m)) return 'Le service de création de compte ne répond pas. Réessaie dans un instant.';
   return m;
@@ -174,6 +178,7 @@ function ErrorLine({ error }: { error: string | null }) {
 type Mode = 'signin' | 'signup' | 'forgot';
 
 export function SignInScreen() {
+  const t = motionTokens();
   const invite = pendingInvite();
   const notice = useSync((s) => s.notice);
   const [mode, setMode] = useState<Mode>(invite ? 'signup' : 'signin');
@@ -240,14 +245,26 @@ export function SignInScreen() {
       </div>
       {notice && !error && <p className="mb-4 text-caption text-text-warn">{notice}</p>}
       <Form onSubmit={() => void run(() => (signup ? signUp(firstName, email, password) : signIn(email, password)))}>
-        {signup && (
-          <Field label="Prénom" htmlFor="auth-first">
-            <TextInput id="auth-first" autoComplete="given-name" icon={User} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ton prénom" />
+        <div className="flex flex-col">
+          <AnimatePresence initial={false}>
+            {signup && (
+              <motion.div
+                key="first-name"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1, transition: { duration: t.medium, ease: t.entry } }}
+                exit={{ height: 0, opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+                className="-mx-1 overflow-hidden px-1"
+              >
+                <Field label="Prénom" htmlFor="auth-first" className="pb-4">
+                  <TextInput id="auth-first" autoComplete="given-name" icon={User} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ton prénom" />
+                </Field>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <Field label="Adresse e-mail" htmlFor="auth-email">
+            <TextInput id="auth-email" type="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" icon={Mail} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@exemple.fr" />
           </Field>
-        )}
-        <Field label="Adresse e-mail" htmlFor="auth-email">
-          <TextInput id="auth-email" type="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" icon={Mail} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@exemple.fr" />
-        </Field>
+        </div>
         <Field label="Mot de passe" htmlFor="auth-password" help={signup ? 'Au moins 8 caractères.' : undefined}>
           <PasswordInput id="auth-password" value={password} onChange={setPassword} autoComplete={signup ? 'new-password' : 'current-password'} />
         </Field>
