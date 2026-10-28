@@ -1,10 +1,8 @@
 node_modules
 dist
-dist-electron
-release
 test-results
 *.zip
-dist-web
 
 .vercel
 .env*
+*.tsbuildinfo

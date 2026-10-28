@@ -1,27 +1,20 @@
 /**
- * Compte et partage: sign in with a 6-digit e-mail code, create the household (this device's data goes online) or
- * join one with its invite code, follow it on a new device; then the invite code, the people and the sync status.
+ * Foyer et compte: the household (name, sync status), its invite code and link to send to the other person, the people
+ * and whether each one has an account, then this account (e-mail, password, sign out).
  */
 import { useState } from 'react';
-import { Check, CloudOff, Copy, Home, KeyRound, LogOut, Mail, RefreshCw, Users } from 'lucide-react';
+import { Check, CloudOff, Copy, Lock, LogOut, Pencil, Share2, Users } from 'lucide-react';
 import { useApp } from '../../store/app';
-import { adoptHousehold, createHousehold, joinHousehold, sendCode, signOut, useSync, verifyCode } from '../../sync/sync';
-import { cn } from '../../ui/cn';
-import { Avatar, Button, ICON_STROKE, StatusBadge } from '../../ui/atoms';
+import { changePassword, formatCode, inviteLink, renameHousehold, signOut, useSync } from '../../sync/sync';
+import { Avatar, Button, ICON_STROKE, IconButton, StatusBadge } from '../../ui/atoms';
 import { Field, TextInput } from '../../ui/forms';
 import { Dialog } from '../../ui/overlays';
-
-const formatCode = (c: string) => (c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c);
+import { frenchError } from '../auth/AuthScreens';
 
 export function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const status = useSync((s) => s.status);
   return (
-    <Dialog open={open} onClose={onClose} title="Compte et partage" icon={Users} width="m">
-      {status === 'off' && <p>Cette version de l'app n'est pas reliée à un service en ligne.</p>}
-      {status === 'signed-out' && <SignIn />}
-      {status === 'no-household' && <NoHousehold />}
-      {status === 'to-adopt' && <Adopt />}
-      {['connecting', 'synced', 'syncing', 'offline', 'error'].includes(status) && <Connected />}
+    <Dialog open={open} onClose={onClose} title="Foyer et compte" icon={Users} width="m">
+      <Account />
     </Dialog>
   );
 }
@@ -43,196 +36,21 @@ function useAction() {
   return { busy, error, run };
 }
 
-function frenchError(m: string): string {
-  if (/token has expired|invalid/i.test(m) && /otp|token/i.test(m)) return 'Code incorrect ou expiré. Redemande un code.';
-  if (/rate limit|too many|security purposes/i.test(m)) return "Trop de demandes d'affilée : attends une minute avant de redemander un code.";
-  if (/failed to fetch|network/i.test(m)) return 'Pas de connexion à Internet.';
-  return m;
-}
-
-function SignIn() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [code, setCode] = useState('');
-  const { busy, error, run } = useAction();
-  return (
-    <div className="flex flex-col gap-4">
-      <p>Avec un compte, vos données sont partagées en direct entre vos téléphones et le PC. Pas de mot de passe : un code arrive par e-mail à chaque nouvel appareil.</p>
-      {!sent ? (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(async () => {
-              await sendCode(email);
-              setSent(true);
-            });
-          }}
-        >
-          <Field label="Adresse e-mail" htmlFor="acc-email" error={error}>
-            <TextInput id="acc-email" data-autofocus="" type="email" autoComplete="email" inputMode="email" icon={Mail} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@exemple.fr" />
-          </Field>
-          <Button type="submit" disabled={busy || !/^\S+@\S+\.\S+$/.test(email)}>
-            {busy ? 'Envoi…' : 'Recevoir un code'}
-          </Button>
-        </form>
-      ) : (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(() => verifyCode(email, code));
-          }}
-        >
-          <Field label={`Code reçu à ${email}`} htmlFor="acc-code" error={error} help="Le code à 6 chiffres de l'e-mail Cadence. Pense à regarder dans les indésirables.">
-            <TextInput id="acc-code" data-autofocus="" inputMode="numeric" autoComplete="one-time-code" icon={KeyRound} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" className="tnum" />
-          </Field>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSent(false)}>
-              Changer d'adresse
-            </Button>
-            <Button type="submit" className="flex-1" disabled={busy || code.length !== 6}>
-              {busy ? 'Vérification…' : 'Valider'}
-            </Button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
-
-function NoHousehold() {
-  const meName = useApp((s) => s.data.settings.name);
-  const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [name, setName] = useState('Notre foyer');
-  const [code, setCode] = useState('');
-  const [first, setFirst] = useState('');
-  const { busy, error, run } = useAction();
-  return (
-    <div className="flex flex-col gap-4">
-      <div role="radiogroup" aria-label="Foyer" className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-        {[
-          { v: 'create' as const, icon: Home, t: 'Créer notre foyer', d: 'Les données de cet appareil partent en ligne.' },
-          { v: 'join' as const, icon: KeyRound, t: "J'ai un code", d: "Rejoindre le foyer de quelqu'un." },
-        ].map((o) => (
-          <button key={o.v} type="button" role="radio" aria-checked={mode === o.v} onClick={() => setMode(o.v)} className={cn('flex flex-col gap-1 rounded-xl border p-3.5 text-left transition-colors', mode === o.v ? 'border-border-accent bg-accent-soft' : 'border-border-default bg-bg-card/60 hover:border-border-strong')}>
-            <span className="flex items-center gap-2 text-title-s text-text-primary">
-              <o.icon size={18} strokeWidth={ICON_STROKE} aria-hidden className={mode === o.v ? 'text-text-accent' : 'text-text-secondary'} />
-              {o.t}
-            </span>
-            <span className="text-body-s text-text-secondary">{o.d}</span>
-          </button>
-        ))}
-      </div>
-      {mode === 'create' ? (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(() => createHousehold(name));
-          }}
-        >
-          <Field label="Nom du foyer" htmlFor="acc-house" error={error}>
-            <TextInput id="acc-house" value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-          <Button type="submit" icon={Home} disabled={busy}>
-            {busy ? 'Création…' : `Créer le foyer de ${meName || 'moi'}`}
-          </Button>
-        </form>
-      ) : (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(() => joinHousehold(code, first));
-          }}
-        >
-          <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-            <Field label="Code du foyer" htmlFor="acc-join">
-              <TextInput id="acc-join" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ABCD-1234" className="tnum" autoCapitalize="characters" />
-            </Field>
-            <Field label="Ton prénom" htmlFor="acc-first">
-              <TextInput id="acc-first" value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Léa" autoComplete="given-name" />
-            </Field>
-          </div>
-          {error && (
-            <p role="alert" className="text-caption text-text-danger">
-              {error}
-            </p>
-          )}
-          <p className="text-caption text-text-secondary">Les données de cet appareil seront remplacées par celles du foyer.</p>
-          <Button type="submit" icon={KeyRound} disabled={busy || code.replace(/\W/g, '').length < 8 || !first.trim()}>
-            {busy ? 'Connexion au foyer…' : 'Rejoindre le foyer'}
-          </Button>
-        </form>
-      )}
-    </div>
-  );
-}
-
-function Adopt() {
-  const household = useSync((s) => s.household);
-  const { busy, error, run } = useAction();
-  return (
-    <div className="flex flex-col gap-4">
-      <p>
-        Ce compte fait partie du foyer « {household?.name} ». Sur cet appareil, les données locales vont être remplacées par celles du foyer, à jour.
-      </p>
-      {error && (
-        <p role="alert" className="text-caption text-text-danger">
-          {error}
-        </p>
-      )}
-      <Button icon={RefreshCw} disabled={busy} onClick={() => void run(adoptHousehold)}>
-        {busy ? 'Récupération…' : 'Retrouver mon foyer'}
-      </Button>
-    </div>
-  );
-}
-
-function Connected() {
+function Account() {
   const { status, household, email, linked, pending, error } = useSync();
   const members = useApp((s) => s.data.members);
   const meId = useApp((s) => s.data.settings.meId);
-  const [copied, setCopied] = useState(false);
-  const { busy, run } = useAction();
-  const code = household ? formatCode(household.invite_code) : '';
   const tone = status === 'synced' ? 'signal' : status === 'offline' || status === 'error' ? 'warn' : 'accent';
   const label = status === 'synced' ? 'À jour' : status === 'syncing' || status === 'connecting' ? 'Synchronisation…' : status === 'offline' ? `Hors ligne${pending ? `, ${pending} modification${pending > 1 ? 's' : ''} en attente` : ''}` : 'Erreur de synchronisation';
+  const alone = Object.keys(linked).length < 2;
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-title-m text-text-primary">{household?.name}</p>
-          <p className="truncate text-body-s text-text-secondary">{email}</p>
-        </div>
+        <HouseholdName name={household?.name ?? ''} />
         <StatusBadge tone={tone}>{label}</StatusBadge>
       </div>
       {status === 'error' && error && <p className="text-caption text-text-danger">{error}</p>}
-      <div className="inset-tile flex flex-col gap-2 rounded-xl p-4">
-        <p className="text-label-s text-text-secondary">Code d'invitation</p>
-        <div className="flex items-center gap-3">
-          <span className="tnum text-data-l tracking-[0.08em] text-text-primary">{code}</span>
-          <Button
-            variant="secondary"
-            size="s"
-            icon={copied ? Check : Copy}
-            className="ml-auto"
-            onClick={async () => {
-              const text = `Rejoins notre foyer sur Cadence avec le code ${code}`;
-              try {
-                await navigator.clipboard.writeText(text);
-              } catch {
-                // copying is a convenience; the code stays visible
-              }
-              setCopied(true);
-            }}
-          >
-            {copied ? 'Copié' : 'Copier'}
-          </Button>
-        </div>
-        <p className="text-caption text-text-secondary">À donner à l'autre personne du foyer : dans Compte et partage, elle choisit « J'ai un code » et saisit son prénom.</p>
-      </div>
+      {household && <Invite code={household.invite_code} highlight={alone} />}
       <div className="flex flex-col gap-2">
         <p className="text-label-s text-text-secondary">Personnes</p>
         <ul className="flex flex-col gap-1.5">
@@ -248,17 +66,170 @@ function Connected() {
           ))}
         </ul>
       </div>
-      <div className="flex items-center gap-2 border-t border-border-subtle pt-4">
-        {status === 'offline' && (
-          <span className="inline-flex items-center gap-1.5 text-caption text-text-warn">
-            <CloudOff size={14} strokeWidth={ICON_STROKE} aria-hidden />
-            Les modifications partiront au retour du réseau.
-          </span>
-        )}
-        <Button variant="ghost" size="s" icon={LogOut} className="ml-auto" disabled={busy} onClick={() => void run(signOut)}>
-          Se déconnecter
-        </Button>
+      <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
+        <p className="text-label-s text-text-secondary">Mon compte</p>
+        <p className="truncate text-body-s text-text-primary">{email}</p>
+        <PasswordChange />
+        <div className="flex items-center gap-2">
+          {status === 'offline' && (
+            <span className="inline-flex items-center gap-1.5 text-caption text-text-warn">
+              <CloudOff size={14} strokeWidth={ICON_STROKE} aria-hidden />
+              Les modifications partiront au retour du réseau.
+            </span>
+          )}
+          <SignOutButton />
+        </div>
       </div>
     </div>
+  );
+}
+
+function HouseholdName({ name }: { name: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const { busy, error, run } = useAction();
+  if (!editing) {
+    return (
+      <div className="flex min-w-0 items-center gap-1">
+        <p className="truncate text-title-m text-text-primary">{name}</p>
+        <IconButton
+          icon={Pencil}
+          label="Renommer le foyer"
+          variant="ghost"
+          size="xs"
+          onClick={() => {
+            setDraft(name);
+            setEditing(true);
+          }}
+        />
+      </div>
+    );
+  }
+  return (
+    <form
+      className="flex min-w-0 flex-1 flex-col gap-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(async () => {
+          await renameHousehold(draft.trim() || name);
+          setEditing(false);
+        });
+      }}
+    >
+      <div className="flex gap-2">
+        <TextInput value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Nom du foyer" className="flex-1" autoFocus />
+        <Button type="submit" size="s" disabled={busy}>
+          OK
+        </Button>
+      </div>
+      {error && <p className="text-caption text-text-danger">{error}</p>}
+    </form>
+  );
+}
+
+/** The code, and the link that opens the sign-up with the code filled in (shared by the phone's share sheet). */
+function Invite({ code, highlight }: { code: string; highlight: boolean }) {
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const pretty = formatCode(code);
+  const link = inviteLink(code);
+  const text = `Rejoins notre foyer sur Cadence : ${link} (code ${pretty})`;
+  const copy = async (what: 'code' | 'link') => {
+    try {
+      await navigator.clipboard.writeText(what === 'code' ? pretty : text);
+    } catch {
+      // copying is a convenience; the code stays visible
+    }
+    setCopied(what);
+  };
+  const share = async () => {
+    try {
+      await navigator.share({ title: 'Cadence', text: 'Rejoins notre foyer sur Cadence', url: link });
+    } catch {
+      // closed without sharing
+    }
+  };
+  return (
+    <div className={highlight ? 'flex flex-col gap-2 rounded-xl border border-border-accent bg-accent-soft p-4' : 'inset-tile flex flex-col gap-2 rounded-xl p-4'}>
+      <p className="text-label-s text-text-secondary">Code d'invitation</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="tnum text-data-l tracking-[0.08em] text-text-primary">{pretty}</span>
+        <div className="ml-auto flex gap-2">
+          <Button variant="secondary" size="s" icon={copied === 'code' ? Check : Copy} onClick={() => void copy('code')}>
+            {copied === 'code' ? 'Copié' : 'Code'}
+          </Button>
+          {typeof navigator.share === 'function' ? (
+            <Button size="s" icon={Share2} onClick={() => void share()}>
+              Envoyer le lien
+            </Button>
+          ) : (
+            <Button size="s" icon={copied === 'link' ? Check : Copy} onClick={() => void copy('link')}>
+              {copied === 'link' ? 'Lien copié' : 'Copier le lien'}
+            </Button>
+          )}
+        </div>
+      </div>
+      <p className="text-caption text-text-secondary">
+        {highlight ? "Envoie ce lien à l'autre personne : elle crée son compte et arrive directement dans votre foyer." : 'Le lien ouvre la création de compte avec le code déjà rempli.'}
+      </p>
+    </div>
+  );
+}
+
+function PasswordChange() {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [done, setDone] = useState(false);
+  const { busy, error, run } = useAction();
+  if (!open) {
+    return (
+      <Button variant="secondary" size="s" icon={done ? Check : Lock} className="self-start" onClick={() => (setOpen(true), setDone(false))}>
+        {done ? 'Mot de passe changé' : 'Changer de mot de passe'}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(async () => {
+          await changePassword(password);
+          setPassword('');
+          setOpen(false);
+          setDone(true);
+        });
+      }}
+    >
+      <Field label="Nouveau mot de passe" htmlFor="acc-new-pw" error={error} help="Au moins 8 caractères.">
+        <TextInput id="acc-new-pw" type="password" icon={Lock} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+      </Field>
+      <div className="flex gap-2">
+        <Button variant="ghost" size="s" onClick={() => setOpen(false)}>
+          Annuler
+        </Button>
+        <Button type="submit" size="s" disabled={busy || password.length < 8}>
+          {busy ? 'Enregistrement…' : 'Enregistrer'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function SignOutButton() {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="s"
+      icon={LogOut}
+      className="ml-auto"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await signOut();
+      }}
+    >
+      Se déconnecter
+    </Button>
   );
 }

@@ -1,6 +1,6 @@
 /**
- * App state (zustand): the user's data (saved in localStorage — in the desktop app, the Electron profile) and the UI
- * state (menu, dialogs, toasts, rest timer).
+ * App state (zustand): the household's data (online in Supabase, see sync/; kept in localStorage so the app opens
+ * instantly and works offline) and the UI state (menu, dialogs, toasts, rest timer).
  *
  * Links between screens:
  *  - the semaine type (routines) fills each new week; editing a routine updates its future, unchecked tasks;
@@ -13,7 +13,7 @@ import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib
 import { normalize, uid } from '../lib/format';
 import { guessRayon } from '../domain/catalog';
 import { emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
-import { newMember, normalizeData } from '../domain/people';
+import { keepPeople, newMember, normalizeData } from '../domain/people';
 import { NOUS, type AppData, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
 import type { ToastItem } from '../ui/overlays';
 
@@ -29,8 +29,7 @@ export type DialogState =
   | { kind: 'item' }
   | { kind: 'finish-session' }
   | { kind: 'settings' }
-  | { kind: 'account' }
-  | { kind: 'welcome' };
+  | { kind: 'account' };
 
 const STORAGE_KEY = 'cadence.data.v1';
 
@@ -45,7 +44,7 @@ function load(): AppData {
       }
     }
   } catch {
-    // corrupted or blocked storage: start fresh (the welcome dialog appears)
+    // corrupted or blocked storage: start fresh (the household's data comes back from the server)
   }
   return emptyData();
 }
@@ -76,6 +75,8 @@ interface Actions {
   undoable: (title: string, fn: (d: AppData) => AppData) => void;
 
   start: (mode: 'exemple' | 'modele', name: string) => void;
+  /** Forgets this device's copy of the data (sign-out). The theme stays. */
+  reset: () => void;
   ensureWeek: (monday: ISODate) => void;
   setTheme: (theme: ThemeName) => void;
   setName: (name: string) => void;
@@ -167,7 +168,7 @@ export const useApp = create<AppState>()((set, get) => {
     programId: data.programs[0]?.id ?? null,
     goalPeriod: 'semaine',
     person: data.members.length > 1 ? (data.settings.meId ?? null) : null,
-    dialog: data.onboarded ? null : { kind: 'welcome' },
+    dialog: null,
     toasts: [],
     rest: null,
 
@@ -181,13 +182,29 @@ export const useApp = create<AppState>()((set, get) => {
     undoable,
 
     start: (mode, name) => {
-      const d = mode === 'exemple' ? exampleData(name) : modelData(name);
+      const prev = get().data;
+      let d = mode === 'exemple' ? exampleData(name) : modelData(name);
       if (mode === 'modele') {
         const monday = weekStart(todayIso());
         d.tasks = tasksFromRoutines(d.routines, monday, todayIso());
         d.generatedWeeks = [monday];
       }
-      set({ data: d, dialog: null, view: 'today', programId: d.programs[0]?.id ?? null, person: null });
+      // Starting again in a household: same people (their accounts stay linked), this device's person keeps « moi ».
+      d = keepPeople(d, prev.members, prev.settings.meId);
+      d = { ...d, settings: { ...d.settings, theme: prev.settings.theme } };
+      set({ data: d, dialog: null, view: 'today', programId: d.programs[0]?.id ?? null, person: d.members.length > 1 ? (d.settings.meId ?? null) : null });
+    },
+
+    reset: () => {
+      const theme = get().data.settings.theme;
+      const d = emptyData();
+      set({ data: { ...d, settings: { ...d.settings, theme } }, view: 'today', dialog: null, person: null, programId: null, rest: null, toasts: [] });
+      // Gone from the device at once (not after the usual short delay): the tab may be closed right after.
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // blocked storage holds nothing
+      }
     },
 
     ensureWeek: (monday) => {

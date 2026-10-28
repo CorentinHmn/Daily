@@ -1,10 +1,10 @@
 /**
- * Halo shell pieces (Components 71:294, 66:343): NavRail in liquid glass (+ the window controls of the desktop app)
- * and SegmentedControl (view switch of the page header).
+ * Halo shell pieces (Components 71:294, 66:343): NavRail in liquid glass and SegmentedControl (view switch of the page
+ * header).
  */
 import { useId, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Maximize2, Minimize2, Minus, Plus, X, type LucideIcon } from 'lucide-react';
+import { Plus, type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
 import { ICON_STROKE, Logo } from './atoms';
 import { useLiquidGlass } from './glass';
@@ -12,37 +12,14 @@ import { springGesture } from '../theme/motion';
 
 export type NavItem<T extends string> = { id: T; label: string; icon: LucideIcon; badge?: string; live?: boolean };
 
-export type WindowControlsProps = { maximized: boolean; onClose: () => void; onMinimize: () => void; onToggleMaximize: () => void };
-
-/**
- * The rail's three dots (Figma: green, grey, grey). In the desktop app they ARE the window controls — fermer (rouge),
- * réduire (ambre), agrandir (vert) — growing and showing their icon on hover. In a browser they stay decorative.
- */
-function RailDots({ controls }: { controls?: WindowControlsProps }) {
+/** The rail's three dots (Figma: green, grey, grey), decorative. */
+function RailDots() {
   const dot = 'size-2 rounded-full';
-  if (!controls) {
-    return (
-      <div aria-hidden className="flex h-5 items-center gap-1.5">
-        <span className={cn(dot, 'bg-signal-default')} />
-        <span className={cn(dot, 'bg-border-strong')} />
-        <span className={cn(dot, 'bg-border-strong')} />
-      </div>
-    );
-  }
-  const buttons = [
-    { label: 'Fermer', icon: X, onClick: controls.onClose, hover: 'group-hover/dots:bg-danger-default group-focus-within/dots:bg-danger-default', idle: 'bg-signal-default' },
-    { label: 'Réduire', icon: Minus, onClick: controls.onMinimize, hover: 'group-hover/dots:bg-warn-default group-focus-within/dots:bg-warn-default', idle: 'bg-border-strong' },
-    { label: controls.maximized ? 'Restaurer' : 'Agrandir', icon: controls.maximized ? Minimize2 : Maximize2, onClick: controls.onToggleMaximize, hover: 'group-hover/dots:bg-signal-default group-focus-within/dots:bg-signal-default', idle: 'bg-border-strong' },
-  ];
   return (
-    <div role="group" aria-label="Fenêtre" className="group/dots flex">
-      {buttons.map(({ label, icon: Icon, onClick, hover, idle }) => (
-        <button key={label} type="button" aria-label={label} title={label} onClick={() => onClick()} className="inline-flex size-5 items-center justify-center rounded-full">
-          <span className={cn('inline-flex size-2 items-center justify-center rounded-full text-text-on-accent transition-[width,height,background-color] duration-(--v-duree-courte) group-hover/dots:size-3.5 group-focus-within/dots:size-3.5', idle, hover)}>
-            <Icon className="opacity-0 transition-opacity duration-(--v-duree-courte) group-hover/dots:opacity-100 group-focus-within/dots:opacity-100" size={9} strokeWidth={2.75} aria-hidden />
-          </span>
-        </button>
-      ))}
+    <div aria-hidden className="flex h-5 items-center gap-1.5">
+      <span className={cn(dot, 'bg-signal-default')} />
+      <span className={cn(dot, 'bg-border-strong')} />
+      <span className={cn(dot, 'bg-border-strong')} />
     </div>
   );
 }
@@ -55,7 +32,6 @@ export function NavRail<T extends string>({
   onFab,
   fabLabel,
   fabRef,
-  windowControls,
   onLogo,
 }: {
   items: NavItem<T>[];
@@ -64,13 +40,12 @@ export function NavRail<T extends string>({
   onFab: () => void;
   fabLabel: string;
   fabRef?: (el: HTMLButtonElement | null) => void;
-  windowControls?: WindowControlsProps;
   onLogo?: () => void;
 }) {
   const glass = useLiquidGlass<HTMLElement>({ bezel: 26, strength: 18 });
   return (
     <nav ref={glass} aria-label="Navigation principale" className="liquid relative z-20 flex h-full w-(--layout-rail) shrink-0 flex-col items-center rounded-2xl pt-[22px] pb-[23px]">
-      <RailDots controls={windowControls} />
+      <RailDots />
       <button type="button" onClick={onLogo} aria-label="Cadence, aujourd'hui" title="Cadence" className="mt-[22px] rounded-full">
         <Logo size={44} />
       </button>

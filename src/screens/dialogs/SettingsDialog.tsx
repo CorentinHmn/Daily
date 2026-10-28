@@ -1,13 +1,12 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
 import { useRef, useState } from 'react';
 import { Download, Moon, Plus, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
-import { useSync } from '../../sync/sync';
+import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
 import type { MemberHue } from '../../domain/types';
 import { Avatar, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
 import { useApp } from '../../store/app';
-import { desktop } from '../../desktop';
 import { todayIso } from '../../lib/dates';
 import { Button } from '../../ui/atoms';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
@@ -17,11 +16,6 @@ export async function exportData(): Promise<void> {
   const app = useApp.getState();
   const json = JSON.stringify(app.data, null, 2);
   const name = `cadence-${todayIso()}.json`;
-  if (desktop) {
-    const path = await desktop.saveFile(name, json);
-    if (path) app.toast({ tone: 'success', title: 'Données exportées', text: path });
-    return;
-  }
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
@@ -34,9 +28,8 @@ export async function exportData(): Promise<void> {
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const settings = useApp((s) => s.data.settings);
   const app = useApp.getState();
-  const sync = useSync();
-  const syncOn = sync.status !== 'off';
-  const syncLabel = sync.household ? `Foyer « ${sync.household.name} » relié` : sync.status === 'signed-out' ? 'Non connecté' : sync.status === 'no-household' ? 'Connecté, sans foyer' : 'Foyer à retrouver sur cet appareil';
+  const household = useSync((s) => s.household);
+  const email = useSync((s) => s.email);
   const file = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState<'modele' | 'exemple' | null>(null);
   return (
@@ -55,20 +48,18 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               ]}
             />
           </Field>
-          {syncOn && (
-            <div className="flex flex-col gap-2">
-              <p className="text-label-s text-text-secondary">Partage en ligne</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button variant="soft" size="s" icon={Users} onClick={() => app.openDialog({ kind: 'account' })}>
-                  Compte et partage
-                </Button>
-                <span className="text-body-s text-text-secondary">{syncLabel}</span>
-              </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-label-s text-text-secondary">Partage en ligne</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="soft" size="s" icon={Users} onClick={() => app.openDialog({ kind: 'account' })}>
+                Foyer et compte
+              </Button>
+              <span className="min-w-0 truncate text-body-s text-text-secondary">{household ? `« ${household.name} », ${email}` : email}</span>
             </div>
-          )}
+          </div>
           <div className="flex flex-col gap-2">
             <p className="text-label-s text-text-secondary">Données</p>
-            <p className="text-body-s text-text-secondary">Tout est enregistré sur cet ordinateur, au fil de l'eau. Un export te sert de sauvegarde ou pour passer sur un autre PC.</p>
+            <p className="text-body-s text-text-secondary">Tout est enregistré en ligne dans votre foyer, au fil de l'eau, et gardé sur cet appareil pour marcher hors ligne. Un export te sert de sauvegarde. Repartir de zéro, l'exemple ou un import changent les données du foyer pour vous deux.</p>
             <div className="mt-1 flex flex-wrap gap-2">
               <Button variant="secondary" size="s" icon={Download} onClick={() => void exportData()}>
                 Exporter
@@ -94,6 +85,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                 if (!f) return;
                 const ok = app.importData(await f.text());
                 app.toast(ok ? { tone: 'success', title: 'Données importées', text: f.name } : { tone: 'danger', title: 'Import impossible', text: "Ce fichier n'est pas un export de Cadence." });
+                // The file brings its own people: this account becomes the file's « moi ».
+                if (ok) await relinkMe().catch(() => undefined);
               }}
             />
           </div>
@@ -105,8 +98,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         title={confirm === 'exemple' ? "Recharger l'exemple ?" : 'Repartir de zéro ?'}
         text={
           confirm === 'exemple'
-            ? "Tes données actuelles seront remplacées par l'exemple (historique de séances, sorties, objectifs). Exporte-les avant si tu veux les garder."
-            : 'Tes tâches, séances, sorties, objectifs, habitudes et listes seront effacés. La semaine type et les programmes de salle de départ sont recréés.'
+            ? "Les données du foyer seront remplacées par l'exemple (historique de séances, sorties, objectifs), pour vous deux. Exporte-les avant si tu veux les garder."
+            : 'Les tâches, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. La semaine type et les programmes de salle de départ sont recréés ; les personnes restent.'
         }
         confirmLabel={confirm === 'exemple' ? "Charger l'exemple" : 'Tout effacer'}
         onConfirm={() => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeData, concerns, ownedBy } from './people';
-import { exampleData } from './seed';
+import { normalizeData, concerns, ownedBy, keepPeople } from './people';
+import { exampleData, modelData } from './seed';
 import { NOUS, type AppData } from './types';
 
 describe('household', () => {
@@ -26,5 +26,23 @@ describe('household', () => {
     expect(concerns('b', null)).toBe(true);
     expect(ownedBy('a', 'a')).toBe(true);
     expect(ownedBy('b', 'a')).toBe(false);
+  });
+
+  it('starting again keeps the household’s people, this device’s person takes over the new data', () => {
+    const members = [
+      { id: 'm-coco', name: 'Corentin', hue: 'warm' as const },
+      { id: 'm-lea', name: 'Léa', hue: 'violet' as const },
+    ];
+    const fresh = exampleData('Corentin', '2026-10-25');
+    const gen = fresh.settings.meId;
+    const d = keepPeople(fresh, members, 'm-coco');
+    expect(d.members).toEqual(members);
+    expect(d.settings.meId).toBe('m-coco');
+    expect(d.sessions.every((s) => s.owner === 'm-coco')).toBe(true);
+    expect(d.routines.filter((r) => r.category === 'sport').every((r) => r.assignee === 'm-coco')).toBe(true);
+    expect(JSON.stringify(d)).not.toContain(gen!);
+    // A household with no people yet (first start): unchanged.
+    const first = modelData('Léa');
+    expect(keepPeople(first, [], undefined)).toBe(first);
   });
 });

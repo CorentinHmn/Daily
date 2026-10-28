@@ -1,15 +1,14 @@
 /**
  * PageHeader (Shell 71:294): the page title = the name of the active menu, alone (Heading/Page, no eyebrow, no
  * subtitle); actions on the right; the user chip (liquid glass) opens Paramètres, the theme and the export.
- * The empty space between them drags the desktop window (nothing clickable inside, see app.css › app-drag).
  * Phone: the large title and the avatar on one line, the actions under it; once the page scrolls past the title, a
  * compact glass bar keeps the title at the top (iOS large-title behaviour).
  */
 import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronDown, Download, Moon, Settings, Sun, Users } from 'lucide-react';
-import { useSync } from '../../sync/sync';
+import { ChevronDown, Download, LogOut, Moon, Settings, Sun, Users } from 'lucide-react';
+import { signOut, useSync } from '../../sync/sync';
 import { cn } from '../../ui/cn';
 import { useApp } from '../../store/app';
 import { Avatar, ICON_STROKE } from '../../ui/atoms';
@@ -47,7 +46,7 @@ export function PageHeader({ title, children, people = true }: { title: string; 
   return (
     <header className="flex h-[72px] shrink-0 items-center gap-4 pl-1">
       <h1 className="shrink-0 text-heading-page text-text-primary">{title}</h1>
-      <div aria-hidden className="app-drag h-full min-w-6 flex-1" />
+      <div aria-hidden className="h-full min-w-6 flex-1" />
       {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
       {people && <PersonSwitcher />}
       <UserChip />
@@ -87,7 +86,6 @@ function UserChip({ compact }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const app = useApp.getState();
   const hue = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.hue ?? 'warm');
-  const syncOn = useSync((s) => s.status !== 'off');
   return (
     <>
       <button
@@ -121,10 +119,11 @@ function UserChip({ compact }: { compact?: boolean }) {
         onClose={() => setOpen(false)}
         width={240}
         items={[
-          ...(syncOn ? [{ label: 'Compte et partage', icon: Users, onSelect: () => app.openDialog({ kind: 'account' }) }] : []),
+          { label: 'Foyer et compte', icon: Users, onSelect: () => app.openDialog({ kind: 'account' }) },
           { label: 'Paramètres', icon: Settings, onSelect: () => app.openDialog({ kind: 'settings' }) },
           { label: theme === 'day' ? 'Passer en sombre' : 'Passer en clair', icon: theme === 'day' ? Moon : Sun, onSelect: () => app.setTheme(theme === 'day' ? 'night' : 'day') },
           { label: 'Exporter mes données', icon: Download, onSelect: () => void exportData() },
+          { label: 'Se déconnecter', icon: LogOut, onSelect: () => void signOut() },
         ]}
       />
     </>

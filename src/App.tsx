@@ -1,18 +1,16 @@
 /**
- * Shell. Desktop app: .app-frame is the Figma « Device » frame (1440 × 972, radius 48) whose bezel is liquid glass
- * over the blurred wallpaper; .app-window is the screen (radius 34) with the aurora behind the frosted panels. The
- * rail's dots are the window controls. Rail = Aujourd'hui, Semaine, Sport, Objectifs, Courses; + = quick add.
- * Phone (below 768 px): MobileShell, the same menus in a floating tab bar.
+ * Shell. Signed out: the sign-in screen; signed in without a household: its setup (AuthScreens.tsx). Then the app:
+ * on a computer, .app-window with the aurora behind the frosted panels, the rail on the left (Aujourd'hui, Semaine,
+ * Sport, Objectifs, Courses; + = quick add); on a phone (below 768 px), MobileShell, the same menus in a floating tab
+ * bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CalendarDays, CalendarRange, Dumbbell, Footprints, ListPlus, ShoppingCart, Sun, Target, Repeat } from 'lucide-react';
-import { desktop, useMaximized } from './desktop';
 import { useApp, type View } from './store/app';
 import { todayIso, weekStart } from './lib/dates';
 import { NavRail, type NavItem } from './ui/navigation';
 import { Menu, ToastStack } from './ui/overlays';
-import { useBezelGlass } from './ui/glass';
 import { motionTokens } from './theme/motion';
 import { TodayScreen } from './screens/today/TodayScreen';
 import { WeekScreen } from './screens/week/WeekScreen';
@@ -22,7 +20,8 @@ import { ShoppingScreen } from './screens/shopping/ShoppingScreen';
 import { Dialogs } from './screens/dialogs/Dialogs';
 import { MobileShell } from './screens/shell/MobileShell';
 import { useIsMobile } from './ui/useMedia';
-import { initSync } from './sync/sync';
+import { initSync, useSync, type SyncStatus } from './sync/sync';
+import { HouseholdSetup, RecoveryScreen, SignInScreen, Splash, Unreachable } from './screens/auth/AuthScreens';
 
 const SCREENS: Record<View, ComponentType> = {
   today: TodayScreen,
@@ -32,25 +31,11 @@ const SCREENS: Record<View, ComponentType> = {
   shopping: ShoppingScreen,
 };
 
+const IN_APP: SyncStatus[] = ['connecting', 'synced', 'syncing', 'offline', 'error'];
+
 export function App() {
-  const view = useApp((s) => s.view);
-  const navigate = useApp((s) => s.navigate);
-  const toasts = useApp((s) => s.toasts);
-  const dismiss = useApp((s) => s.dismissToast);
+  const status = useSync((s) => s.status);
   const theme = useApp((s) => s.data.settings.theme);
-  const onboarded = useApp((s) => s.data.onboarded);
-  const remaining = useApp((s) => {
-    const list = s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0];
-    return list ? list.items.filter((i) => !i.checked).length : 0;
-  });
-  const sessionLive = useApp((s) => !!s.data.active);
-  const maximized = useMaximized();
-  const bezel = useBezelGlass<HTMLDivElement>({ inset: 14.5, outerRadius: 48, innerRadius: 34, enabled: !!desktop && !maximized });
-  const today = useToday();
-  const mobile = useIsMobile();
-  const [quickAdd, setQuickAdd] = useState(false);
-  const fab = useRef<HTMLButtonElement | null>(null);
-  useShortcuts(useCallback(() => setQuickAdd(true), []));
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -61,15 +46,42 @@ export function App() {
     }
   }, [theme]);
 
-  // Household sync (Supabase): resumes the session and the household of this device, if any.
+  // Session, then the household of this account (online, kept on the device).
   useEffect(() => {
     void initSync();
   }, []);
 
-  // A new week is filled from the semaine type as soon as it starts.
+  if (status === 'loading') return <Splash />;
+  if (status === 'signed-out') return <SignInScreen />;
+  if (status === 'recovery') return <RecoveryScreen />;
+  if (status === 'no-household') return <HouseholdSetup />;
+  if (status === 'unreachable') return <Unreachable />;
+  return IN_APP.includes(status) ? <Workspace /> : <Splash />;
+}
+
+function Workspace() {
+  const view = useApp((s) => s.view);
+  const navigate = useApp((s) => s.navigate);
+  const toasts = useApp((s) => s.toasts);
+  const dismiss = useApp((s) => s.dismissToast);
+  const onboarded = useApp((s) => s.data.onboarded);
+  const caughtUp = useSync((s) => s.caughtUp);
+  const remaining = useApp((s) => {
+    const list = s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0];
+    return list ? list.items.filter((i) => !i.checked).length : 0;
+  });
+  const sessionLive = useApp((s) => !!s.data.active);
+  const today = useToday();
+  const mobile = useIsMobile();
+  const [quickAdd, setQuickAdd] = useState(false);
+  const fab = useRef<HTMLButtonElement | null>(null);
+  useShortcuts(useCallback(() => setQuickAdd(true), []));
+
+  // A new week is filled from the semaine type as soon as it starts — once the household's latest data is here, so a
+  // device back from offline does not refill (and untick) a week the other one already filled.
   useEffect(() => {
-    if (onboarded) useApp.getState().ensureWeek(weekStart(today));
-  }, [today, onboarded]);
+    if (onboarded && caughtUp) useApp.getState().ensureWeek(weekStart(today));
+  }, [today, onboarded, caughtUp]);
 
   const nav: NavItem<View>[] = [
     { id: 'today', label: "Aujourd'hui", icon: Sun },
@@ -79,13 +91,6 @@ export function App() {
     { id: 'shopping', label: 'Courses', icon: ShoppingCart, badge: remaining ? String(remaining) : undefined },
   ];
 
-  const bridge = desktop;
-  const windowControls = bridge && {
-    maximized,
-    onClose: () => bridge.close(),
-    onMinimize: () => bridge.minimize(),
-    onToggleMaximize: () => bridge.toggleMaximize(),
-  };
   const Screen = SCREENS[view];
   const t = motionTokens();
   const open = useApp.getState().openDialog;
@@ -126,15 +131,7 @@ export function App() {
   }
 
   return (
-    <div className="app-frame h-full">
-      <div ref={bezel} aria-hidden className="app-bezel" />
-      <span aria-hidden className="app-frame-light" />
-      {/* Window drag handles: the four edges of the bezel. Nothing clickable inside (a drag region swallows every
-          click within it on Windows). */}
-      <span aria-hidden className="app-drag-edge app-drag-edge-top" />
-      <span aria-hidden className="app-drag-edge app-drag-edge-bottom" />
-      <span aria-hidden className="app-drag-edge app-drag-edge-left" />
-      <span aria-hidden className="app-drag-edge app-drag-edge-right" />
+    <div className="h-full">
       <div className="app-window relative flex h-full gap-5 p-(--layout-margin)">
         <div aria-hidden className="aurora">
           <i />
@@ -143,7 +140,7 @@ export function App() {
           <i />
           <b />
         </div>
-        <NavRail items={nav} active={view} onNavigate={navigate} onLogo={() => navigate('today')} onFab={() => setQuickAdd((o) => !o)} fabLabel="Ajouter" fabRef={setFab} windowControls={windowControls} />
+        <NavRail items={nav} active={view} onNavigate={navigate} onLogo={() => navigate('today')} onFab={() => setQuickAdd((o) => !o)} fabLabel="Ajouter" fabRef={setFab} />
         <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

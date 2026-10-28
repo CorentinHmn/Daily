@@ -1,22 +1,17 @@
 {
   "name": "cadence",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Cadence : la semaine type, le sport, les objectifs et les courses au même endroit.",
+  "description": "Cadence : la semaine type, le sport, les objectifs et les courses au même endroit, à deux, en ligne.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/finalize-build.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "shoot": "tsx scripts/shoot.ts",
-    "icon": "tsx scripts/make-icon.ts",
-    "desktop:dev": "tsx scripts/desktop.ts dev",
-    "desktop:build": "npm run build && tsx scripts/desktop.ts main && tsx scripts/desktop.ts package",
-    "desktop:install": "tsx scripts/desktop.ts install",
-    "build:web": "tsc -b && vite build --mode web",
-    "deploy": "npm run build:web && tsx scripts/deploy-web.ts"
+    "e2e": "tsx scripts/e2e.ts"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",
@@ -33,64 +28,19 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.2",
-    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "electron": "^44.7.0",
-    "electron-builder": "^26.15.3",
-    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
-    "qrcode": "^1.5.4",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
-    "vercel": "^65.2.0",
     "vite": "^8.3.0",
     "vite-plugin-pwa": "^2.0.0",
-    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^5.0.1"
   },
-  "main": "dist-electron/main.cjs",
-  "author": "Corentin",
-  "build": {
-    "appId": "fr.corentin.cadence",
-    "productName": "Cadence",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "dist/index.html",
-      "dist/*.png",
-      "dist/manifest.webmanifest",
-      "dist-electron/**",
-      "build/icon.ico",
-      "package.json",
-      "!**/node_modules/**"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "Cadence",
-      "artifactName": "Cadence-Setup-${version}.${ext}"
-    }
-  }
+  "author": "Corentin"
 }

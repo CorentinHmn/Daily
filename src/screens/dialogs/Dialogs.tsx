@@ -1,6 +1,6 @@
 /** Every dialog of the app, driven by `dialog` in the store. */
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Dumbbell, Flag, Footprints, ListPlus, Plus, Repeat, Target, Trash2, Flame, Sparkles, X } from 'lucide-react';
+import { CalendarDays, Dumbbell, Flag, Footprints, ListPlus, Plus, Repeat, Target, Trash2, Flame, X } from 'lucide-react';
 import { useApp, type DialogState } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, GOAL_SOURCES, HABIT_ICONS, PERIOD_LABEL, guessCategory } from '../../domain/catalog';
 import { NOUS, type CategoryId, type GoalIcon, type GoalKind, type GoalPeriod, type GoalSource, type GoalStep, type HabitIcon } from '../../domain/types';
@@ -8,14 +8,10 @@ import { WhoChips } from '../../ui/people';
 import { sessionVolume } from '../../domain/stats';
 import { todayIso, weekdayIndex } from '../../lib/dates';
 import { duration, kg, uid } from '../../lib/format';
-import { cn } from '../../ui/cn';
-import { Button, ICON_STROKE, IconButton, Logo } from '../../ui/atoms';
+import { Button, ICON_STROKE, IconButton } from '../../ui/atoms';
 import { ChoiceChips, DayPicker, Field, NumberStepper, Select, TextArea, TextInput, Toggle } from '../../ui/forms';
 import { Dialog } from '../../ui/overlays';
 import { useNow } from '../../ui/useNow';
-import { supabase } from '../../sync/client';
-
-const supabaseReady = !!supabase;
 import { RunForm } from '../sport/RunView';
 import { parseItem } from '../shopping/ShoppingScreen';
 import { SettingsDialog } from './SettingsDialog';
@@ -37,7 +33,6 @@ export function Dialogs() {
       <FinishDialog open={dialog?.kind === 'finish-session'} onClose={close} />
       <SettingsDialog open={dialog?.kind === 'settings'} onClose={close} />
       <AccountDialog open={dialog?.kind === 'account'} onClose={close} />
-      <WelcomeDialog open={dialog?.kind === 'welcome'} />
     </>
   );
 }
@@ -519,62 +514,6 @@ function FinishDialog({ open, onClose }: { open: boolean; onClose: () => void })
         </dl>
         {done === 0 && <p className="text-body-s text-text-warn">Aucune série validée : coche au moins une série pour enregistrer la séance.</p>}
         <Toggle checked={keep} onChange={setKeep} label="Garder ces charges pour la prochaine fois" description="Les charges et répétitions de ta dernière série deviennent celles du programme." />
-      </div>
-    </Dialog>
-  );
-}
-
-// ── Bienvenue ────────────────────────────────────────────────────────────────
-
-function WelcomeDialog({ open }: { open: boolean }) {
-  const app = useApp.getState();
-  const [name, setName] = useState(app.data.settings.name || '');
-  const [mode, setMode] = useState<'exemple' | 'modele'>('exemple');
-  const choices = [
-    { value: 'exemple' as const, icon: Sparkles, title: 'Explorer avec un exemple', text: 'Deux mois de séances et de sorties, des objectifs et une liste de courses, pour voir chaque écran rempli. Tu repars de zéro quand tu veux dans les paramètres.' },
-    { value: 'modele' as const, icon: Repeat, title: 'Partir de ma semaine', text: 'Une semaine type et trois programmes de salle à adapter, sans historique. Les écrans se remplissent avec ce que tu fais.' },
-  ];
-  return (
-    <Dialog open={open} onClose={() => undefined} dismissible={false} title="Bienvenue dans Cadence" width="l">
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center gap-4">
-          <Logo size={64} />
-          <p className="text-body-m text-text-secondary">Ta semaine type, la salle, le running, tes objectifs et tes courses au même endroit. Chaque semaine se remplit toute seule, il ne reste qu'à cocher.</p>
-        </div>
-        <Field label="Prénom" htmlFor="welcome-name">
-          <TextInput id="welcome-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ton prénom" className="max-w-[320px]" />
-        </Field>
-        <div role="radiogroup" aria-label="Pour commencer" className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          {choices.map((c) => {
-            const on = mode === c.value;
-            return (
-              <button key={c.value} type="button" role="radio" aria-checked={on} onClick={() => setMode(c.value)} className={cn('flex flex-col gap-2 rounded-xl border p-4 text-left transition-[border-color,background-color,box-shadow]', on ? 'border-border-accent bg-accent-soft shadow-[0_0_0_1px_var(--color-border-accent)]' : 'border-border-default bg-bg-card/60 hover:border-border-strong')}>
-                <span className={cn('inline-flex size-10 items-center justify-center rounded-full', on ? 'bg-accent-default text-text-on-accent' : 'bg-bg-raised text-text-secondary')}>
-                  <c.icon size={20} strokeWidth={ICON_STROKE} aria-hidden />
-                </span>
-                <span className="text-title-s text-text-primary">{c.title}</span>
-                <span className="text-body-s text-text-secondary">{c.text}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {supabaseReady && (
-            <Button
-              variant="ghost"
-              className="mr-auto"
-              onClick={() => {
-                app.start('modele', name.trim() || 'Moi');
-                app.openDialog({ kind: 'account' });
-              }}
-            >
-              J'ai un code de foyer
-            </Button>
-          )}
-          <Button data-autofocus="" onClick={() => app.start(mode, name.trim() || 'Moi')}>
-            Commencer
-          </Button>
-        </div>
       </div>
     </Dialog>
   );

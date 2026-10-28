@@ -4,30 +4,8 @@
     {
       "name": "cadence-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev",
-        "--",
-        "--port",
-        "5320",
-        "--strictPort"
-      ],
+      "runtimeArgs": ["run", "dev", "--", "--port", "5320", "--strictPort"],
       "port": 5320
-    },
-    {
-      "name": "cadence-lan",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev",
-        "--",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5330",
-        "--strictPort"
-      ],
-      "port": 5330
     }
   ]
 }

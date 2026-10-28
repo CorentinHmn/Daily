@@ -1,12 +1,14 @@
-/** Supabase client (null when the build has no project configured: the app then stays fully local). */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+/**
+ * Supabase client. The project URL and its publishable key are public by design (they ship in the page; RLS guards the
+ * data), so they are the defaults: the Vercel project needs no setting. VITE_SUPABASE_* override them (another project).
+ * Implicit flow + detectSessionInUrl: the password-reset link carries its session in the URL hash, so it works even
+ * when the iPhone opens it in Safari rather than in the home-screen app (PKCE would need the same browser).
+ */
+import { createClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://dyqqvtpdttwzwkxtpzfp.supabase.co';
+const key = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) || 'sb_publishable_shbyHvhOQo8fNdQaUZwkmw_8zd9Hbob';
 
-export const supabase: SupabaseClient | null =
-  url && key
-    ? createClient(url, key, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'cadence.auth' },
-      })
-    : null;
+export const supabase = createClient(url, key, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storageKey: 'cadence.auth' },
+});

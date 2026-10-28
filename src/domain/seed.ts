@@ -64,7 +64,7 @@ export function emptyData(): AppData {
   return {
     version: 1,
     onboarded: false,
-    settings: { name: 'Corentin', theme: 'day' },
+    settings: { name: '', theme: 'day' },
     members: [],
     tasks: [],
     routines: [],

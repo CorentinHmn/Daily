@@ -27,8 +27,34 @@
 - Vérifié : vitest 7/7 (aller-retour des données, coche = 1 enregistrement, pas de doublons, migration), smoke bureau 16/16, captures foyer bureau + iPhone, parcours iPhone sur le site en ligne sans erreur. App PC 1.1.0 réinstallée.
 - **Reste côté utilisateur** : modèles d'e-mail Supabase « Magic Link » et « Confirm signup » avec `{{ .Token }}` (voir `docs/mise-en-ligne.md`), puis créer le foyer depuis le PC. Le test de bout en bout à deux appareils reste à faire avec lui (je ne crée pas de vrais comptes).
 
+## Session 5 (28/10/2026) — V2.0.0 : appli web, GitHub + Vercel + Supabase, connexion dès l'ouverture
+- Demande : refaire l'appli à l'identique (ou mieux), code sur GitHub (`CorentinHmn/Daily`), Vercel relié au repo,
+  backend Supabase, identifiant dès le début, utilisable à deux sur le site.
+- Repris tel quel : tous les écrans, le design Halo, le verre liquide, la version iPhone, le moteur de synchro (file
+  d'envoi hors ligne, Realtime, pas d'écrasement d'un changement non envoyé), le schéma Supabase existant.
+- Retiré : Electron, build fichier unique, scripts Windows (Edge, `.cmd`), captures de l'ancienne version (toujours sur
+  la branche `original`).
+- Nouveau :
+  - connexion obligatoire : e-mail + mot de passe ; création de compte instantanée par la fonction Edge `signup`
+    (compte confirmé d'office : l'envoi d'e-mails gratuit de Supabase est lent et limité) ; mot de passe oublié (lien
+    par e-mail → nouveau mot de passe) ; changement de mot de passe dans Foyer et compte ;
+  - après connexion : créer le foyer (prénom, nom, « Ma semaine », « Un exemple » ou **« Mes données »** = import d'un
+    export de l'app PC) ou le rejoindre avec le code ; un appareil déjà membre récupère le foyer tout seul ;
+  - **lien d'invitation** `https://…/?invite=CODE` (bouton « Envoyer le lien » / « Copier le lien ») : la personne
+    invitée arrive sur la création de compte, puis sur « Rejoindre » avec le code déjà rempli ;
+  - déconnexion (menu du compte) : la copie locale est effacée de l'appareil ;
+  - « Repartir de zéro » / « Recharger l'exemple » gardent les personnes du foyer (avant : nouveaux identifiants →
+    comptes déliés) ; après un import, ce compte reprend le « moi » du fichier (`claim_member`) ;
+  - corrections de synchro : la semaine type ne remplit une semaine qu'après rattrapage ; « Léa a coché … » nomme
+    aussi une personne arrivée depuis l'ouverture (avant : « Ton foyer a coché … »).
+- Vérifié : `tsc`, `eslint`, vitest 8/8, `scripts/e2e.ts` 12/12 contre le vrai Supabase (PC + iPhone, 2 comptes :
+  création, invitation par lien, ajout en direct, coche + notification, rechargement, déconnexion / reconnexion,
+  mauvais mot de passe), puis comptes et foyers de test supprimés. Captures PC et iPhone conformes à l'original.
+- **Reste côté utilisateur** : relier Vercel au repo, régler l'URL du site dans Supabase (pour « Mot de passe
+  oublié »), créer le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
-2. Rappels (notification Windows avant une tâche à heure fixe) : non fait.
-3. Synchronisation téléphone : non faite (la liste de courses se copie en texte).
-4. Tests unitaires du domaine (`stats.ts`, `catalog.ts › guessRayon / guessCategory`, `format.ts › parseDuration`).
+2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur
+   l'écran d'accueil) : non fait.
+3. Tests unitaires du domaine (`stats.ts`, `catalog.ts › guessRayon / guessCategory`, `format.ts › parseDuration`).

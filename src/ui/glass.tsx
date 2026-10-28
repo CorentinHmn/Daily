@@ -4,8 +4,8 @@
  * How: a displacement map (R = x shift, G = y shift, 128 = none) is drawn for the element's rounded rectangle: zero in
  * the middle, growing towards the edge along the inward normal. An SVG filter blurs the backdrop slightly, displaces
  * it with that map, then saturates it; the element uses it as `backdrop-filter: url(#…)`. This only renders in
- * Chromium (Benchmark › « Le Liquid Glass avec réfraction ne marche qu'en Chromium ») — which is exactly the desktop
- * app (Electron). Elsewhere, and with reduced transparency, `.liquid` keeps a frosted blur.
+ * Chromium (Benchmark › « Le Liquid Glass avec réfraction ne marche qu'en Chromium »): Chrome and Edge on the PC.
+ * Elsewhere (Safari on the iPhone, Firefox), and with reduced transparency, `.liquid` keeps a frosted blur.
  *
  * Maps are drawn at half resolution (smooth gradients, the filter scales them up), cached by size, and the filters
  * live in one hidden <svg> in <body>.
@@ -235,63 +235,4 @@ export function Liquid({
       {children}
     </div>
   );
-}
-
-/**
- * The desktop bezel (Figma « Device » ring between the window edge and the screen): a thick glass ring over the
- * blurred wallpaper. Its map bends the wallpaper at the outer edge (inwards) and at the inner edge (outwards).
- */
-export function useBezelGlass<T extends HTMLElement>({ inset, outerRadius, innerRadius, enabled }: { inset: number; outerRadius: number; innerRadius: number; enabled: boolean }): (el: T | null) => void {
-  const node = useRef<T | null>(null);
-  const last = useRef<T | null>(null);
-  const [version, setVersion] = useState(0);
-  // Merged ref callbacks are new functions on every render: React detaches (null) then re-attaches the same element.
-  // Only a different element re-runs the effect.
-  const setRef = useCallback((el: T | null) => {
-    node.current = el;
-    if (el && el !== last.current) {
-      last.current = el;
-      setVersion((v) => v + 1);
-    }
-  }, []);
-  useLayoutEffect(() => {
-    const el = node.current;
-    if (!el || !refractionSupported || !enabled) {
-      if (el) el.style.backdropFilter = '';
-      return;
-    }
-    let timer = 0;
-    const apply = () => {
-      const w = Math.round(el.offsetWidth);
-      const h = Math.round(el.offsetHeight);
-      if (w < 100 || h < 100) return;
-      const half = inset / 2;
-      const field: Field = (x, y) => {
-        const outer = roundedRectField(x, y, w, h, outerRadius);
-        const inner = roundedRectField(x - inset, y - inset, w - inset * 2, h - inset * 2, innerRadius);
-        const dOut = -outer.d; // depth from the outer edge
-        const dIn = inner.d; // distance outside the screen
-        if (dOut <= 0 || dIn <= 0) return { dx: 0, dy: 0 };
-        if (dOut < dIn) {
-          const m = Math.pow(Math.max(0, 1 - dOut / half), 2);
-          return { dx: -outer.nx * m, dy: -outer.ny * m };
-        }
-        const m = Math.pow(Math.max(0, 1 - dIn / half), 2);
-        return { dx: inner.nx * m, dy: inner.ny * m };
-      };
-      const id = ensureFilter({ key: `bezel-${w}x${h}`, w, h, map: () => drawMap(w, h, field), scale: 22, blur: 2, saturate: 1.5 });
-      el.style.backdropFilter = `url(#${id})`;
-    };
-    apply();
-    const ro = new ResizeObserver(() => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(apply, 120);
-    });
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      window.clearTimeout(timer);
-    };
-  }, [version, inset, outerRadius, innerRadius, enabled]);
-  return setRef;
 }

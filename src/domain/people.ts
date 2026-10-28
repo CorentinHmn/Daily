@@ -57,3 +57,26 @@ export function normalizeData(d: AppData): AppData {
     goals: d.goals.map(own),
   };
 }
+
+/**
+ * Data built for a new person (start again, example) handed to the household's existing people: this device's person
+ * takes over everything the generated one owned or was assigned, so accounts stay linked to their person.
+ */
+export function keepPeople(d: AppData, members: Member[], meId: string | undefined): AppData {
+  const gen = d.settings.meId;
+  if (!members.length || !meId || !members.some((m) => m.id === meId)) return d;
+  const owner = <T extends { owner?: string }>(x: T): T => (x.owner === gen ? { ...x, owner: meId } : x);
+  const assignee = <T extends { assignee?: string }>(x: T): T => (x.assignee === gen ? { ...x, assignee: meId } : x);
+  return {
+    ...d,
+    members,
+    settings: { ...d.settings, meId, name: members.find((m) => m.id === meId)?.name ?? d.settings.name },
+    tasks: d.tasks.map(assignee),
+    routines: d.routines.map(assignee),
+    habits: d.habits.map(owner),
+    programs: d.programs.map(owner),
+    sessions: d.sessions.map(owner),
+    runs: d.runs.map(owner),
+    goals: d.goals.map(owner),
+  };
+}

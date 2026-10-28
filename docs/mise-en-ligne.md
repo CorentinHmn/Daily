@@ -1,49 +1,62 @@
 # Cadence en ligne : mode d'emploi
 
-- App web : https://cadence-khaki-two.vercel.app (projet Vercel « cadence », compte corentinhmn).
-- Base : Supabase, projet « cadence » (`dyqqvtpdttwzwkxtpzfp`, organisation Abyss, Paris), offre gratuite.
-- Publier une nouvelle version web : `Mettre en ligne.cmd`. App PC : `Mettre à jour l'application.cmd`.
+- Code : GitHub `CorentinHmn/Daily`, branche `main` (l'ancienne appli de bureau reste sur la branche `original`).
+- Site : Vercel, relié au repo : chaque push sur `main` publie une nouvelle version (réglages dans `vercel.json`,
+  aucune variable d'environnement à saisir : l'URL Supabase et sa clé publique sont dans `src/sync/client.ts`).
+- Base et comptes : Supabase, projet « cadence » (`dyqqvtpdttwzwkxtpzfp`, organisation Abyss, Paris), offre gratuite.
 
-## 1. Une seule fois : recevoir un code plutôt qu'un lien (2 minutes, tableau de bord Supabase)
-Supabase envoie un lien par défaut ; l'app attend un code à 6 chiffres. Dans
-https://supabase.com/dashboard/project/dyqqvtpdttwzwkxtpzfp/auth/templates, pour les deux modèles **Magic Link** et
-**Confirm signup** :
-- Sujet : `Ton code Cadence : {{ .Token }}`
-- Contenu :
+## 1. Une seule fois : relier Vercel au repo (2 minutes)
+Au choix :
+- **Garder l'adresse actuelle** (cadence-khaki-two.vercel.app) : vercel.com › projet **cadence** › Settings › Git ›
+  **Connect Git Repository** › GitHub › `CorentinHmn/Daily`. Puis Settings › Git › Production Branch = `main`.
+- **Ou un nouveau projet** : https://vercel.com/new › Import Git Repository › `CorentinHmn/Daily` › Deploy (Vercel lit
+  `vercel.json` : Vite, `npm run build`, dossier `dist`).
 
-```html
-<h2>Ton code Cadence</h2>
-<p>Saisis ce code dans l'app :</p>
-<p style="font-size:28px;font-weight:600;letter-spacing:6px">{{ .Token }}</p>
-<p>Il expire dans une heure. Si tu n'as rien demandé, ignore cet e-mail.</p>
-```
+Si Vercel ne voit pas le repo : « Adjust GitHub App Permissions » et autoriser `Daily`.
 
-Le service d'e-mail gratuit de Supabase n'envoie que quelques e-mails par heure : si un code n'arrive pas, attendre un
-peu avant d'en redemander un (une fois connecté, chaque appareil le reste).
+## 2. Une seule fois : l'adresse du site dans Supabase (pour « Mot de passe oublié »)
+https://supabase.com/dashboard/project/dyqqvtpdttwzwkxtpzfp/auth/url-configuration
+- **Site URL** : l'adresse Vercel du site (ex. `https://cadence-khaki-two.vercel.app`).
+- **Redirect URLs** : ajouter `https://<adresse-du-site>/**`.
 
-## 2. Corentin, sur le PC (là où sont les vraies données)
-1. Paramètres › Foyer : ajouter la deuxième personne (son prénom) si on veut déjà lui attribuer des tâches.
-2. Menu du compte › **Compte et partage** › e-mail › code reçu › **Créer notre foyer** : toutes les données du PC
-   partent en ligne.
-3. Le code d'invitation (ABCD-1234) s'affiche dans Compte et partage, avec un bouton Copier.
+Sans ce réglage, le lien de réinitialisation renvoie vers `localhost`. Le reste (connexion, création de compte, foyer)
+marche sans. Les comptes sont créés déjà confirmés (fonction Edge `signup`) : aucun e-mail à attendre.
 
-## 3. Sur chaque iPhone
-1. Ouvrir https://cadence-khaki-two.vercel.app dans **Safari** › Partager › **Sur l'écran d'accueil**, puis ouvrir
-   Cadence depuis l'icône (l'app installée a son propre stockage, séparé de Safari).
-2. Corentin : Compte et partage › même e-mail › code › **Retrouver mon foyer**.
-3. Elle : écran de bienvenue › **J'ai un code de foyer** (ou Compte et partage) › son e-mail › code › **J'ai un code**
-   › code du foyer + son prénom. Si une personne de ce prénom existait déjà dans le foyer, elle la reprend avec ses
-   tâches.
+## 3. Corentin
+1. Ouvrir le site › **Connexion** avec `corentinhamon@outlook.fr` (le compte existe déjà ; mot de passe oublié →
+   « Mot de passe oublié ? », après l'étape 2).
+2. **Créer notre foyer** : prénom, nom du foyer, puis « Ma semaine » (semaine type de départ), « Un exemple », ou
+   **« Mes données »** pour reprendre l'appli PC (dans l'appli PC : menu du compte › Exporter mes données → fichier
+   `.json`).
+3. Menu du compte (avatar) › **Foyer et compte** › **Envoyer le lien** (iPhone) ou **Copier le lien** (PC).
+
+## 4. Léa
+1. Ouvrir le lien reçu : la création de compte s'affiche (prénom, e-mail, mot de passe).
+2. Le code du foyer est déjà rempli › **Rejoindre le foyer**. Si une personne « Léa » existait déjà dans le foyer, elle
+   la reprend avec ses tâches.
+
+Sans le lien : Créer un compte › « J'ai un code » › code ABCD-1234 (visible dans Foyer et compte chez Corentin).
+
+## iPhone : l'installer comme une appli
+Safari › le site › Partager › **Sur l'écran d'accueil**, puis ouvrir Cadence depuis l'icône et se connecter une fois
+(l'appli installée a son propre stockage, séparé de Safari). Elle s'ouvre ensuite même hors ligne ; les modifications
+partent au retour du réseau.
 
 ## Ce qui est partagé
-Tout (agenda, semaine type, sport, objectifs, habitudes, courses). Chaque tâche ou routine dit qui la fait (une
-personne ou « Nous deux ») ; habitudes, programmes, séances, sorties et objectifs ont une propriétaire. Le sélecteur
-« Tous / Corentin / … » en haut des écrans filtre. Le thème, le prénom affiché et la séance en cours restent propres
-à chaque appareil.
+Tout (agenda, semaine type, sport, objectifs, habitudes, courses), en direct. Chaque tâche ou routine dit qui la fait
+(une personne ou « Nous deux ») ; habitudes, programmes, séances, sorties et objectifs ont une propriétaire. Le
+sélecteur « Tous / Corentin / … » en haut des écrans filtre. Le thème et la séance en cours restent propres à chaque
+appareil. « Repartir de zéro », « Recharger l'exemple » et « Importer » (Paramètres) changent les données du foyer
+pour les deux.
 
-## Sécurité (vérifiée le 25/10/2026)
+## Sécurité
 - RLS sur `households`, `household_members`, `records` : lecture et écriture réservées aux membres du foyer ; ni un
-  autre compte ni un visiteur non connecté ne lit quoi que ce soit (test SQL à 3 comptes simulés, annulé ensuite).
-- Fonctions `create_household`, `join_household`, `claim_member` en SECURITY DEFINER (signalées par les conseils
-  Supabase, voulu : elles inscrivent le membre et vérifient elles-mêmes code, foyer unique, identité non prise).
-- Seule la clé publique (publishable) est dans l'app.
+  autre compte ni un visiteur non connecté ne lit quoi que ce soit (testé le 25/10/2026 à 3 comptes simulés).
+- `create_household`, `join_household`, `claim_member` en SECURITY DEFINER (voulu : elles inscrivent le membre et
+  vérifient elles-mêmes code, foyer unique, identité non prise). Un foyer se rejoint uniquement avec son code.
+- Fonction Edge `signup` publique : elle crée un compte confirmé sans vérifier l'adresse. Un compte seul n'ouvre rien
+  (aucun foyer sans code). Pour fermer les inscriptions plus tard : supprimer la fonction, ou la limiter (liste
+  d'adresses autorisées).
+- Seule la clé publique (publishable) est dans l'appli ; la clé secrète ne sert que dans la fonction Edge (côté
+  Supabase).
+- Déconnexion : la copie locale des données est effacée de l'appareil.
