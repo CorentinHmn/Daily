@@ -6,7 +6,10 @@
 - Base et comptes : Supabase, projet « cadence » (`dyqqvtpdttwzwkxtpzfp`, organisation Abyss, Paris), offre gratuite.
 
 ## 1. Une seule fois : relier Vercel au repo (2 minutes)
-Au choix :
+D'abord, sur GitHub : repo `Daily` › Settings › General › **Default branch** › choisir `main` (sinon Vercel publierait
+la branche `original`, l'ancienne appli de bureau).
+
+Puis, au choix :
 - **Garder l'adresse actuelle** (cadence-khaki-two.vercel.app) : vercel.com › projet **cadence** › Settings › Git ›
   **Connect Git Repository** › GitHub › `CorentinHmn/Daily`. Puis Settings › Git › Production Branch = `main`.
 - **Ou un nouveau projet** : https://vercel.com/new › Import Git Repository › `CorentinHmn/Daily` › Deploy (Vercel lit
