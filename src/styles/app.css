@@ -1,0 +1,488 @@
+@import 'tailwindcss';
+@source not '../../docs';
+@import './tokens.css';
+
+/* Poppins, latin subset, woff2 only: inlined in the single HTML file (no network). Arrows (U+2192) are not in the
+   subset: use the Lucide ArrowRight icon in the interface instead of the glyph. */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../../node_modules/@fontsource/poppins/files/poppins-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('../../node_modules/@fontsource/poppins/files/poppins-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('../../node_modules/@fontsource/poppins/files/poppins-latin-600-normal.woff2') format('woff2');
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  /* The app never scrolls as a whole (only its panels do). */
+  #root {
+    overflow: clip;
+  }
+  body {
+    margin: 0;
+    background: var(--aurora-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-m);
+    line-height: var(--text-body-m--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus-ring);
+  }
+  button {
+    cursor: pointer;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* iOS zooms into any field under 16 px when it gets the focus. */
+  @media (max-width: 767.98px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+    body {
+      overscroll-behavior: none;
+    }
+  }
+}
+
+/* Numbers that change never shake (Halo rule « tnum »). */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Frosted panel (Halo Glass/Blur over a busy background: here the aurora of the screen). Opaque fallback without
+ * backdrop-filter or with reduced transparency.
+ */
+@utility glass-panel {
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-rim-soft);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-rim-light);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  /* Phone: a little more opaque and less blur (text over moving content, smooth scrolling in Safari). */
+  @media (max-width: 767.98px) {
+    background: var(--glass-panel-mobile);
+    -webkit-backdrop-filter: blur(16px) saturate(1.7);
+    backdrop-filter: blur(16px) saturate(1.7);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background: var(--color-bg-card);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--color-bg-card);
+    backdrop-filter: none;
+  }
+}
+
+/* Inner element of a panel (Halo bg/raised, radius 16–20). */
+@utility inset-tile {
+  background: color-mix(in srgb, var(--color-bg-raised) 72%, transparent);
+  border: 1px solid var(--color-border-subtle);
+}
+
+@layer components {
+/*
+ * Liquid glass (src/ui/glass.tsx): an almost clear tint, specular rims (light from the top left) and, in Chromium,
+ * the backdrop refracted by an SVG displacement map (set inline as backdrop-filter: url(#…)). Without refraction the
+ * same element falls back to a light frosted blur.
+ */
+.liquid {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-liquid);
+  -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
+  backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
+  box-shadow:
+    var(--glass-shadow),
+    inset 1.5px 1.5px 0 -0.5px var(--glass-rim-light),
+    inset -1px -1px 0 -0.25px var(--glass-rim-soft),
+    inset 0 0 0 1px var(--glass-rim-shade);
+}
+.liquid-strong {
+  background: var(--glass-liquid-strong);
+}
+.liquid-dialog {
+  background: var(--glass-panel-strong);
+}
+/* Bars over scrolling content (phone tab bar, title bar, day strip, rest timer): dense enough that text passing
+   under them never competes with theirs, even where the blur is weak. */
+.liquid-bar {
+  background: var(--glass-bar);
+}
+/* Specular sheen: a soft light on the top left of the glass, a faint caustic on the bottom right. */
+.liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.5), transparent 46%),
+    radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.22), transparent 55%);
+  mix-blend-mode: soft-light;
+}
+/* Lens edge: a light ring brighter on the top left and bottom right, like the thick rim of a glass. */
+.liquid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.12) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.55));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+:root[data-theme='night'] .liquid::after {
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(90 162 255 / 0.25));
+}
+/* iPhone (WebKit): no SVG refraction in backdrop-filter (WebKit bug 245510), so the glass is sold by its frost:
+   denser blur, more saturation, a whiter tint. */
+@supports (-webkit-touch-callout: none) {
+  .liquid {
+    background: rgb(255 255 255 / 0.36);
+    -webkit-backdrop-filter: blur(18px) saturate(2) brightness(1.06);
+    backdrop-filter: blur(18px) saturate(2) brightness(1.06);
+  }
+  .liquid-strong {
+    background: rgb(255 255 255 / 0.68);
+  }
+  .liquid-bar {
+    background: var(--glass-bar);
+  }
+  .liquid-dialog {
+    background: var(--glass-panel-strong);
+  }
+  :root[data-theme='night'] .liquid {
+    background: rgb(28 30 35 / 0.45);
+  }
+}
+:root[data-theme='night'] .liquid::before {
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.16), transparent 46%),
+    radial-gradient(90% 70% at 100% 100%, rgb(90 162 255 / 0.12), transparent 55%);
+  mix-blend-mode: normal;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .liquid {
+    background: var(--color-bg-card);
+    backdrop-filter: none !important;
+  }
+}
+}
+
+/*
+ * Aurora (Assets › Background/Aurora + DotGrid): the busy background the glass needs. Four soft light pools drift
+ * slowly (smooth loop, Halo « Motion smooth »), a faint dot grid gives the refraction something to bend.
+ */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  background: var(--aurora-base);
+  pointer-events: none;
+}
+.aurora > i {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.aurora > i:nth-child(1) {
+  width: 62%;
+  height: 70%;
+  left: -12%;
+  top: -18%;
+  background: radial-gradient(closest-side, var(--aurora-2), transparent);
+  animation: aurora-a 46s ease-in-out infinite alternate;
+}
+.aurora > i:nth-child(2) {
+  width: 55%;
+  height: 62%;
+  right: -10%;
+  top: -14%;
+  background: radial-gradient(closest-side, var(--aurora-1), transparent);
+  animation: aurora-b 54s ease-in-out infinite alternate;
+}
+.aurora > i:nth-child(3) {
+  width: 50%;
+  height: 58%;
+  left: 18%;
+  bottom: -26%;
+  background: radial-gradient(closest-side, var(--aurora-3), transparent);
+  animation: aurora-c 60s ease-in-out infinite alternate;
+}
+.aurora > i:nth-child(4) {
+  width: 42%;
+  height: 50%;
+  right: 4%;
+  bottom: -20%;
+  background: radial-gradient(closest-side, var(--aurora-4), transparent);
+  animation: aurora-a 50s ease-in-out infinite alternate-reverse;
+}
+.aurora > b {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--color-border-strong) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(120% 90% at 30% 20%, black, transparent 75%);
+  opacity: 0.7;
+}
+@keyframes aurora-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(8%, 6%, 0) scale(1.08);
+  }
+}
+@keyframes aurora-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-10%, 8%, 0) scale(0.95);
+  }
+}
+@keyframes aurora-c {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(14%, -8%, 0) scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora > i {
+    animation: none !important;
+  }
+}
+
+/* Live halo: breathing ring (duration/pulse, loop), cut when motion is reduced. */
+@utility live-halo {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0.5;
+    animation: halo-pulse var(--v-duree-halo) var(--v-courbe-expo) infinite;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+      opacity: 0;
+    }
+  }
+}
+@keyframes halo-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Skeleton shimmer (Anim · Chargement skeleton, 1,4 s). */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/*
+ * Desktop app (data-shell set by electron/preload.ts): the frameless transparent window is drawn by the page like the
+ * Figma « Device » frame: a liquid-glass bezel (.app-bezel) over the desktop wallpaper, blurred and aligned under the
+ * window (data-glass: --wallpaper, --win-x / --win-y), refracted at its rims; the blue light bar on the top edge; the
+ * screen (.app-window) with its own rounded corners. Maximized: no bezel, square corners.
+ * -webkit-app-region is ignored by browsers.
+ */
+.app-frame-light,
+.app-bezel {
+  display: none;
+}
+[data-shell='desktop'] body {
+  background: transparent;
+}
+[data-shell='desktop'] .app-frame {
+  position: relative;
+  isolation: isolate;
+  /* clip, not hidden: the wallpaper layer (::before) is larger than the window, which made the frame a scroll
+     container; a focus or a scrollIntoView then scrolled the whole screen up inside the bezel. clip cannot scroll. */
+  overflow: clip;
+  padding: var(--layout-bezel);
+  border-radius: var(--radius-device);
+}
+[data-shell='desktop'] .app-frame::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-frame-bezel);
+}
+[data-shell='desktop'][data-glass] .app-frame::before {
+  inset: auto;
+  left: calc(-1 * var(--win-x, 0px));
+  top: calc(-1 * var(--win-y, 0px));
+  width: var(--display-w, 100vw);
+  height: var(--display-h, 100vh);
+  border-radius: 0;
+  background: var(--wallpaper) center / cover no-repeat;
+  filter: blur(var(--blur-frame)) saturate(1.3);
+}
+[data-shell='desktop'] .app-bezel {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Clear glass lit from the top left: a light frost that stays readable as « glass » over a dark wallpaper too. */
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.46), rgb(255 255 255 / 0.2) 42%, rgb(255 255 255 / 0.32));
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-frame-rim),
+    inset 2px 2px 1px -1px rgb(255 255 255 / 0.9),
+    inset -1.5px -1.5px 1px -1px rgb(255 255 255 / 0.5),
+    inset 0 0 18px rgb(255 255 255 / 0.22);
+}
+/* Inner rim of the bezel, where the glass meets the screen (a thin light line, like the edge of a thick glass). */
+[data-shell='desktop'] .app-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 50;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.7),
+    0 1px 10px rgb(14 16 20 / 0.12);
+}
+[data-shell='desktop'] .app-frame-light {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: var(--frame-light-inset);
+  right: var(--frame-light-inset);
+  height: 3px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--color-frame-light) 25%, var(--color-frame-light) 75%, transparent);
+  box-shadow: 0 0 10px var(--color-frame-light-glow);
+}
+[data-shell='desktop'] .app-window {
+  border-radius: var(--radius-screen);
+  overflow: clip;
+}
+.app-drag-edge {
+  display: none;
+}
+[data-shell='desktop'] .app-drag-edge {
+  display: block;
+  position: absolute;
+  -webkit-app-region: drag;
+}
+[data-shell='desktop'] .app-drag-edge-top {
+  inset: 0 0 auto 0;
+  height: var(--layout-bezel);
+}
+[data-shell='desktop'] .app-drag-edge-bottom {
+  inset: auto 0 0 0;
+  height: var(--layout-bezel);
+}
+[data-shell='desktop'] .app-drag-edge-left {
+  inset: 0 auto 0 0;
+  width: var(--layout-bezel);
+}
+[data-shell='desktop'] .app-drag-edge-right {
+  inset: 0 0 0 auto;
+  width: var(--layout-bezel);
+}
+[data-shell='desktop'][data-maximized] .app-drag-edge {
+  display: none;
+}
+[data-shell='desktop'][data-maximized] .app-frame {
+  padding: 0;
+  border-radius: 0;
+}
+[data-shell='desktop'][data-maximized] .app-frame::before,
+[data-shell='desktop'][data-maximized] .app-bezel,
+[data-shell='desktop'][data-maximized] .app-frame-light,
+[data-shell='desktop'][data-maximized] .app-window::after {
+  display: none;
+}
+[data-shell='desktop'][data-maximized] .app-window {
+  border-radius: 0;
+}
+/* The dialog scrim lives in <body>, outside the rounded frame: in the desktop window it must cover only the screen
+   (inside the bezel, radius 34), never the transparent square corners of the window. */
+[data-shell='desktop'] .app-scrim {
+  inset: var(--layout-bezel);
+  border-radius: var(--radius-screen);
+}
+[data-shell='desktop'][data-maximized] .app-scrim {
+  inset: 0;
+  border-radius: 0;
+}
+/* Drag handle of the desktop window. ONLY on elements without anything clickable inside: in a transparent frameless
+   window on Windows, a drag region swallows every click within it, no-drag descendants included (verified with real
+   mouse input in the Tournoi poker project). */
+@utility app-drag {
+  -webkit-app-region: drag;
+}

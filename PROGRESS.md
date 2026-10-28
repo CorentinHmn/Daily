@@ -1,0 +1,34 @@
+# Cadence — avancement
+
+## Session 1 (24–25/10/2026) — V1.0.0 installée
+- Figma Halo inventorié (13 pages, 34 cadres, détail dans `docs/design-system.md`). « Atelier » n'a qu'un cadre sombre ; le clair vient de la page transfers (cadres « Clair ») et du mode Day.
+- Écrans : Aujourd'hui, Semaine (Agenda | Semaine type, glisser-déposer entre jours), Sport (Salle : programmes éditables, séance en direct avec minuteur de repos ; Running : saisie, allure, courbe 12 semaines), Objectifs (Semaine | Mois | Année ; automatiques, compteurs, étapes ; habitudes de la semaine), Courses (listes, rayons devinés, quantités, articles fréquents, copie de la liste).
+- Ajout rapide : bouton + du rail (Ctrl K), nouvelle tâche Ctrl N, menus Alt 1…5.
+- Liquid glass réel (réfraction SVG) sur rail, en-tête, menus, dialogues, toasts, minuteur, encoche et cadre de fenêtre ; verre dépoli sur les panneaux, fond Aurora.
+- Premier lancement : choix « exemple » (historique fictif de 2 mois, marqué comme tel) ou « partir de ma semaine » ; Paramètres › Repartir de zéro / Recharger l'exemple / Exporter / Importer ; thème sombre en option.
+- Vérifié : `tsc`, `eslint`, `scripts/smoke.ts` (12/12 OK), `scripts/desktop-realclick.ts` en vrais clics Windows (9/9 OK : bienvenue, rail, saisie clavier, coche, menu +, déplacement, agrandir/restaurer, fermer, sauvegarde après relance), captures clair et sombre dans `docs/review/`.
+- Installé : `%LOCALAPPDATA%\Programs\Cadence\Cadence.exe`, raccourcis **Cadence** sur le Bureau et dans le menu Démarrer. Installateur : `release/Cadence-Setup-1.0.0.exe`.
+
+## Session 2 (25/10/2026) — coins carrés corrigés
+- Retour utilisateur : « le carré est buggé » (carré gris autour du coin arrondi de la fenêtre). Cause : le voile des dialogues (`fixed inset-0`, dans `<body>`) couvrait tout le rectangle de la fenêtre transparente, coins compris. Corrigé : `.app-scrim` limité à l'écran (inset = bezel, rayon 34 ; plein écran quand la fenêtre est agrandie).
+- Nouveau test `scripts/desktop-corners.ts` : lit l'écran réel aux 4 coins (dialogue ouvert / fermé, perte de focus, réduire, agrandir) et compare à l'arrière-plan une fois la fenêtre fermée → 6/6 OK. Smoke 12/12 OK. Réinstallée.
+
+## Session 3 (25/10/2026) — lot 1 du plan mobile : version iPhone
+- Plan validé : `C:\Users\coren\.claude\plans\linked-plotting-cocoa.md` (lot 1 version mobile + aperçu Wi-Fi ; lot 2 gestes / feuilles / mode magasin / séance mobile / transitions / palette Ctrl K ; lot 3 foyer à deux + Supabase + Vercel « quand il dit go »). Choix de l'utilisateur : iPhone tous les deux, tout partagé avec « qui fait quoi », aperçu par le Wi-Fi.
+- Fait : `MobileShell` (sous 768 px : grand titre qui se replie en barre compacte, barre d'onglets flottante en verre dont l'onglet actif s'élargit avec son nom, bouton + rond), écrans sur une colonne par `max-md:` (KPI en carrousel, Semaine = bande des 7 jours collante + jours à la verticale, listes de courses en pastilles), dialogues ancrés en bas, notifications et minuteur de repos au-dessus de la barre, actions visibles au doigt (`pointer-coarse:`), champs en 16 px (sinon iOS zoome), zones sûres, manifeste + icônes iPhone (`public/`), verre iPhone (flou plus dense, liseré de lentille) car WebKit n'a pas la réfraction SVG.
+- Vérifié : `scripts/smoke.ts` 12/12 (bureau), captures bureau inchangées, `scripts/shoot-mobile.ts` (WebKit Playwright, iPhone 15) sans erreur. ⚠ Le WebKit de Windows annonce `backdrop-filter` mais ne floute pas : les captures mobiles montrent le verre sans flou (pire cas) ; le vrai rendu se juge sur l'iPhone.
+- Aperçu : `Aperçu iPhone.cmd` ou config `cadence-lan` (port 5330) → `http://192.168.1.11:5330`, QR code `docs/qr-iphone.png`. Pare-feu : règle entrante Node déjà autorisée (profil Public).
+
+## Session 4 (25/10/2026) — lot 3 : foyer à deux en ligne (V1.1.0)
+- Supabase « cadence » (`dyqqvtpdttwzwkxtpzfp`, Paris, gratuit) : `households`, `household_members`, `records` (jsonb par objet, suppression = `deleted`), RLS membres seulement, RPC `create_household` / `join_household` / `claim_member`, Realtime sur `records`. Test RLS à 3 comptes simulés OK (13 vérifications), annulé.
+- Foyer local : `members`, `assignee` (tâches, routines : personne ou « Nous deux »), `owner` (habitudes, programmes, séances, sorties, objectifs), filtre « Tous / … » dans l'en-tête, avatars, « Qui ? » dans les dialogues, Paramètres › Foyer ; migration des données existantes (`normalizeData`).
+- Synchro (`src/sync/`) : diff par enregistrement → file d'envoi gardée hors ligne → upsert ; Realtime + rattrapage ; jamais d'écrasement d'un changement local non envoyé ; tâches de la semaine type à id déterministe (pas de doublon) ; message « Léa a coché … ». Connexion par code e-mail (Compte et partage).
+- Web : `npm run build:web` (sans fichier unique, service worker vite-plugin-pwa) ; `Mettre en ligne.cmd` = build + Vercel en Build Output API (pas de build distant). En ligne : https://cadence-khaki-two.vercel.app (public ; un alias manuel `cadence-foyer.vercel.app` était protégé par Vercel, retiré).
+- Vérifié : vitest 7/7 (aller-retour des données, coche = 1 enregistrement, pas de doublons, migration), smoke bureau 16/16, captures foyer bureau + iPhone, parcours iPhone sur le site en ligne sans erreur. App PC 1.1.0 réinstallée.
+- **Reste côté utilisateur** : modèles d'e-mail Supabase « Magic Link » et « Confirm signup » avec `{{ .Token }}` (voir `docs/mise-en-ligne.md`), puis créer le foyer depuis le PC. Le test de bout en bout à deux appareils reste à faire avec lui (je ne crée pas de vrais comptes).
+
+## Reste à faire / idées
+1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
+2. Rappels (notification Windows avant une tâche à heure fixe) : non fait.
+3. Synchronisation téléphone : non faite (la liste de courses se copie en texte).
+4. Tests unitaires du domaine (`stats.ts`, `catalog.ts › guessRayon / guessCategory`, `format.ts › parseDuration`).
