@@ -45,13 +45,17 @@
   - déconnexion (menu du compte) : la copie locale est effacée de l'appareil ;
   - « Repartir de zéro » / « Recharger l'exemple » gardent les personnes du foyer (avant : nouveaux identifiants →
     comptes déliés) ; après un import, ce compte reprend le « moi » du fichier (`claim_member`) ;
+  - données saisies dans l'ancienne version du site sur un appareil (locales, jamais en ligne) : mises de côté
+    (`cadence.legacy`) au lieu d'être effacées, et proposées (« Cet appareil ») à la création du foyer ;
   - corrections de synchro : la semaine type ne remplit une semaine qu'après rattrapage ; « Léa a coché … » nomme
     aussi une personne arrivée depuis l'ouverture (avant : « Ton foyer a coché … »).
-- Vérifié : `tsc`, `eslint`, vitest 8/8, `scripts/e2e.ts` 12/12 contre le vrai Supabase (PC + iPhone, 2 comptes :
+- Vérifié : `tsc`, `eslint`, vitest 8/8, `scripts/e2e.ts` 13/13 contre le vrai Supabase (PC + iPhone, 3 comptes :
   création, invitation par lien, ajout en direct, coche + notification, rechargement, déconnexion / reconnexion,
-  mauvais mot de passe), puis comptes et foyers de test supprimés. Captures PC et iPhone conformes à l'original.
-- **Reste côté utilisateur** : relier Vercel au repo, régler l'URL du site dans Supabase (pour « Mot de passe
-  oublié »), créer le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
+  reprise des données de l'ancienne version, mauvais mot de passe), puis comptes et foyers de test supprimés.
+- Vercel : projet « cadence » relié au repo par l'utilisateur ; premier déploiement GitHub le 28/10 (même adresse
+  https://cadence-khaki-two.vercel.app). Captures PC et iPhone conformes à l'original.
+- **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer le foyer,
+  inviter Léa (voir `docs/mise-en-ligne.md`).
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

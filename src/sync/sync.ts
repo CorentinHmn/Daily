@@ -341,12 +341,43 @@ function setUser(user: User | null): void {
   useSync.setState({ email: user?.email ?? null, userId: user?.id ?? null, firstName: typeof name === 'string' ? name : '' });
 }
 
+// ── Data typed in the first version of the site (kept on the device only, never tied to an account): set aside
+// before anything is cleared, and offered as the starting point when the household is created.
+const LEGACY_KEY = 'cadence.legacy';
+
+function keepLegacy(): void {
+  if (!useApp.getState().data.onboarded || local.userId) return;
+  try {
+    if (!localStorage.getItem(LEGACY_KEY)) localStorage.setItem(LEGACY_KEY, JSON.stringify(useApp.getState().data));
+  } catch {
+    // storage full or blocked: nothing can be kept
+  }
+}
+
+export function legacyData(): AppData | null {
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    return raw ? (JSON.parse(raw) as AppData) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLegacy(): void {
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // nothing to clear
+  }
+}
+
 let started = false;
 
 /** At app start. Offline with this account's household on the device: the app opens, changes wait for the network. */
 export async function initSync(): Promise<void> {
   if (started) return;
   started = true;
+  keepLegacy();
   supabase.auth.onAuthStateChange((event, session) => {
     // No Supabase call in here (it would wait on the auth lock): only state.
     if (event === 'PASSWORD_RECOVERY') useSync.setState({ status: 'recovery' });

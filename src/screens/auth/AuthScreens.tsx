@@ -4,9 +4,9 @@
  */
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Eye, EyeOff, FileUp, Home, KeyRound, Lock, LogOut, Mail, RefreshCw, Repeat, Sparkles, User, WifiOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, FileUp, History, Home, KeyRound, Lock, LogOut, Mail, RefreshCw, Repeat, Sparkles, User, WifiOff } from 'lucide-react';
 import { useApp } from '../../store/app';
-import { clearInvite, createHousehold, finishRecovery, joinHousehold, pendingInvite, requestPasswordReset, retry, signIn, signOut, signUp, useSync } from '../../sync/sync';
+import { clearInvite, clearLegacy, createHousehold, finishRecovery, joinHousehold, legacyData, pendingInvite, requestPasswordReset, retry, signIn, signOut, signUp, useSync } from '../../sync/sync';
 import { cn } from '../../ui/cn';
 import { Button, ICON_STROKE, Logo } from '../../ui/atoms';
 import { Field, TextInput } from '../../ui/forms';
@@ -288,7 +288,9 @@ export function RecoveryScreen() {
 
 // ── Household: create it, or join it with its code ──────────────────────────
 
-type Start = 'modele' | 'exemple' | 'import';
+type Start = 'device' | 'modele' | 'exemple' | 'import';
+
+const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
 function ChoiceCard({ on, onClick, icon: Icon, title, text }: { on: boolean; onClick: () => void; icon: typeof Home; title: string; text: string }) {
   return (
@@ -315,9 +317,10 @@ export function HouseholdSetup() {
   const { email, firstName } = useSync();
   const invite = pendingInvite();
   const [mode, setMode] = useState<'create' | 'join'>(invite ? 'join' : 'create');
-  const [name, setName] = useState(firstName);
+  const [legacy] = useState(legacyData);
+  const [name, setName] = useState(firstName || legacy?.settings?.name || '');
   const [house, setHouse] = useState('Notre foyer');
-  const [start, setStart] = useState<Start>('modele');
+  const [start, setStart] = useState<Start>(legacy ? 'device' : 'modele');
   const [file, setFile] = useState<File | null>(null);
   const [code, setCode] = useState(invite ? `${invite.slice(0, 4)}-${invite.slice(4)}` : '');
   const fileInput = useRef<HTMLInputElement>(null);
@@ -326,7 +329,10 @@ export function HouseholdSetup() {
   const create = () =>
     run(async () => {
       const app = useApp.getState();
-      if (start === 'import') {
+      if (start === 'device') {
+        if (!legacy || !app.importData(JSON.stringify(legacy))) throw new Error('Les données de cet appareil ne se relisent pas : choisis un autre départ.');
+        if (name.trim()) app.setName(name.trim());
+      } else if (start === 'import') {
         if (!file || !app.importData(await file.text())) throw new Error("Ce fichier n'est pas un export de Cadence (Paramètres › Exporter, dans l'app PC).");
         if (name.trim()) app.setName(name.trim());
       } else {
@@ -334,6 +340,7 @@ export function HouseholdSetup() {
       }
       await createHousehold(house.trim() || 'Notre foyer');
       clearInvite();
+      if (start === 'device') clearLegacy();
     });
 
   const join = () =>
@@ -362,7 +369,16 @@ export function HouseholdSetup() {
           </div>
           <div className="flex flex-col gap-1.5">
             <p className="text-label-s text-text-secondary">Pour commencer</p>
-            <div role="radiogroup" aria-label="Pour commencer" className="grid grid-cols-3 gap-2 max-md:grid-cols-1">
+            <div role="radiogroup" aria-label="Pour commencer" className={cn('grid gap-2 max-md:grid-cols-1', legacy ? 'grid-cols-2' : 'grid-cols-3')}>
+              {legacy && (
+                <ChoiceCard
+                  on={start === 'device'}
+                  onClick={() => setStart('device')}
+                  icon={History}
+                  title="Cet appareil"
+                  text={`Ce que tu avais déjà saisi ici dans l'ancienne version : ${plural(legacy.tasks?.length ?? 0, 'tâche')}, ${plural(legacy.sessions?.length ?? 0, 'séance')}, ${plural(legacy.runs?.length ?? 0, 'sortie')}.`}
+                />
+              )}
               <ChoiceCard on={start === 'modele'} onClick={() => setStart('modele')} icon={Repeat} title="Ma semaine" text="Une semaine type et trois programmes de salle à adapter." />
               <ChoiceCard on={start === 'exemple'} onClick={() => setStart('exemple')} icon={Sparkles} title="Un exemple" text="Deux mois d'historique fictif pour voir chaque écran rempli." />
               <ChoiceCard

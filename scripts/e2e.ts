@@ -8,12 +8,14 @@
  * The test accounts (cadence-e2e-…@example.com) are left in the project: delete them afterwards (see the end).
  */
 import { chromium, type Browser, type Page } from '@playwright/test';
+import { exampleData } from '../src/domain/seed';
 
 const base = process.argv[2] ?? 'http://localhost:4320';
 const stamp = Date.now().toString(36);
 const password = `Test-${stamp}-pw`;
 const alex = { name: 'Alex', email: `cadence-e2e-${stamp}-a@example.com` };
 const sam = { name: 'Sam', email: `cadence-e2e-${stamp}-b@example.com` };
+const lou = { name: 'Lou', email: `cadence-e2e-${stamp}-c@example.com` };
 const item = `Lait e2e ${stamp}`;
 
 const errors: string[] = [];
@@ -154,6 +156,29 @@ try {
     await a.getByText(item).first().waitFor({ timeout: 10_000 });
   });
 
+  await step("Données saisies dans l'ancienne version : proposées à la création du foyer", async () => {
+    // As the first version left it on the device: its data saved before the page starts.
+    const ctx = await browser.newContext({ viewport: { width: 1411, height: 943 } });
+    await ctx.addInitScript((json) => {
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
+      localStorage.setItem('cadence.data.v1', json);
+    }, JSON.stringify(exampleData('Lou')));
+    const c = await ctx.newPage();
+    watch(c, 'Lou');
+    await c.goto(base);
+    await createAccount(c, lou);
+    await c.getByRole('heading', { name: `Bonjour ${lou.name}` }).waitFor({ timeout: 20_000 });
+    const device = c.getByRole('radio', { name: /Cet appareil/ });
+    if ((await device.getAttribute('aria-checked')) !== 'true') throw new Error('« Cet appareil » non proposé par défaut');
+    await c.getByRole('button', { name: 'Créer le foyer' }).click();
+    await c.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await openShopping(c);
+    await c.getByText('Épinards frais').first().waitFor({ timeout: 10_000 });
+    // The copy set aside goes once the household holds the data (after the first upload).
+    await c.waitForFunction(() => !localStorage.getItem('cadence.legacy'), null, { timeout: 30_000 });
+  });
+
   await step('Mauvais mot de passe : message en français', async () => {
     const c = await (await browser.newContext()).newPage();
     await c.goto(base);
@@ -175,6 +200,6 @@ try {
 console.log(results.join('\n'));
 const real = errors.filter((e) => !/Failed to load resource.*(400|401|409)/.test(e));
 if (real.length) console.log(`\nErreurs de console :\n${real.join('\n')}`);
-console.log(`\nComptes de test : ${alex.email}, ${sam.email}`);
+console.log(`\nComptes de test : ${alex.email}, ${sam.email}, ${lou.email}`);
 console.log(`À supprimer : delete from public.households h using public.household_members m join auth.users u on u.id = m.user_id where m.household_id = h.id and u.email like 'cadence-e2e-%@example.com'; delete from auth.users where email like 'cadence-e2e-%@example.com';`);
 process.exit(failed || real.length ? 1 : 0);
