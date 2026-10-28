@@ -4,8 +4,8 @@
  */
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, Eye, EyeOff, FileUp, History, Home, KeyRound, Lock, LogOut, Mail, RefreshCw, Repeat, Sparkles, User, WifiOff } from 'lucide-react';
-import { useApp } from '../../store/app';
+import { ArrowLeft, Eraser, Eye, EyeOff, FileUp, History, Home, KeyRound, Lock, LogOut, Mail, RefreshCw, Repeat, Sparkles, User, WifiOff } from 'lucide-react';
+import { useApp, type StartMode } from '../../store/app';
 import { clearInvite, clearLegacy, createHousehold, finishRecovery, joinHousehold, legacyData, pendingInvite, requestPasswordReset, retry, signIn, signOut, signUp, useSync } from '../../sync/sync';
 import { cn } from '../../ui/cn';
 import { Button, ICON_STROKE, Logo } from '../../ui/atoms';
@@ -305,7 +305,7 @@ export function RecoveryScreen() {
 
 // ── Household: create it, or join it with its code ──────────────────────────
 
-type Start = 'device' | 'modele' | 'exemple' | 'import';
+type Start = 'device' | StartMode | 'import';
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
@@ -386,7 +386,7 @@ export function HouseholdSetup() {
           </div>
           <div className="flex flex-col gap-1.5">
             <p className="text-label-s text-text-secondary">Pour commencer</p>
-            <div role="radiogroup" aria-label="Pour commencer" className={cn('grid gap-2 max-md:grid-cols-1', legacy ? 'grid-cols-2' : 'grid-cols-3')}>
+            <div role="radiogroup" aria-label="Pour commencer" className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
               {legacy && (
                 <ChoiceCard
                   on={start === 'device'}
@@ -397,6 +397,7 @@ export function HouseholdSetup() {
                 />
               )}
               <ChoiceCard on={start === 'modele'} onClick={() => setStart('modele')} icon={Repeat} title="Ma semaine" text="Une semaine type et trois programmes de salle à adapter." />
+              <ChoiceCard on={start === 'vide'} onClick={() => setStart('vide')} icon={Eraser} title="Vide" text="Aucune tâche, aucun programme : vous remplissez tout vous-mêmes." />
               <ChoiceCard on={start === 'exemple'} onClick={() => setStart('exemple')} icon={Sparkles} title="Un exemple" text="Deux mois d'historique fictif pour voir chaque écran rempli." />
               <ChoiceCard
                 on={start === 'import'}

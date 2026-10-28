@@ -319,8 +319,8 @@ function GoalsGlance() {
   const data = useApp((s) => s.data);
   const app = useApp.getState();
   const person = useApp((s) => s.person);
-  const goals = data.goals
-    .filter((g) => ownedBy(g.owner, person))
+  const mine = data.goals.filter((g) => ownedBy(g.owner, person));
+  const goals = mine
     .map((g) => ({ g, p: goalProgress(g, data) }))
     .filter(({ p }) => p.ratio < 1)
     .sort((a, b) => (a.g.period === b.g.period ? b.p.ratio - a.p.ratio : ['semaine', 'mois', 'annee'].indexOf(a.g.period) - ['semaine', 'mois', 'annee'].indexOf(b.g.period)))
@@ -333,7 +333,7 @@ function GoalsGlance() {
         </Button>
       </PanelHeader>
       <ul className="flex flex-col gap-3 px-5 pt-2 pb-5">
-        {goals.length === 0 && <li className="text-body-s text-text-secondary">Tous tes objectifs en cours sont atteints.</li>}
+        {goals.length === 0 && <li className="text-body-s text-text-secondary">{mine.length ? 'Tous tes objectifs en cours sont atteints.' : 'Aucun objectif pour le moment.'}</li>}
         {goals.map(({ g, p }) => {
           const Icon = GOAL_ICONS[g.icon];
           const status = goalStatus(g, p.ratio);

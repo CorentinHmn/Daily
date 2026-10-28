@@ -12,12 +12,13 @@ import { create } from 'zustand';
 import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib/dates';
 import { normalize, uid } from '../lib/format';
 import { guessRayon } from '../domain/catalog';
-import { emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
+import { blankData, emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
 import { keepPeople, newMember, normalizeData } from '../domain/people';
 import { NOUS, type AppData, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
 import type { ToastItem } from '../ui/overlays';
 
 export type View = 'today' | 'week' | 'sport' | 'goals' | 'shopping';
+export type StartMode = 'modele' | 'exemple' | 'vide';
 
 export type DialogState =
   | { kind: 'task'; id?: string; date?: ISODate; category?: CategoryId }
@@ -74,7 +75,7 @@ interface Actions {
   mutate: (fn: (d: AppData) => AppData) => void;
   undoable: (title: string, fn: (d: AppData) => AppData) => void;
 
-  start: (mode: 'exemple' | 'modele', name: string) => void;
+  start: (mode: StartMode, name: string) => void;
   /** Forgets this device's copy of the data (sign-out). The theme stays. */
   reset: () => void;
   ensureWeek: (monday: ISODate) => void;
@@ -183,7 +184,7 @@ export const useApp = create<AppState>()((set, get) => {
 
     start: (mode, name) => {
       const prev = get().data;
-      let d = mode === 'exemple' ? exampleData(name) : modelData(name);
+      let d = mode === 'exemple' ? exampleData(name) : mode === 'vide' ? blankData(name) : modelData(name);
       if (mode === 'modele') {
         const monday = weekStart(todayIso());
         d.tasks = tasksFromRoutines(d.routines, monday, todayIso());

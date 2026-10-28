@@ -108,6 +108,9 @@ export function Popover({
             glass(el);
           }}
           data-popover=""
+          // Portalled to <body>, but React still bubbles its clicks to the trigger's ancestors: a « Supprimer » in a
+          // task row's menu also clicked the row, which opened the (now deleted) task as « Nouvelle tâche ».
+          onClick={(e) => e.stopPropagation()}
           id={id}
           role={role}
           aria-label={label}

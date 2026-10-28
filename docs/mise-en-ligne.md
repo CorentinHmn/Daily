@@ -29,8 +29,8 @@ marche sans. Les comptes sont créés déjà confirmés (fonction Edge `signup`)
 ## 3. Corentin
 1. Ouvrir le site › **Créer un compte** (prénom, `corentinhamon@outlook.fr`, mot de passe) : connecté aussitôt.
    (L'ancien compte, vide, a été supprimé le 28/10 : il était bloqué faute de réglage de l'étape 2.)
-2. **Créer notre foyer** : prénom, nom du foyer, puis « Ma semaine » (semaine type de départ), « Un exemple », ou
-   **« Mes données »** pour reprendre l'appli PC (dans l'appli PC : menu du compte › Exporter mes données → fichier
+2. **Créer notre foyer** : prénom, nom du foyer, puis « Ma semaine » (semaine type de départ), **« Vide »** (rien du
+   tout), « Un exemple », ou **« Mes données »** pour reprendre l'appli PC (dans l'appli PC : menu du compte › Exporter mes données → fichier
    `.json`).
 3. Menu du compte (avatar) › **Foyer et compte** › **Envoyer le lien** (iPhone) ou **Copier le lien** (PC).
 
@@ -50,8 +50,8 @@ partent au retour du réseau.
 Tout (agenda, semaine type, sport, objectifs, habitudes, courses), en direct. Chaque tâche ou routine dit qui la fait
 (une personne ou « Nous deux ») ; habitudes, programmes, séances, sorties et objectifs ont une propriétaire. Le
 sélecteur « Tous / Corentin / … » en haut des écrans filtre. Le thème et la séance en cours restent propres à chaque
-appareil. « Repartir de zéro », « Recharger l'exemple » et « Importer » (Paramètres) changent les données du foyer
-pour les deux.
+appareil. « Tout vider », « Semaine de départ », « Recharger l'exemple » et « Importer » (Paramètres) changent les
+données du foyer pour les deux (les personnes restent).
 
 ## Sécurité
 - RLS sur `households`, `household_members`, `records` : lecture et écriture réservées aux membres du foyer ; ni un

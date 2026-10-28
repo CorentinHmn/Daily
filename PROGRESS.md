@@ -57,6 +57,12 @@
 - Retours : carte de connexion fixée en haut (elle remontait en passant sur « Créer un compte ») ; « Mot de passe
   oublié » bloqué (Site URL = localhost, puis limite de 2 e-mails/heure) → ancien compte vide supprimé à sa demande,
   il le recrée avec « Créer un compte ».
+- Comptes de Corentin et Louise créés côté serveur à sa demande (mots de passe donnés dans la conversation, à changer
+  dans Foyer et compte). Foyer « Corentin et Louise » créé par lui.
+- Retours : départ **« Vide »** à la création du foyer et **« Tout vider »** dans Paramètres (« Repartir de zéro »
+  devient « Semaine de départ ») ; supprimer une tâche depuis son menu ouvrait une fenêtre « Nouvelle tâche » (clic
+  du menu remonté à la ligne, bug déjà présent dans l'app PC) → corrigé ; « Aucun objectif pour le moment » au lieu
+  de « Tous tes objectifs sont atteints » quand il n'y en a aucun. e2e 15/15.
 - **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer son compte et
   le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
 

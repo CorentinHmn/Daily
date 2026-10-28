@@ -1,12 +1,12 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
 import { useRef, useState } from 'react';
-import { Download, Moon, Plus, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
+import { Download, Eraser, Moon, Plus, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
 import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
 import type { MemberHue } from '../../domain/types';
 import { Avatar, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
-import { useApp } from '../../store/app';
+import { useApp, type StartMode } from '../../store/app';
 import { todayIso } from '../../lib/dates';
 import { Button } from '../../ui/atoms';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
@@ -31,7 +31,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const household = useSync((s) => s.household);
   const email = useSync((s) => s.email);
   const file = useRef<HTMLInputElement>(null);
-  const [confirm, setConfirm] = useState<'modele' | 'exemple' | null>(null);
+  const [confirm, setConfirm] = useState<StartMode | null>(null);
   return (
     <>
       <Dialog open={open && !confirm} onClose={onClose} title="Paramètres" icon={Settings} footer={<Button onClick={onClose}>Fermer</Button>}>
@@ -59,7 +59,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-label-s text-text-secondary">Données</p>
-            <p className="text-body-s text-text-secondary">Tout est enregistré en ligne dans votre foyer, au fil de l'eau, et gardé sur cet appareil pour marcher hors ligne. Un export te sert de sauvegarde. Repartir de zéro, l'exemple ou un import changent les données du foyer pour vous deux.</p>
+            <p className="text-body-s text-text-secondary">Tout est enregistré en ligne dans votre foyer, au fil de l'eau, et gardé sur cet appareil pour marcher hors ligne. Un export te sert de sauvegarde. Tout vider, repartir de la semaine de départ, l'exemple ou un import changent les données du foyer pour vous deux.</p>
             <div className="mt-1 flex flex-wrap gap-2">
               <Button variant="secondary" size="s" icon={Download} onClick={() => void exportData()}>
                 Exporter
@@ -67,8 +67,11 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <Button variant="secondary" size="s" icon={Upload} onClick={() => file.current?.click()}>
                 Importer
               </Button>
+              <Button variant="ghost" size="s" icon={Eraser} onClick={() => setConfirm('vide')}>
+                Tout vider
+              </Button>
               <Button variant="ghost" size="s" icon={RotateCcw} onClick={() => setConfirm('modele')}>
-                Repartir de zéro
+                Semaine de départ
               </Button>
               <Button variant="ghost" size="s" onClick={() => setConfirm('exemple')}>
                 Recharger l'exemple
@@ -95,13 +98,9 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
       <ConfirmDialog
         open={confirm !== null}
         onClose={() => setConfirm(null)}
-        title={confirm === 'exemple' ? "Recharger l'exemple ?" : 'Repartir de zéro ?'}
-        text={
-          confirm === 'exemple'
-            ? "Les données du foyer seront remplacées par l'exemple (historique de séances, sorties, objectifs), pour vous deux. Exporte-les avant si tu veux les garder."
-            : 'Les tâches, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. La semaine type et les programmes de salle de départ sont recréés ; les personnes restent.'
-        }
-        confirmLabel={confirm === 'exemple' ? "Charger l'exemple" : 'Tout effacer'}
+        title={CONFIRM[confirm ?? 'modele'].title}
+        text={CONFIRM[confirm ?? 'modele'].text}
+        confirmLabel={CONFIRM[confirm ?? 'modele'].label}
         onConfirm={() => {
           app.start(confirm ?? 'modele', settings.name);
           onClose();
@@ -110,6 +109,24 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     </>
   );
 }
+
+const CONFIRM: Record<StartMode, { title: string; text: string; label: string }> = {
+  vide: {
+    title: 'Tout vider ?',
+    text: 'Les tâches, la semaine type, les programmes, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. Les personnes restent. Exporte avant si tu veux garder une copie.',
+    label: 'Tout vider',
+  },
+  modele: {
+    title: 'Repartir de la semaine de départ ?',
+    text: 'Les tâches, séances, sorties, objectifs, habitudes et listes du foyer seront effacés, pour vous deux. La semaine type et les programmes de salle de départ sont recréés ; les personnes restent.',
+    label: 'Tout effacer',
+  },
+  exemple: {
+    title: "Recharger l'exemple ?",
+    text: "Les données du foyer seront remplacées par l'exemple (historique de séances, sorties, objectifs), pour vous deux. Exporte-les avant si tu veux les garder.",
+    label: "Charger l'exemple",
+  },
+};
 
 const HUE_LABEL: Record<MemberHue, string> = { warm: 'Cuivre', violet: 'Violet', green: 'Vert', blue: 'Bleu' };
 

@@ -16,6 +16,7 @@ const password = `Test-${stamp}-pw`;
 const alex = { name: 'Alex', email: `cadence-e2e-${stamp}-a@example.com` };
 const sam = { name: 'Sam', email: `cadence-e2e-${stamp}-b@example.com` };
 const lou = { name: 'Lou', email: `cadence-e2e-${stamp}-c@example.com` };
+const max = { name: 'Max', email: `cadence-e2e-${stamp}-d@example.com` };
 const item = `Lait e2e ${stamp}`;
 
 const errors: string[] = [];
@@ -142,6 +143,18 @@ try {
     await b.getByText(item).first().waitFor({ timeout: 10_000 });
   });
 
+  await step("Alex : supprimer une tâche depuis son menu n'ouvre aucune fenêtre", async () => {
+    await nav(a, "Aujourd'hui").click();
+    await a.getByRole('heading', { name: "Aujourd'hui" }).waitFor();
+    const actions = a.getByRole('button', { name: /^Actions de « / }).first();
+    const title = (await actions.getAttribute('aria-label'))!.replace(/^Actions de « (.*) »$/, '$1');
+    await actions.click();
+    await a.getByRole('menuitem', { name: 'Supprimer' }).click();
+    await a.getByText(`« ${title} » supprimée`).waitFor({ timeout: 5_000 });
+    await a.waitForTimeout(600);
+    if (await a.getByRole('dialog').count()) throw new Error(`une fenêtre s'est ouverte : ${await a.getByRole('dialog').first().getAttribute('aria-label')}`);
+  });
+
   await step('Alex : déconnexion puis reconnexion, le foyer revient', async () => {
     await a.getByRole('button', { name: new RegExp(alex.name) }).first().click();
     await a.getByRole('menuitem', { name: 'Se déconnecter' }).click();
@@ -179,6 +192,24 @@ try {
     await c.waitForFunction(() => !localStorage.getItem('cadence.legacy'), null, { timeout: 30_000 });
   });
 
+  await step('Foyer « Vide » : aucune tâche, aucun programme, aucune liste', async () => {
+    const d = await (await browser.newContext({ viewport: { width: 1411, height: 943 } })).newPage();
+    watch(d, 'Max');
+    await d.goto(base);
+    await createAccount(d, max);
+    await d.getByRole('heading', { name: `Bonjour ${max.name}` }).waitFor({ timeout: 20_000 });
+    await d.getByRole('radio', { name: /^Vide/ }).click();
+    await d.getByRole('button', { name: 'Créer le foyer' }).click();
+    await d.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await d.getByText("Rien de prévu aujourd'hui").waitFor({ timeout: 5_000 });
+    if (process.env.SHOTS) await d.screenshot({ path: `${process.env.SHOTS}/vide-aujourdhui.png` });
+    await nav(d, 'Sport').click();
+    await d.getByText('Aucun programme').first().waitFor({ timeout: 5_000 });
+    await openShopping(d);
+    await d.getByText('Aucune liste').first().waitFor({ timeout: 5_000 });
+    if (process.env.SHOTS) await d.screenshot({ path: `${process.env.SHOTS}/vide-courses.png` });
+  });
+
   await step('Mauvais mot de passe : message en français', async () => {
     const c = await (await browser.newContext()).newPage();
     await c.goto(base);
@@ -200,6 +231,6 @@ try {
 console.log(results.join('\n'));
 const real = errors.filter((e) => !/Failed to load resource.*(400|401|409)/.test(e));
 if (real.length) console.log(`\nErreurs de console :\n${real.join('\n')}`);
-console.log(`\nComptes de test : ${alex.email}, ${sam.email}, ${lou.email}`);
+console.log(`\nComptes de test : ${alex.email}, ${sam.email}, ${lou.email}, ${max.email}`);
 console.log(`À supprimer : delete from public.households h using public.household_members m join auth.users u on u.id = m.user_id where m.household_id = h.id and u.email like 'cadence-e2e-%@example.com'; delete from auth.users where email like 'cadence-e2e-%@example.com';`);
 process.exit(failed || real.length ? 1 : 0);

@@ -90,7 +90,7 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
   const [assignee, setAssignee] = useState<string>(task?.assignee ?? (dialog?.category === 'sport' || dialog?.category === 'running' ? (meId ?? NOUS) : NOUS));
   const programs = app.data.programs;
   return (
-    <Dialog open={!!dialog} onClose={onClose} title={task ? 'Modifier la tâche' : 'Nouvelle tâche'} icon={CalendarDays} footer={<Footer onCancel={onClose} submitLabel={task ? 'Enregistrer' : 'Ajouter'} disabled={!title.trim()} onDelete={task ? () => (app.deleteTask(task.id), onClose()) : undefined} />}>
+    <Dialog open={!!dialog && !(dialog.id && !task)} onClose={onClose} title={task ? 'Modifier la tâche' : 'Nouvelle tâche'} icon={CalendarDays} footer={<Footer onCancel={onClose} submitLabel={task ? 'Enregistrer' : 'Ajouter'} disabled={!title.trim()} onDelete={task ? () => (app.deleteTask(task.id), onClose()) : undefined} />}>
       <Form
         onSubmit={() => {
           if (!title.trim()) return;
@@ -164,7 +164,7 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
   const several = app.data.members.length > 1;
   const [assignee, setAssignee] = useState<string>(routine?.assignee ?? NOUS);
   return (
-    <Dialog open={!!dialog} onClose={onClose} title={routine ? 'Modifier la routine' : 'Nouvelle routine'} icon={Repeat} footer={<Footer onCancel={onClose} submitLabel={routine ? 'Enregistrer' : 'Ajouter à la semaine type'} disabled={!title.trim()} deleteLabel="Retirer" onDelete={routine ? () => (app.deleteRoutine(routine.id), onClose()) : undefined} />}>
+    <Dialog open={!!dialog && !(dialog.id && !routine)} onClose={onClose} title={routine ? 'Modifier la routine' : 'Nouvelle routine'} icon={Repeat} footer={<Footer onCancel={onClose} submitLabel={routine ? 'Enregistrer' : 'Ajouter à la semaine type'} disabled={!title.trim()} deleteLabel="Retirer" onDelete={routine ? () => (app.deleteRoutine(routine.id), onClose()) : undefined} />}>
       <Form
         onSubmit={() => {
           if (!title.trim()) return;

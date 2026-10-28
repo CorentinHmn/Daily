@@ -1,9 +1,10 @@
 /**
- * First launch. Two starts (Welcome dialog):
+ * Household creation. Three starts (+ import):
  *  - « modèle »: a semaine type and three gym programmes to adjust, an empty shopping list, common items for the quick
  *    add; no history.
  *  - « exemple »: the same + a believable history built around today's date (sessions, runs, goals, habits, a
  *    filled list), to explore every screen. Marked as an example; Settings › « Repartir de zéro » removes it.
+ *  - « vide »: nothing at all.
  */
 import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib/dates';
 import { uid } from '../lib/format';
@@ -104,6 +105,11 @@ export function modelData(name: string): AppData {
     activeListId: listId,
     frequent: commonFrequent(),
   });
+}
+
+/** Empty start: no semaine type, no programme, no list — everything is added by hand. */
+export function blankData(name: string): AppData {
+  return normalizeData({ ...emptyData(), onboarded: true, settings: { name, theme: 'day' } });
 }
 
 /** Deterministic pseudo-random numbers (same example every time for a given day). */

@@ -12,7 +12,7 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 2. `npm install`, puis `npm run dev` (port 5320, config `cadence-dev` dans `.claude/launch.json`). L'appli parle au
    vrai Supabase (URL et clé publique par défaut dans `src/sync/client.ts`).
 3. Vérifier : `npx tsc -b --noEmit`, `npx eslint .`, `npx vitest run`, puis de bout en bout :
-   `npm run build && npx vite preview --port 4320` et `npx tsx scripts/e2e.ts` (3 comptes de test, 13 étapes ;
+   `npm run build && npx vite preview --port 4320` et `npx tsx scripts/e2e.ts` (4 comptes de test, 15 étapes ;
    supprimer ensuite les comptes `cadence-e2e-%@example.com`, requête affichée à la fin).
 4. Mise en ligne : chaque push sur `main` est déployé par Vercel (projet relié au repo GitHub, réglages dans
    `vercel.json`, aucune variable à saisir). Mode d'emploi et sécurité : `docs/mise-en-ligne.md`.
@@ -47,5 +47,7 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   appareil revenu hors ligne pouvait recréer (et décocher) des tâches déjà cochées par l'autre.
 - Toute donnée remplacée depuis le serveur passe par `replaceData()` (sync.ts), sinon elle repartirait dans la file
   d'envoi.
+- Les popovers (menus, listes) sont dans `<body>` mais React fait remonter leurs clics aux ancêtres du bouton qui les
+  ouvre : `popover.tsx` arrête la propagation (sinon « Supprimer » dans le menu d'une tâche ouvrait aussi la tâche).
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.
