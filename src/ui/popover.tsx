@@ -9,7 +9,6 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from './cn';
-import { useLiquidGlass } from './glass';
 import { motionTokens } from '../theme/motion';
 import { SPRING, reducedMotion } from './liquid';
 
@@ -85,7 +84,6 @@ export function Popover({
 }) {
   const [place, setPlace] = useState<Place | null>(null);
   const panel = useRef<HTMLDivElement>(null);
-  const glass = useLiquidGlass<HTMLDivElement>({ bezel: 14, strength: 10, blur: 8 });
   const closeRef = useRef(onClose);
   useEffect(() => {
     closeRef.current = onClose;
@@ -130,10 +128,9 @@ export function Popover({
     <AnimatePresence>
       {open && place && (
         <motion.div
-          ref={(el) => {
-            panel.current = el;
-            glass(el);
-          }}
+          // No SVG refraction here (the .liquid frost only): under its dense tint it hardly shows, and refiltering the
+          // backdrop through it on every frame of the growth made the panels (the calendar) stutter.
+          ref={panel}
           data-popover=""
           // Portalled to <body>, but React still bubbles its clicks to the trigger's ancestors: a « Supprimer » in a
           // task row's menu also clicked the row, which opened the (now deleted) task as « Nouvelle tâche ».

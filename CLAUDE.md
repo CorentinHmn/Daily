@@ -76,7 +76,13 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Pastille du profil (`src/ui/chipMenu.tsx`) : même technique que le rail (calque de verre plus grand que la pastille,
   clip-path animé pastille → pastille + menu, ombre et liseré sur le même tracé, réfraction gardée sur la pastille par
   l'option `lens` de `useLiquidGlass`) ; la liste est toujours montée (mesurée, `inert` fermée) et découpée par le même
-  contour. Les autres panneaux (`popover.tsx`) naissent de leur bouton par une mise à l'échelle sur le même ressort.
+  contour ; il descend d'abord à la largeur de la pastille puis s'élargit (sinon un angle vif au raccord), les entrées
+  n'apparaissent qu'une fois le verre presque ouvert et partent les premières. Les autres panneaux (`popover.tsx`)
+  naissent de leur bouton par une mise à l'échelle sur le même ressort, sans réfraction SVG (refiltrer le fond à
+  chaque image saccadait le calendrier).
+- Éclats (`src/ui/burst.ts`, case d'une tâche, félicitations) : calque fixe dans `<body>`. Félicitations
+  (`Celebrations.tsx`) : journée bouclée, objectif atteint, seulement après le rattrapage du foyer.
+- Pas d'attribut `title` (infobulles du navigateur) : `aria-label` pour les lecteurs d'écran.
 - Heure et date : `TimeField` / `DateField` (`src/ui/pickers.tsx`), jamais `<input type="time|date">` (sélecteurs gris
   du navigateur).
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.

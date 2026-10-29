@@ -44,10 +44,15 @@ function shape(g: Box, q: number, inset = 0): string {
   const rc = g.ch / 2;
   const bottom = g.top + g.ch + (g.my1 - g.top - g.ch) * q;
   const rb = rc + (CORNER - rc) * k;
-  const left = g.cx0 + (g.mx0 - g.cx0) * q;
   const ytop = g.top + rc + (g.my0 - g.top - rc) * q;
-  const rt = CORNER * k;
-  const f = FILLET * k;
+  // Down first, then wide (and back the other way): the menu widens to the left a little behind its growth, and what
+  // it sticks out beyond the chip is shared, in proportion, between its corner and the hollow curve — never a sharp
+  // angle where the chip's side meets the menu's top, however far it is.
+  const w = Math.max(0, Math.min(1.1, (q - 0.6) / 0.4));
+  const out = (g.cx0 - g.mx0) * (w <= 1 ? w * w * (3 - 2 * w) : 1 + (w - 1) * 0.5);
+  const left = g.cx0 - out;
+  const rt = Math.min(CORNER, (out * CORNER) / (CORNER + FILLET));
+  const f = Math.min(FILLET, (out * FILLET) / (CORNER + FILLET), (g.my0 - g.top - rc) * Math.max(0, q));
   const n = (v: number) => Math.round(v * 100) / 100;
   const r0 = (v: number) => n(Math.max(0, v));
   return [
@@ -172,10 +177,14 @@ export function ChipMenu({ items, label, className, children, width = 240 }: { i
         rl?.animate(outlines.map((o) => ({ clipPath: o.light })), opts),
         // The menu's tint comes with the glass; its items once the glass is mostly out, and they leave first.
         tn?.animate(qs.map((q) => ({ opacity: Math.max(0, Math.min(1, q)) })), opts),
-        // (clipped by the same outline: they never show outside the glass)
+        // (clipped by the same outline: they never show outside the glass; closing, they leave in the first 90 ms,
+        // before the glass narrows under them)
+        // Opening, they show once the glass is (nearly) as wide as the menu — on the furthest it has gone, so the
+        // spring's bounce never dims them again.
         li?.animate(
-          qs.map((q, i) => {
-            const k = Math.max(0, Math.min(1, (q - 0.5) / 0.4));
+          qs.map((_, i) => {
+            const far = Math.max(...qs.slice(0, i + 1));
+            const k = opening ? Math.max(0, Math.min(1, (far - 0.9) / 0.1)) : Math.max(0, 1 - (i * FRAME) / 90);
             return { opacity: k, clipPath: outlines[i]!.glass };
           }),
           opts,
