@@ -75,7 +75,8 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   du contour) et liseré (anneau entre le contour et le contour décalé) sont aussi des clip-paths, avec les mêmes
   images-clés échantillonnées à 60 i/s : rien ne peut se décaler (un `d` SVG animé à part laissait voir une tache
   noire). Pendant le mouvement, la réfraction SVG laisse place au même givre en CSS (`paused` de `useLiquidGlass`).
-  Plus de vague avec le nom (le rail ouvert montre les noms).
+  Replié, la vague sort avec le nom à chaque changement d'onglet (et au survol de l'onglet actif) ; ouvert, pas de
+  vague. La vague ne peut pas vivre dans le `<nav>` : un `backdrop-filter` ancêtre la couperait.
 - Pastille du profil (`src/ui/chipMenu.tsx`) : même technique que le rail (calque de verre plus grand que la pastille,
   clip-path animé pastille → pastille + menu, ombre et liseré sur le même tracé, réfraction gardée sur la pastille par
   l'option `lens` de `useLiquidGlass`) ; la liste est toujours montée (mesurée, `inert` fermée) et découpée par le même

@@ -90,6 +90,9 @@
 - Vérifié : `tsc`, `eslint`, vitest 13/13, e2e 15/15, captures pc-xl / pc / laptop / laptop-s (clair + sombre) sans
   débordement ni erreur console, images de l'animation figées à 50 / 120 / 200 / 300 / 450 ms. Comptes de test
   supprimés.
+- Retour : la vague doit rester quand le rail est replié → remise telle quelle (même forme, même tenue du nom de
+  1,1 s, survol de l'onglet actif), reflux en 300 ms comme le menu du profil (380 avant), réfraction SVG en pause
+  pendant la vague (le verre refiltré à chaque image la ralentissait). Rail ouvert : pas de vague.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

@@ -7,7 +7,7 @@ import { PanelLeftClose, PanelLeftOpen, Plus, Settings, type LucideIcon } from '
 import { cn } from './cn';
 import { ICON_STROKE, Logo } from './atoms';
 import { useLiquidGlass } from './glass';
-import { SPRING, reducedMotion, travel, useDeferredPick, useLiquidBubble } from './liquid';
+import { SPRING, reducedMotion, stretchAt, travel, useDeferredPick, useLiquidBubble } from './liquid';
 import { cssPx } from '../theme/tokens';
 
 export type NavItem<T extends string> = { id: T; label: string; icon: LucideIcon; badge?: string; live?: boolean };
@@ -53,22 +53,57 @@ const LABEL_IN: Keyframe[] = [
   { opacity: 1, transform: 'none' },
 ];
 
-/** Outline of the rail's glass (W × H, corners R); `inset` = the same outline moved inwards (for the rim's ring). */
-function railShape(W: number, H: number, R: number, inset = 0): string {
+/** Folded, the name pours out of the rail with the active item: */
+/** extra width of the name's bubble, kept hidden so that its spring can overshoot (the liquid bounce) without a gap; */
+const OVERSHOOT = 14;
+/** glass of the wave around the poured bubble (px), and radius of its hollow curves where it leaves the rail; */
+const SLEEVE = 12;
+const FILLET = 26;
+/** width of the glass beyond the folded rail, where the wave can go (the longest name fits); */
+const WAVE = 150;
+/** one frame (the pour is sampled at 60 per second), the hold with the name out, the flow back in (the profile menu's); */
+const FRAME = 1000 / 60;
+const HOLD = 1100;
+const BACK = 300;
+/** while moving, the name starts pouring when the bubble is halfway, then rides along with it. */
+const POUR_AT = SPRING.frames.findIndex((f) => f.p >= 0.5);
+
+/**
+ * Outline of the rail's glass: the rail (W × H, corners R) and, on its right side around height `cy`, the wave: a
+ * pill out by `e` px, `hh` high on each side of `cy`, joined to the rail by two hollow curves. `inset` = the same
+ * outline moved inwards (for the rim's ring). Always the same commands, so that the path can be interpolated (e = 0:
+ * the bare rail).
+ */
+function railShape(W: number, H: number, R: number, e: number, cy: number, hh: number, inset = 0): string {
   const i = inset;
-  const r = R - i;
+  // Out far enough (the name's bubble has a minimum width), the end is a half circle and the curves are FILLET wide;
+  // while it comes out, both grow in the same proportion, whatever the name's length.
+  const full = hh + FILLET;
+  const c = e >= full ? hh : (e * hh) / full;
+  const f = e >= full ? FILLET : (e * FILLET) / full;
+  const top = cy - hh;
+  const bottom = cy + hh;
+  const fi = f + i;
+  const ci = Math.max(0, c - i);
+  const hi = Math.max(0, hh - i);
   const n = (v: number) => Math.round(v * 100) / 100;
-  return `M ${R} ${i} H ${n(W - R)} A ${r} ${r} 0 0 1 ${n(W - i)} ${R} V ${H - R} A ${r} ${r} 0 0 1 ${n(W - R)} ${H - i} H ${R} A ${r} ${r} 0 0 1 ${i} ${H - R} V ${R} A ${r} ${r} 0 0 1 ${R} ${i} Z`;
+  return [
+    `M ${R} ${i} H ${n(W - R)} A ${R - i} ${R - i} 0 0 1 ${n(W - i)} ${R}`,
+    `V ${n(top - f)} A ${n(fi)} ${n(fi)} 0 0 0 ${n(W + f)} ${n(top + i)}`,
+    `H ${n(W + e - c)} A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c + ci)} ${n(cy)} A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c)} ${n(bottom - i)}`,
+    `H ${n(W + f)} A ${n(fi)} ${n(fi)} 0 0 0 ${n(W - i)} ${n(bottom + f)}`,
+    `V ${H - R} A ${R - i} ${R - i} 0 0 1 ${n(W - R)} ${H - i} H ${R} A ${R - i} ${R - i} 0 0 1 ${i} ${H - R} V ${R} A ${R - i} ${R - i} 0 0 1 ${R} ${i} Z`,
+  ].join(' ');
 }
 
-/** The clip-paths of every layer for a rail W wide: the glass, its shadow (only outside it), its rim (a ring). */
-function railLayers(W: number, H: number, R: number) {
-  const d = railShape(W, H, R);
+/** The clip-paths of every layer for one outline: the glass, its shadow (only outside it), its rim (a ring). */
+function railLayers(W: number, H: number, R: number, e = 0, cy = H / 2, hh = 0) {
+  const d = railShape(W, H, R, e, cy, hh);
   return {
     glass: `path('${d}')`,
-    shadow: `path(evenodd, 'M -80 -80 H ${Math.round(W + ROOM + 400)} V ${H + 80} H -80 Z ${d}')`,
-    shade: `path(evenodd, '${d} ${railShape(W, H, R, 1)}')`,
-    light: `path(evenodd, '${d} ${railShape(W, H, R, 1.5)}')`,
+    shadow: `path(evenodd, 'M -80 -80 H ${Math.round(W + WAVE + ROOM + 400)} V ${H + 80} H -80 Z ${d}')`,
+    shade: `path(evenodd, '${d} ${railShape(W, H, R, e, cy, hh, 1)}')`,
+    light: `path(evenodd, '${d} ${railShape(W, H, R, e, cy, hh, 1.5)}')`,
   };
 }
 
@@ -87,10 +122,13 @@ function RailLabel({ open, children, className }: { open: boolean; children: Rea
  * travels between the items like the phone's tab bar, with the same spring (keyframes played by Web Animations).
  * Opening or folding, the rail's width follows that same spring (half its overshoot): the bubble, the rows and the page
  * beside it follow the layout, the names fade in once it is on its way and out at once.
- * The glass is one layer as wide as the open rail (and a little more), shaped by a clip-path; its shadow (only outside
- * it) and its rim (a ring between the outline and the outline moved inwards) are clip-paths of the same outline,
- * animated with the same keyframes: one piece of glass, no seam, nothing that can drift from the rest. While it moves,
- * its refraction gives way to the same frost in CSS (an SVG filter run on every frame stuttered).
+ * Folded, halfway there the bubble starts pouring out of the rail with the item's name, the rail's own glass swelling
+ * into a wave around it; the poured bubble and the wave ride along with the round one (same spring, same stretch,
+ * same bounce), hold, then flow back in. Hovering the active item pours the name again.
+ * The glass is one layer wider than the rail (open, or folded with its wave), shaped by a clip-path; its shadow (only
+ * outside it) and its rim (a ring between the outline and the outline moved inwards) are clip-paths of the same
+ * outline, animated with the same keyframes: one piece of glass, no seam, nothing that can drift from the rest. While
+ * it moves, its refraction gives way to the same frost in CSS (an SVG filter run again on every frame stuttered).
  */
 export function NavRail<T extends string>({
   items,
@@ -135,6 +173,9 @@ export function NavRail<T extends string>({
   const shadow = useRef<HTMLDivElement>(null);
   const shadowShape = useRef<HTMLDivElement>(null);
   const bubble = useRef<HTMLSpanElement>(null);
+  const tongue = useRef<HTMLSpanElement>(null);
+  const name = useRef<HTMLSpanElement>(null);
+  const glow = useRef<Animation | null>(null);
   const tabs = useRef(new Map<T, HTMLButtonElement>());
   const placed = useRef(false);
   /** The rail's width as seen when it was toggled (mid-flight included): where the next move starts. */
@@ -142,13 +183,14 @@ export function NavRail<T extends string>({
   // The clicked item lights up at once; the screen follows two frames later, the bubble already on its way.
   const [pending, setPending] = useState<{ id: T; from: T } | null>(null);
   const shown = pending && pending.from === active ? pending.id : active;
-  const layerWidth = { width: `calc(var(--layout-rail-open) + ${ROOM}px)` };
+  const label = items.find((i) => i.id === shown)?.label ?? '';
+  const layerWidth = { width: `calc(max(var(--layout-rail-open) + ${ROOM}px, var(--layout-rail) + ${WAVE}px))` };
 
-  /** Height of the rail and the radius of its corners. */
+  /** Size of the rail and the radius of its corners. */
   const geometry = useCallback(() => {
     const nav = railRef.current;
     if (!nav) return null;
-    return { H: nav.offsetHeight, R: parseFloat(getComputedStyle(nav).borderTopLeftRadius) || 28 };
+    return { W: nav.offsetWidth, H: nav.offsetHeight, R: parseFloat(getComputedStyle(nav).borderTopLeftRadius) || 28 };
   }, []);
 
   /** The layers that follow the rail's outline. */
@@ -161,9 +203,8 @@ export function NavRail<T extends string>({
   const rest = useCallback(() => {
     const g = geometry();
     const p = parts();
-    const nav = railRef.current;
-    if (!g || !p || !nav) return;
-    const W = nav.offsetWidth;
+    if (!g || !p) return;
+    const W = g.W;
     const l = railLayers(W, g.H, g.R);
     p.sl.style.clipPath = p.ss.style.clipPath = l.glass;
     p.sh.style.clipPath = l.shadow;
@@ -172,6 +213,106 @@ export function NavRail<T extends string>({
     p.rl.style.backgroundSize = `${W}px 100%`;
     p.sn.style.width = `${W}px`;
   }, [geometry, parts]);
+
+  /** Stops the wave (it flows back at once): the rail opens or folds, or a new pour starts. */
+  const still = useCallback(() => {
+    for (const el of [tongue.current, name.current]) el?.getAnimations().forEach((a) => a.cancel());
+    glow.current?.cancel();
+  }, []);
+
+  /**
+   * Folded: the bubble pours out with the name and the rail's glass swells around it, holds, then all flow back in.
+   * Every layer gets keyframes sampled on one 60 fps timeline from the click: the round bubble's travel `dy` (its
+   * spring, stretch and bounce, which the poured bubble and the wave follow), from `start` frames the pour's spring.
+   */
+  const pour = useCallback(
+    (dy: number, start: number) => {
+      const [t, n, b] = [tongue.current, name.current, bubble.current];
+      const g = geometry();
+      const p = parts();
+      // Not while the rail folds: the wave grows from the rail's final edge.
+      if (!t || !n || !b || !g || !p || reducedMotion() || frame.current?.getAnimations().length) return;
+      still();
+      for (const el of Object.values(p)) el.getAnimations().forEach((a) => a.cancel());
+      const size = t.offsetHeight;
+      const width = t.offsetWidth;
+      const hidden = width - size;
+      const r = size / 2;
+      const cy = t.offsetTop + r;
+      const out = start * FRAME + SPRING.ms;
+      const total = out + HOLD + BACK;
+      const count = Math.ceil(total / FRAME);
+      const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+      const samples = Array.from({ length: count + 1 }, (_, i) => {
+        const at = Math.min(total, i * FRAME);
+        // The round bubble: where it is (its travel spring) and how it stretches.
+        const travelled = SPRING.frames[i] ?? { p: 1, v: 0 };
+        const off = dy * (1 - travelled.p);
+        const along = 1 + stretchAt(dy, travelled.v);
+        // The pour: how much of the name's bubble is still clipped off on the right, and its speed.
+        let right = width;
+        let speed = 0;
+        if (i >= start && at < out) {
+          const f = SPRING.frames[i - start] ?? { p: 1, v: 0 };
+          right = OVERSHOOT + (hidden - OVERSHOOT) * (1 - f.p);
+          speed = hidden * f.v;
+        } else if (at >= out && at < out + HOLD) right = OVERSHOOT;
+        else if (at >= out + HOLD) {
+          const x = Math.min(1, (at - out - HOLD) / BACK);
+          const h = 0.001;
+          right = OVERSHOOT + (hidden - OVERSHOOT) * ease(x);
+          speed = (((hidden - OVERSHOOT) * (ease(Math.min(1, x + h)) - ease(x))) / h) * (1000 / BACK);
+          if (x >= 1) right = width;
+        }
+        // Liquid: the faster it pours, the thinner it gets.
+        const thin = 1 - Math.min(0.16, Math.abs(speed) / 5000);
+        return { at, off, along, right, thin };
+      });
+      const play = (el: Element, f: (s: (typeof samples)[number], i: number) => Keyframe) =>
+        el.animate(
+          samples.map((s, i) => ({ offset: s.at / total, ...f(s, i) })),
+          { duration: total, easing: 'linear' },
+        );
+      // The poured bubble rides with the round one (and stretches with it); thinner as it pours fast, clipped from the
+      // top and the bottom too (over the round bubble: a liquid neck).
+      const flow = play(t, (s) => {
+        const v = r * (1 - s.thin);
+        return { transform: `translateY(${s.off}px) scaleY(${s.along})`, clipPath: s.right >= width ? `inset(0 ${width}px 0 0 round ${r}px)` : `inset(${v}px ${s.right}px ${v}px 0 round ${r - v}px)` };
+      });
+      // The wave: as far out as the poured bubble, as high as it (with the glass around), where the round bubble is.
+      const outline = samples.map((s) => {
+        const e = s.right >= width ? 0 : Math.max(0, t.offsetLeft + width - s.right + SLEEVE - g.W);
+        return railLayers(g.W, g.H, g.R, e, cy + s.off, r * s.thin * s.along + SLEEVE);
+      });
+      play(p.sl, (_, i) => ({ clipPath: outline[i]!.glass }));
+      play(p.ss, (_, i) => ({ clipPath: outline[i]!.glass }));
+      play(p.sh, (_, i) => ({ clipPath: outline[i]!.shadow }));
+      play(p.rs, (_, i) => ({ clipPath: outline[i]!.shade }));
+      play(p.rl, (_, i) => ({ clipPath: outline[i]!.light }));
+      // The name fades in once the bubble is well out, and out as it flows back.
+      play(n, (s) => {
+        const shownPart = s.right >= width ? 0 : Math.max(0, Math.min(1, (hidden - s.right) / Math.max(1, hidden - OVERSHOOT)));
+        const k = Math.max(0, Math.min(1, (shownPart - 0.45) / 0.4));
+        return { opacity: k, transform: `translateX(${(1 - k) * -8}px)` };
+      });
+      // One blue: the round bubble's glow fades while the name is out (a clip-path would cut the glow of the rest).
+      const lit = getComputedStyle(b).boxShadow;
+      const from = (start * FRAME) / total;
+      glow.current = b.animate(
+        [
+          { offset: 0, boxShadow: lit },
+          { offset: from, boxShadow: lit },
+          { offset: Math.min(1, from + 160 / total), boxShadow: 'none' },
+          { offset: (out + HOLD + BACK * 0.5) / total, boxShadow: 'none' },
+          { offset: 1, boxShadow: lit },
+        ],
+        { duration: total },
+      );
+      setMoving(true);
+      flow.onfinish = () => setMoving(false);
+    },
+    [geometry, parts, still],
+  );
 
   const toggle = () => {
     from.current = frame.current?.getBoundingClientRect().width ?? null;
@@ -188,6 +329,7 @@ export function NavRail<T extends string>({
     const start = from.current;
     from.current = null;
     if (!f || !nav || !g || !p || start === null) return;
+    still();
     for (const el of [f, ...Object.values(p)]) el.getAnimations().forEach((a) => a.cancel());
     const labels = [...nav.querySelectorAll<HTMLElement>('[data-rail-label]')];
     labels.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
@@ -230,25 +372,34 @@ export function NavRail<T extends string>({
       else el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 90, easing: 'linear' });
     }
     move.onfinish = () => setMoving(false);
-  }, [open, geometry, parts, rest]);
+  }, [open, geometry, parts, rest, still]);
 
-  // The bubble goes to the shown item: as wide as the rows (CSS), only its height and place are set here.
+  // The bubble goes to the shown item: as wide as the rows (CSS), only its height and place are set here; folded, the
+  // name pours out with it.
   useLayoutEffect(() => {
-    const [b, nav] = [bubble.current, railRef.current];
+    const [b, t, nav] = [bubble.current, tongue.current, railRef.current];
     const tab = tabs.current.get(shown);
-    if (!b || !nav || !tab) return;
+    if (!b || !t || !nav || !tab) return;
     // Where the bubble is seen now (mid-flight included), before moving it to the new item.
     const seen = b.getBoundingClientRect();
     const fromCenter = seen.top - nav.getBoundingClientRect().top + seen.height / 2;
     b.getAnimations().forEach((a) => a.cancel());
-    const { offsetTop: top, offsetHeight: size } = tab;
+    const { offsetTop: top, offsetLeft: left, offsetHeight: size } = tab;
     Object.assign(b.style, { top: `${top}px`, height: `${size}px` });
+    Object.assign(t.style, { top: `${top}px`, left: `${left}px`, height: `${size}px` });
+    // The same rounding for every name: long enough for the wave's full half-circle end (concentric with the blue one)
+    // and its full curves, short enough to stay in the glass (a longer name ends with « … »).
+    t.style.minWidth = `${nav.offsetWidth + size / 2 + FILLET + OVERSHOOT - left}px`;
+    t.style.maxWidth = `${nav.offsetWidth + WAVE - SLEEVE - 6 - left}px`;
     const first = !placed.current;
     placed.current = true;
     if (first || !seen.height || reducedMotion()) return;
     const dy = fromCenter - (top + size / 2);
-    if (Math.abs(dy) > 0.5) b.animate(travel(dy, 'y', seen.height, size), { duration: SPRING.ms, easing: 'linear' });
-  }, [shown]);
+    const moves = Math.abs(dy) > 0.5;
+    if (moves) b.animate(travel(dy, 'y', seen.height, size), { duration: SPRING.ms, easing: 'linear' });
+    if (!open) pour(moves ? dy : 0, moves ? POUR_AT : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open: opening or folding is not a move of the bubble
+  }, [shown, pour]);
 
   // The glass at rest follows the rail's size (window resized).
   useLayoutEffect(() => {
@@ -289,6 +440,12 @@ export function NavRail<T extends string>({
       <div ref={rimLight} aria-hidden style={layerWidth} className="rail-rim pointer-events-none absolute inset-y-0 left-0" />
       <nav ref={railRef} aria-label="Navigation principale" className="relative z-10 flex h-full w-full flex-col rounded-2xl px-6 pt-[22px] pb-[23px]">
         <span ref={bubble} aria-hidden className="absolute inset-x-6 rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
+        {/* Folded, the name's bubble: the same blue as the round one, over it (z-1, the items z-2); clipped away at rest. */}
+        <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-accent-default pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-accent shadow-hairline-top">
+          <span ref={name} className="min-w-0 truncate opacity-0">
+            {label}
+          </span>
+        </span>
         <div className="flex w-12 justify-center">
           <RailDots />
         </div>
@@ -316,6 +473,9 @@ export function NavRail<T extends string>({
                     if (item.id === active) return onNavigate(item.id);
                     setPending({ id: item.id, from: active });
                     requestAnimationFrame(() => requestAnimationFrame(() => onNavigate(item.id)));
+                  }}
+                  onMouseEnter={() => {
+                    if (on && !open && !tongue.current?.getAnimations().length) pour(0, 0);
                   }}
                   aria-label={item.label}
                   aria-current={item.id === active ? 'page' : undefined}
