@@ -72,6 +72,22 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
   }
+  /* Touch screens behave like an app: a long press never selects text nor opens the iOS callout (iOS selected the
+     text next to a non-selectable chip and cancelled the long press on frequent items). Fields stay selectable. */
+  @media (pointer: coarse) {
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    input,
+    textarea,
+    [contenteditable='true'] {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+  }
   /* iOS zooms into any field under 16 px when it gets the focus. */
   @media (max-width: 1199.98px) {
     input,
