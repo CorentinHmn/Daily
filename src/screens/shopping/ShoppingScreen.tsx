@@ -183,7 +183,7 @@ function ListPanel() {
   return (
     <Panel className="flex-1">
       <PanelHeader title={list.name} count={`${todo.length} à prendre`}>
-        <Button variant="ghost" size="s" icon={ListX} aria-label="Retirer les cochés" title="Retirer les cochés" onClick={() => app.clearChecked()} disabled={inCart.length === 0}>
+        <Button variant="ghost" size="s" icon={ListX} aria-label="Retirer les cochés" onClick={() => app.clearChecked()} disabled={inCart.length === 0}>
           <span className="max-xl:hidden">Retirer les cochés</span>
         </Button>
       </PanelHeader>
@@ -265,7 +265,7 @@ function ItemRow({ item }: { item: ShopItem }) {
         <CheckCircle checked={item.checked} onChange={() => app.toggleItem(item.id)} label={item.checked ? `Remettre ${item.name}` : `Cocher ${item.name}`} />
         <span className={cn('min-w-0 flex-1 truncate text-body-m', item.checked ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{item.name}</span>
         <QtyButton item={item} />
-        <button ref={anchor} type="button" onClick={() => setOpen(true)} aria-label={`Rayon de ${item.name} : ${R.label}`} title={`Rayon : ${R.label}`} className="inline-flex size-8 items-center justify-center rounded-full text-text-muted opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-bg-hover hover:text-text-primary focus-visible:opacity-100 pointer-coarse:opacity-70">
+        <button ref={anchor} type="button" onClick={() => setOpen(true)} aria-label={`Rayon de ${item.name} : ${R.label}`} className="inline-flex size-8 items-center justify-center rounded-full text-text-muted opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-bg-hover hover:text-text-primary focus-visible:opacity-100 pointer-coarse:opacity-70">
           <R.icon size={15} strokeWidth={ICON_STROKE} aria-hidden />
         </button>
         <IconButton icon={X} label={`Retirer ${item.name}`} variant="danger" size="xs" className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-70" onClick={() => app.deleteItem(item.id)} />

@@ -47,7 +47,7 @@ export function WeekScreen() {
         {!mobile && (
           <div className={cn('flex items-center gap-1 transition-opacity duration-(--v-duree-courte)', mode === 'type' && 'pointer-events-none opacity-0')} aria-hidden={mode === 'type' || undefined}>
             <IconButton icon={ChevronLeft} label="Semaine précédente" variant="ghost" size="s" onClick={prev} tabIndex={mode === 'type' ? -1 : undefined} />
-            <button type="button" onClick={now} tabIndex={mode === 'type' ? -1 : undefined} className={cn('tnum min-w-[150px] rounded-full px-3 py-2 text-center text-label-m transition-colors hover:bg-bg-card/70', offset === 0 ? 'text-text-primary' : 'text-text-accent')} title="Revenir à cette semaine">
+            <button type="button" onClick={now} tabIndex={mode === 'type' ? -1 : undefined} className={cn('tnum min-w-[150px] rounded-full px-3 py-2 text-center text-label-m transition-colors hover:bg-bg-card/70', offset === 0 ? 'text-text-primary' : 'text-text-accent')}>
               {offset === 0 ? 'Cette semaine' : weekRangeLabel(monday)}
             </button>
             <IconButton icon={ChevronRight} label="Semaine suivante" variant="ghost" size="s" onClick={next} tabIndex={mode === 'type' ? -1 : undefined} />
@@ -224,11 +224,10 @@ function WeekTaskCard({ task }: { task: Task }) {
         e.dataTransfer.effectAllowed = 'move';
       }}
       onClick={() => app.openDialog({ kind: 'task', id: task.id })}
-      title={task.title}
       className={cn('group/card flex cursor-grab flex-col gap-1.5 rounded-lg border px-2.5 py-2 transition-[background-color,border-color,opacity] duration-(--v-duree-courte) active:cursor-grabbing', task.done ? 'border-transparent bg-bg-card/35' : 'border-border-subtle bg-bg-card/75 hover:border-border-strong hover:bg-bg-card')}
     >
       <div className="flex items-start gap-2">
-        <CheckCircle checked={task.done} onChange={() => app.toggleTask(task.id)} label={task.done ? `Décocher « ${task.title} »` : `Cocher « ${task.title} »`} size="s" className="mt-px" />
+        <CheckCircle burst checked={task.done} onChange={() => app.toggleTask(task.id)} label={task.done ? `Décocher « ${task.title} »` : `Cocher « ${task.title} »`} size="s" className="mt-px" />
         <span className={cn('line-clamp-2 min-w-0 flex-1 text-label-s', task.done ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{task.title}</span>
       </div>
       <div className="flex items-center gap-1.5 pl-7 text-caption text-text-muted">

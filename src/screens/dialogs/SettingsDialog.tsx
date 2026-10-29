@@ -222,7 +222,6 @@ function TabIconPicker({ tab, label }: { tab: View; label: string }) {
                 role="radio"
                 aria-checked={on}
                 aria-label={name}
-                title={name}
                 onClick={() => pick(id)}
                 className={cn('inline-flex size-10 items-center justify-center rounded-full transition-colors duration-(--v-duree-courte)', on ? 'bg-accent-default text-text-on-accent shadow-hairline-top' : 'text-text-secondary hover:bg-bg-card/80 hover:text-text-primary')}
               >
@@ -248,7 +247,7 @@ function PhotoButton({ member: m }: { member: Member }) {
   const app = useApp.getState();
   return (
     <span className="group/photo relative shrink-0">
-      <label className="relative block cursor-pointer rounded-full focus-within:shadow-(--shadow-focus-ring)" title={m.photo ? 'Changer la photo' : 'Ajouter une photo'}>
+      <label className="relative block cursor-pointer rounded-full focus-within:shadow-(--shadow-focus-ring)">
         <Avatar name={m.name || '?'} hue={m.hue} photo={m.photo} size="s" />
         <span aria-hidden className="absolute inset-0 inline-flex items-center justify-center rounded-full bg-[rgb(14_16_20/0.45)] text-text-on-accent opacity-0 transition-opacity group-hover/photo:opacity-100 pointer-coarse:hidden">
           <Camera size={14} strokeWidth={2} />
@@ -276,7 +275,7 @@ function PhotoButton({ member: m }: { member: Member }) {
         </span>
       )}
       {m.photo && (
-        <button type="button" aria-label={`Retirer la photo de ${m.name}`} title="Retirer la photo" onClick={() => app.saveMember({ ...m, photo: undefined })} className="absolute -top-1.5 -right-1.5 inline-flex size-5 items-center pointer-coarse:size-6 justify-center rounded-full border border-border-default bg-bg-card text-text-secondary shadow-sm hover:text-text-danger">
+        <button type="button" aria-label={`Retirer la photo de ${m.name}`} onClick={() => app.saveMember({ ...m, photo: undefined })} className="absolute -top-1.5 -right-1.5 inline-flex size-5 items-center pointer-coarse:size-6 justify-center rounded-full border border-border-default bg-bg-card text-text-secondary shadow-sm hover:text-text-danger">
           <X size={11} strokeWidth={2.5} aria-hidden />
         </button>
       )}
@@ -305,7 +304,6 @@ function Household() {
                   role="radio"
                   aria-checked={m.hue === h}
                   aria-label={HUE_LABEL[h]}
-                  title={HUE_LABEL[h]}
                   onClick={() => app.saveMember({ ...m, hue: h })}
                   className={cn('rounded-full p-0.5 transition-shadow', m.hue === h && 'shadow-[0_0_0_2px_var(--color-border-accent)]')}
                 >

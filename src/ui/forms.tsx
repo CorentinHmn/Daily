@@ -154,7 +154,6 @@ export function ChoiceChips<T extends string>({ options, value, onChange, label,
             role="radio"
             aria-checked={active}
             aria-label={iconOnly ? o.label : undefined}
-            title={iconOnly ? o.label : undefined}
             onClick={() => onChange(o.value)}
             className={cn(
               'inline-flex h-9 items-center gap-2 rounded-full border text-label-s transition-[background-color,border-color,color] duration-(--v-duree-courte)',
@@ -184,7 +183,6 @@ export function DayPicker({ value, onChange, multiple }: { value: number[]; onCh
             role={multiple ? 'checkbox' : 'radio'}
             aria-checked={on}
             aria-label={DAY_LONG[i]}
-            title={DAY_LONG[i]}
             onClick={() => onChange(multiple ? (on ? value.filter((d) => d !== i) : [...value, i].sort()) : [i])}
             className={cn(
               'inline-flex size-10 items-center justify-center rounded-full border text-label-m transition-[background-color,border-color,color] duration-(--v-duree-courte)',

@@ -18,7 +18,7 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
   const several = people?.length ? members.filter((x) => people.includes(x.id)) : [];
   if (several.length > 1) {
     return (
-      <span title={`Pour ${several.map((x) => x.name).join(' et ')}`} className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
+      <span role="img" aria-label={`Pour ${several.map((x) => x.name).join(' et ')}`} className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
         {several.map((x) => (
           <Avatar key={x.id} name={x.name} hue={x.hue} photo={x.photo} size="xs" />
         ))}
@@ -28,13 +28,13 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
   const m = memberOf(members, several[0]?.id ?? assignee);
   if (m) {
     return (
-      <span title={`Pour ${m.name}`} className={cn('inline-flex shrink-0', className)}>
+      <span role="img" aria-label={`Pour ${m.name}`} className={cn('inline-flex shrink-0', className)}>
         <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" />
       </span>
     );
   }
   return (
-    <span title="Pour le foyer" className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
+    <span role="img" aria-label="Pour le foyer" className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
       {members.slice(0, 2).map((x) => (
         <Avatar key={x.id} name={x.name} hue={x.hue} photo={x.photo} size="xs" />
       ))}
@@ -83,7 +83,6 @@ export function PersonSwitcher({ className }: { className?: string }) {
           role="radio"
           aria-checked={shown === m.id}
           aria-label={m.id === meId ? `${m.name} (moi)` : m.name}
-          title={m.name}
           onClick={() => set(m.id)}
           className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors duration-200', shown === m.id ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
         >

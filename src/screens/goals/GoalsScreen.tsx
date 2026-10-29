@@ -124,7 +124,7 @@ function GoalCard({ goal }: { goal: Goal }) {
           {goal.steps.map((s) => (
             <li key={s.id}>
               <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-bg-card/60">
-                <CheckCircle checked={s.done} onChange={() => app.toggleGoalStep(goal.id, s.id)} label={s.label} size="s" />
+                <CheckCircle burst checked={s.done} onChange={() => app.toggleGoalStep(goal.id, s.id)} label={s.label} size="s" />
                 <span className={cn('text-body-s', s.done ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{s.label}</span>
               </label>
             </li>
@@ -156,12 +156,12 @@ function Habits() {
             const streak = habitStreak(h, today);
             return (
               <li key={h.id} className="inset-tile flex flex-col gap-3 rounded-xl px-3.5 py-3">
-                <button type="button" onClick={() => app.openDialog({ kind: 'habit', id: h.id })} className="flex min-w-0 items-center gap-2.5 text-left" title="Modifier l'habitude">
+                <button type="button" onClick={() => app.openDialog({ kind: 'habit', id: h.id })} className="flex min-w-0 items-center gap-2.5 text-left">
                   <IconBox icon={Icon} tone="glass" size="s" />
                   <span className="min-w-0 flex-1 truncate text-label-m text-text-primary">{h.title}</span>
                   <AssigneeBadge assignee={h.owner} />
                   {streak > 0 ? (
-                    <span className="tnum inline-flex shrink-0 items-center gap-1 text-label-s text-text-warn" title={`Série de ${streak} jour${streak > 1 ? 's' : ''}`}>
+                    <span className="tnum inline-flex shrink-0 items-center gap-1 text-label-s text-text-warn" aria-label={`Série de ${streak} jour${streak > 1 ? 's' : ''}`}>
                       <Flame size={14} strokeWidth={ICON_STROKE} aria-hidden />
                       {streak} j
                     </span>

@@ -20,6 +20,7 @@ import { GoalsScreen } from './screens/goals/GoalsScreen';
 import { ShoppingScreen } from './screens/shopping/ShoppingScreen';
 import { Dialogs } from './screens/dialogs/Dialogs';
 import { MobileShell } from './screens/shell/MobileShell';
+import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
 import { initSync, useSync, type SyncStatus } from './sync/sync';
 import { HouseholdSetup, RecoveryScreen, SignInScreen, Splash, Unreachable } from './screens/auth/AuthScreens';
@@ -115,6 +116,7 @@ function Workspace() {
         ]}
       />
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+      <Celebrations />
       <Dialogs />
     </>
   );

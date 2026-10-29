@@ -54,7 +54,7 @@ export function WeekBars({ data, format, height = 150, labels }: { data: { label
           const last = i === data.length - 1;
           const h = Math.max(4, (d.value / max) * (height - 22));
           return (
-            <div key={d.label + i} className="group/bar relative flex h-full min-w-0 flex-1 flex-col items-center justify-end" title={`${d.label} : ${format(d.value)}`}>
+            <div key={d.label + i} className="group/bar relative flex h-full min-w-0 flex-1 flex-col items-center justify-end">
               <span className={cn('tnum mb-1 text-caption whitespace-nowrap transition-opacity', last ? 'text-text-accent opacity-100' : 'text-text-secondary opacity-0 group-hover/bar:opacity-100')}>{format(d.value)}</span>
               <motion.span
                 className={cn('w-full max-w-7 rounded-full', last ? 'bg-accent-default shadow-glow-accent' : 'bg-route-rest/45 group-hover/bar:bg-route-rest/70')}

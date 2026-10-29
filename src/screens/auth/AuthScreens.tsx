@@ -142,7 +142,7 @@ function PasswordInput({ id, value, onChange, autoComplete, placeholder, autoFoc
       placeholder={placeholder}
       autoFocus={autoFocus}
       trailing={
-        <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} title={show ? 'Masquer' : 'Afficher'} className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:text-text-primary">
+        <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:text-text-primary">
           {show ? <EyeOff size={16} strokeWidth={ICON_STROKE} aria-hidden /> : <Eye size={16} strokeWidth={ICON_STROKE} aria-hidden />}
         </button>
       }

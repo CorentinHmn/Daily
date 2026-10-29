@@ -33,7 +33,7 @@ export function TaskRow({ task, dense, draggable }: { task: Task; dense?: boolea
         draggable && 'active:cursor-grabbing',
       )}
     >
-      <CheckCircle checked={task.done} onChange={() => app.toggleTask(task.id)} label={task.done ? `Décocher « ${task.title} »` : `Cocher « ${task.title} »`} size={dense ? 's' : 'm'} />
+      <CheckCircle burst checked={task.done} onChange={() => app.toggleTask(task.id)} label={task.done ? `Décocher « ${task.title} »` : `Cocher « ${task.title} »`} size={dense ? 's' : 'm'} />
       {!dense && <IconBox icon={cat.icon} tone={task.done ? 'raised' : 'glass'} size="s" className="max-md:hidden" />}
       <div className="min-w-0 flex-1">
         <p className={cn('truncate text-label-m transition-colors', task.done ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{task.title}</p>
@@ -72,7 +72,6 @@ export function TaskRow({ task, dense, draggable }: { task: Task; dense?: boolea
             ref={ref}
             type="button"
             aria-label={`Actions de « ${task.title} »`}
-            title="Actions"
             onClick={(e) => {
               e.stopPropagation();
               toggle();

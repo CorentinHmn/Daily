@@ -89,7 +89,6 @@ export function NotchCard({ children, onAction, actionLabel, className }: { chil
         type="button"
         onClick={onAction}
         aria-label={actionLabel}
-        title={actionLabel}
         className="liquid absolute top-0 right-0 inline-flex items-center justify-center rounded-full text-text-primary transition-transform duration-(--v-duree-courte) hover:scale-105 active:scale-95"
         style={{ width: BUTTON, height: BUTTON }}
       >

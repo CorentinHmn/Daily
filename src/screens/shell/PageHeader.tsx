@@ -127,7 +127,6 @@ function SyncDot() {
     <span
       role="img"
       aria-label={label}
-      title={label}
       className={cn(
         'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-bg-card',
         status === 'synced' && 'bg-signal-default',

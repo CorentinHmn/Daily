@@ -300,7 +300,7 @@ export function NavRail<T extends string>({
           </span>
         </span>
         <RailDots />
-        <button type="button" onClick={onLogo} aria-label="Cadence, aujourd'hui" title="Cadence" className="relative mt-[22px] rounded-full">
+        <button type="button" onClick={onLogo} aria-label="Cadence, aujourd'hui" className="relative mt-[22px] rounded-full">
           <Logo size={44} />
         </button>
         <ul className="mt-7 flex flex-col gap-3.5">
@@ -347,7 +347,6 @@ export function NavRail<T extends string>({
             ref={fabRef}
             type="button"
             aria-label={fabLabel}
-            title={fabLabel}
             onClick={onFab}
             className="inline-flex size-12 items-center justify-center rounded-full bg-accent-default text-text-on-accent drop-shadow-glow-accent transition-[background-color,transform] duration-(--v-duree-courte) hover:bg-accent-glow active:scale-95"
           >

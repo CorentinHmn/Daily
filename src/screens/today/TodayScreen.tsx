@@ -241,7 +241,7 @@ function WeekGlance() {
           const ratio = list.length ? list.filter((t) => t.done).length / list.length : 0;
           const isToday = d === today;
           return (
-            <button key={d} type="button" onClick={() => app.set({ view: 'week', weekOffset: 0, weekMode: 'agenda' })} className="group/day flex flex-col items-center gap-1.5" title={`${DAY_SHORT[i]} ${fromIso(d).getDate()} : ${list.filter((t) => t.done).length} / ${list.length}`}>
+            <button key={d} type="button" onClick={() => app.set({ view: 'week', weekOffset: 0, weekMode: 'agenda' })} aria-label={`${DAY_SHORT[i]} ${fromIso(d).getDate()} : ${list.filter((t) => t.done).length} sur ${list.length}`} className="group/day flex flex-col items-center gap-1.5">
               <span className={cn('relative flex h-16 w-full max-w-9 items-end overflow-hidden rounded-full border', isToday ? 'border-border-accent bg-accent-soft' : 'border-border-subtle bg-bg-card/60')}>
                 <motion.span className={cn('w-full rounded-full', ratio >= 1 ? 'bg-signal-default' : isToday ? 'bg-accent-default' : 'bg-route-rest/60')} initial={{ height: 0 }} animate={{ height: `${Math.max(list.length ? 8 : 0, ratio * 100)}%` }} transition={{ duration: 0.8, delay: 0.2 + i * 0.04, ease: [0.16, 1, 0.3, 1] }} />
               </span>

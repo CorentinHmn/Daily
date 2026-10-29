@@ -6,6 +6,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react
 import { motion } from 'motion/react';
 import { Check, type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
+import { burst } from './burst';
 import { initials as toInitials } from '../lib/format';
 
 export const ICON_STROKE = 1.75; // Halo: Lucide, stroke 1,75
@@ -38,7 +39,6 @@ export function IconButton({
     <button
       type="button"
       aria-label={label}
-      title={label}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-(--v-duree-courte) active:scale-95 disabled:cursor-not-allowed disabled:active:scale-100',
         size === 'xs' ? 'size-8' : size === 's' ? 'size-9' : size === 'm' ? 'size-11' : 'size-14',
@@ -101,10 +101,10 @@ export const toneClass: Record<Tone, { bg: string; fg: string; dot: string; bord
 };
 
 /** Status = colour + text, never colour alone. */
-export function StatusBadge({ tone = 'accent', children, className, title }: { tone?: Tone; children: ReactNode; className?: string; title?: string }) {
+export function StatusBadge({ tone = 'accent', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   const t = toneClass[tone];
   return (
-    <span title={title} className={cn('inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-label-s whitespace-nowrap', t.bg, t.fg, className)}>
+    <span className={cn('inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-label-s whitespace-nowrap', t.bg, t.fg, className)}>
       <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', t.dot)} />
       <span className="truncate">{children}</span>
     </span>
@@ -218,18 +218,19 @@ export function PanelHeader({ title, icon: Icon, children, className, count }: {
 }
 
 /**
- * Round tick of a task / item (Checkbox, task variant). Done = signal (Halo: green = success), with a spring tick.
+ * Round tick of a task / item (Checkbox, task variant). Done = signal (Halo: green = success), with a spring tick;
+ * `burst` = green streaks shoot out of it when it gets ticked (tasks).
  */
-export function CheckCircle({ checked, onChange, label, size = 'm', className }: { checked: boolean; onChange: () => void; label: string; size?: 's' | 'm'; className?: string }) {
+export function CheckCircle({ checked, onChange, label, size = 'm', className, burst: celebrate }: { checked: boolean; onChange: () => void; label: string; size?: 's' | 'm'; className?: string; burst?: boolean }) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
       aria-label={label}
-      title={label}
       onClick={(e) => {
         e.stopPropagation();
+        if (celebrate && !checked) burst(e.currentTarget);
         onChange();
       }}
       className={cn(
