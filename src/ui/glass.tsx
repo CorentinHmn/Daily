@@ -160,6 +160,11 @@ export interface LiquidOptions {
   lens?: () => { x: number; y: number; w: number; h: number; r: number } | null;
   /** Changes when the lens moves without the element being resized (the filter is then rebuilt). */
   lensKey?: string;
+  /**
+   * While the glass changes shape (the rail opening): the same frost and colour without the bent rim, in plain CSS. The
+   * SVG filter runs on the processor and would be run again on every frame.
+   */
+  paused?: boolean;
 }
 
 /**
@@ -167,7 +172,7 @@ export interface LiquidOptions {
  * `backdrop-filter: url(#…)`. Returns a callback ref to put on the element (which should carry the `.liquid` class);
  * it works for elements mounted later (popovers, dialogs).
  */
-export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 14, blur = 1.6, saturate = 1.7, lens, lensKey }: LiquidOptions = {}): (el: T | null) => void {
+export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 14, blur = 1.6, saturate = 1.7, lens, lensKey, paused }: LiquidOptions = {}): (el: T | null) => void {
   const node = useRef<T | null>(null);
   const lensRef = useRef(lens);
   useLayoutEffect(() => {
@@ -187,6 +192,10 @@ export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 1
   useLayoutEffect(() => {
     const el = node.current;
     if (!el || !refractionSupported) return;
+    if (paused) {
+      el.style.backdropFilter = `blur(${blur}px) saturate(${saturate})`;
+      return;
+    }
     let frame = 0;
     const apply = () => {
       frame = 0;
@@ -220,7 +229,7 @@ export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 1
       ro.disconnect();
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [version, bezel, strength, blur, saturate, lensKey]);
+  }, [version, bezel, strength, blur, saturate, lensKey, paused]);
   return setRef;
 }
 

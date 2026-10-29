@@ -1,7 +1,7 @@
 /**
  * A liquid-glass chip that grows into its menu (the profile chip): one piece of glass, the chip's pill swelling down
- * into the menu, joined by a hollow curve, with the rail's spring (open) and its flow back (close). Like the rail's
- * wave: the glass is a layer larger than the chip, shaped by an animated clip-path; its shadow (outside the outline),
+ * into the menu, joined by a hollow curve, with the bubbles' spring (open) and a flow back (close). Like the rail's
+ * glass: the glass is a layer larger than the chip, shaped by an animated clip-path; its shadow (outside the outline),
  * rim (a ring between the outline and the outline moved inwards) and the menu's denser tint follow the same keyframes.
  * The chip's content and the menu's items sit above the glass, so its rim never crosses them (the sync dot).
  */

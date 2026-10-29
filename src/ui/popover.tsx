@@ -2,7 +2,7 @@
  * Floating layer anchored to an element (menus, selects, pickers, quick add), in liquid glass.
  * Portal to <body>, fixed position under the anchor (above when there is no room), same width as the anchor unless
  * `width` is given. Closes on outside click and Escape; follows the anchor when a panel scrolls.
- * It comes out of its trigger like the rail's wave: a drop as wide as the trigger, just under it, that swells into the
+ * It comes out of its trigger like a drop: as wide as the trigger, just under it, that swells into the
  * panel with the same spring (clip-path keyframes), the content fading in; it flows back into the trigger to close.
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';

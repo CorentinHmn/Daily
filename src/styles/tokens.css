@@ -205,6 +205,8 @@
 
   /* ── Layout (Guide « Grille du dashboard », écran 1408 × 940) ── */
   --layout-rail: 96px;
+  /* Open rail (icons and names; folded = --layout-rail), src/ui/navigation.tsx. */
+  --layout-rail-open: 208px;
   --layout-margin: 12px;
   --layout-gutter: 20px;
   --layout-side-panel: 300px;

@@ -77,6 +77,20 @@
 - **Reste côté utilisateur** : régler l'URL du site dans Supabase (pour « Mot de passe oublié »), créer son compte et
   le foyer, inviter Léa (voir `docs/mise-en-ligne.md`).
 
+## Session 6 (29/10/2026) — rail du bureau dépliable
+- Demande : le rail était le seul élément plus lent que les autres (vague comprise) ; un rail qui se déplie et se
+  replie, ressort adapté, plus de vague puisque le rail ouvert est plus large.
+- Fait : rail ouvert (icônes + noms, 208 px, `--layout-rail-open`) ou replié (96 px) par le bouton « Réduire » /
+  « Déplier le menu » au-dessus de Paramètres ; choix gardé sur l'appareil (`cadence.rail`), ouvert d'office à partir
+  de 1440 px de large. La largeur suit le même ressort que toutes les bulles (567 ms, moitié du rebond) et la page
+  suit ; les noms apparaissent comme celui de la barre du téléphone et partent en 90 ms. Bulle bleue = pilule sous
+  l'icône et le nom (cercle replié), même ressort que les autres barres. Badge des courses en bout de ligne une fois
+  ouvert. Plus de vague : plus d'attente de 1,1 s ni de reflux, plus de clip-path animé à chaque changement d'onglet.
+  Pendant l'ouverture, la réfraction SVG laisse place au même givre en CSS (option `paused` de `useLiquidGlass`).
+- Vérifié : `tsc`, `eslint`, vitest 13/13, e2e 15/15, captures pc-xl / pc / laptop / laptop-s (clair + sombre) sans
+  débordement ni erreur console, images de l'animation figées à 50 / 120 / 200 / 300 / 450 ms. Comptes de test
+  supprimés.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

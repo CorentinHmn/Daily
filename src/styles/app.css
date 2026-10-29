@@ -168,9 +168,9 @@
 .liquid-bar {
   background: var(--glass-bar);
 }
-/* Desktop rail (NavRail): its glass is a layer wider than the rail, shaped by an animated clip-path (the rail, and the
-   wave that pours out with the active item's name), with the .liquid tint and frost; the sheen covers the rail only and
-   the rim is an SVG stroke along the same outline, so the wave and the rail are one piece of glass. */
+/* Desktop rail (NavRail): its glass is a layer as wide as the open rail, shaped by an animated clip-path (the rail,
+   open or folded), with the .liquid tint and frost; the sheen covers the rail only and the rim is a ring clipped along
+   the same outline (its light sized to the rail inline), so they move as one piece of glass. */
 .rail-glass {
   isolation: isolate;
   background: var(--glass-liquid);

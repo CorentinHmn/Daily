@@ -68,11 +68,14 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   pendant le rendu du nouvel écran) ; `useLiquidBubble` + `useDeferredPick` : le changement part deux images après le clic.
   Le verre de ces barres est un calque derrière la bulle (`shell`), pas le conteneur : son liseré ne barre plus le bleu,
   et `follow()` l'étire quand le rebond du ressort porterait la bulle hors du verre (première / dernière entrée).
-- Rail du bureau : son verre est un calque plus large que le rail, découpé par un clip-path `path()` animé (le rail +
-  la vague qui sort avec le nom) ; ombre (copie floutée, découpée hors du contour) et liseré (anneau entre le contour
-  et le contour décalé) sont aussi des clip-paths, avec les mêmes images-clés échantillonnées à 60 i/s : rien ne peut
-  se décaler (un `d` SVG animé à part laissait voir une tache noire). La vague ne peut pas vivre dans le `<nav>` : un
-  `backdrop-filter` ancêtre la couperait.
+- Rail du bureau : ouvert (icônes + noms, `--layout-rail-open`) ou replié (`--layout-rail`), choix gardé sur
+  l'appareil (`cadence.rail`, ouvert d'office à partir de 1440 px). Sa largeur suit le ressort des bulles (moitié du
+  rebond) et la page suit ; la bulle est une pilule (`inset-x-6`) qui suit la largeur des lignes. Son verre est un
+  calque aussi large que le rail ouvert, découpé par un clip-path `path()` animé ; ombre (copie floutée, découpée hors
+  du contour) et liseré (anneau entre le contour et le contour décalé) sont aussi des clip-paths, avec les mêmes
+  images-clés échantillonnées à 60 i/s : rien ne peut se décaler (un `d` SVG animé à part laissait voir une tache
+  noire). Pendant le mouvement, la réfraction SVG laisse place au même givre en CSS (`paused` de `useLiquidGlass`).
+  Plus de vague avec le nom (le rail ouvert montre les noms).
 - Pastille du profil (`src/ui/chipMenu.tsx`) : même technique que le rail (calque de verre plus grand que la pastille,
   clip-path animé pastille → pastille + menu, ombre et liseré sur le même tracé, réfraction gardée sur la pastille par
   l'option `lens` de `useLiquidGlass`) ; la liste est toujours montée (mesurée, `inert` fermée) et découpée par le même
