@@ -128,6 +128,8 @@ export interface Goal {
   icon: GoalIcon;
   /** a member id, or NOUS for a shared goal */
   owner?: string;
+  /** several people (not the whole household): their ids; `owner` is then NOUS */
+  owners?: string[];
 }
 
 export type HabitIcon = 'droplets' | 'stretch' | 'moon' | 'leaf' | 'book' | 'brain' | 'sun' | 'pill' | 'phone' | 'walk';

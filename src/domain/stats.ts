@@ -1,7 +1,7 @@
 /** Derived numbers: goal progress, weekly volumes, streaks. Pure functions of AppData. */
-import { addDays, daysBetween, monthEnd, monthStart, todayIso, weekStart, weekdayIndex, yearEnd, yearStart, type ISODate } from '../lib/dates';
+import { addDays, daysBetween, monthEnd, monthStart, toIso, todayIso, weekStart, weekdayIndex, yearEnd, yearStart, type ISODate } from '../lib/dates';
 import { NOUS, type AppData, type Goal, type GoalPeriod, type GymSession, type Habit, type Run, type Task } from './types';
-import { concerns, ownedBy } from './people';
+import { concerns, goalOwners } from './people';
 
 
 export function periodRange(period: GoalPeriod, today = todayIso()): { from: ISODate; to: ISODate } {
@@ -49,11 +49,13 @@ export function goalProgress(goal: Goal, data: Pick<AppData, 'runs' | 'sessions'
   let value = goal.value;
   if (goal.kind === 'auto') {
     const r = periodRange(goal.period, today);
-    // A personal goal counts its owner's sessions, runs and tasks; a shared one (NOUS) counts the household's.
-    const who = !goal.owner || goal.owner === NOUS ? null : goal.owner;
-    const sessions = data.sessions.filter((x) => ownedBy(x.owner, who));
-    const runs = data.runs.filter((x) => ownedBy(x.owner, who));
-    const tasks = who ? data.tasks.filter((t) => t.assignee === who) : data.tasks;
+    // A personal goal counts its people's sessions, runs and tasks (with the household's sessions and runs); a shared
+    // one (NOUS) counts the household's.
+    const who = goalOwners(goal);
+    const theirs = (owner?: string) => !who.length || !owner || owner === NOUS || who.includes(owner);
+    const sessions = data.sessions.filter((x) => theirs(x.owner));
+    const runs = data.runs.filter((x) => theirs(x.owner));
+    const tasks = who.length ? data.tasks.filter((t) => t.assignee && who.includes(t.assignee)) : data.tasks;
     if (goal.source === 'seances') value = sessionsIn(sessions, r).length;
     else if (goal.source === 'km') value = Math.round(kmIn(runs, r) * 10) / 10;
     else if (goal.source === 'sorties') value = runsIn(runs, r).length;
@@ -99,6 +101,15 @@ export function weeklySeries(count: number, value: (from: ISODate, to: ISODate) 
   return Array.from({ length: count }, (_, i) => {
     const from = addDays(current, (i - count + 1) * 7);
     return { week: from, value: value(from, addDays(from, 6)) };
+  });
+}
+
+/** Last `count` months (oldest first): first day of the month + value. */
+export function monthlySeries(count: number, value: (from: ISODate, to: ISODate) => number, today = todayIso()): { month: ISODate; value: number }[] {
+  const [y, m] = today.split('-').map(Number) as [number, number];
+  return Array.from({ length: count }, (_, i) => {
+    const from = toIso(new Date(y, m - 1 + i - count + 1, 1));
+    return { month: from, value: value(from, monthEnd(from)) };
   });
 }
 

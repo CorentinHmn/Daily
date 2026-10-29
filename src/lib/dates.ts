@@ -86,6 +86,11 @@ export function shortDate(iso: ISODate): string {
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}${year}`;
 }
 
+/** « oct. » */
+export function monthShort(iso: ISODate): string {
+  return MONTH_SHORT[fromIso(iso).getMonth()]!;
+}
+
 /** « octobre 2026 » */
 export function monthLabel(iso: ISODate): string {
   const d = fromIso(iso);

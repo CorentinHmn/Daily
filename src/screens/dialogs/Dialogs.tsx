@@ -4,7 +4,8 @@ import { CalendarDays, Dumbbell, Flag, Footprints, ListPlus, Plus, Repeat, Targe
 import { useApp, type DialogState } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, GOAL_SOURCES, HABIT_ICONS, PERIOD_LABEL, guessCategory } from '../../domain/catalog';
 import { NOUS, type CategoryId, type GoalIcon, type GoalKind, type GoalPeriod, type GoalSource, type GoalStep, type HabitIcon } from '../../domain/types';
-import { WhoChips } from '../../ui/people';
+import { PeopleChips, WhoChips } from '../../ui/people';
+import { goalOwners } from '../../domain/people';
 import { sessionVolume } from '../../domain/stats';
 import { addDays, todayIso, weekStart, weekdayIndex } from '../../lib/dates';
 import { duration, kg, uid } from '../../lib/format';
@@ -262,7 +263,11 @@ function GoalDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
   const [stepDraft, setStepDraft] = useState('');
   const [icon, setIcon] = useState<GoalIcon>(goal?.icon ?? 'target');
   const several = app.data.members.length > 1;
-  const [owner, setOwner] = useState<string>(goal?.owner ?? app.data.settings.meId ?? NOUS);
+  const memberIds = app.data.members.map((m) => m.id);
+  const [people, setPeople] = useState<string[]>(() => {
+    const owners = goal ? goalOwners(goal) : app.data.settings.meId ? [app.data.settings.meId] : [];
+    return owners.length ? owners : memberIds;
+  });
   const valid = title.trim() && (kind !== 'liste' || steps.length > 0 || stepDraft.trim());
   return (
     <Dialog open={!!dialog} onClose={onClose} title={goal ? "Modifier l'objectif" : 'Nouvel objectif'} icon={Target} width="m" footer={<Footer onCancel={onClose} submitLabel={goal ? 'Enregistrer' : 'Créer'} disabled={!valid} onDelete={goal ? () => (app.deleteGoal(goal.id), onClose()) : undefined} />}>
@@ -270,7 +275,11 @@ function GoalDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
         onSubmit={() => {
           if (!valid) return;
           const allSteps = stepDraft.trim() ? [...steps, { id: uid(), label: stepDraft.trim(), done: false }] : steps;
-          app.saveGoal({ id: goal?.id, title: title.trim(), period, kind, source: kind === 'auto' ? source : undefined, target: kind === 'liste' ? allSteps.length : target, value, steps: kind === 'liste' ? allSteps : [], icon, owner });
+          // One person = owner; everyone = the household (NOUS); some of them = owners, with NOUS as owner.
+          const mine = people.filter((id) => memberIds.includes(id));
+          const owner = mine.length === 1 ? mine[0]! : NOUS;
+          const owners = mine.length > 1 && mine.length < memberIds.length ? mine : undefined;
+          app.saveGoal({ id: goal?.id, title: title.trim(), period, kind, source: kind === 'auto' ? source : undefined, target: kind === 'liste' ? allSteps.length : target, value, steps: kind === 'liste' ? allSteps : [], icon, owner, owners });
           onClose();
         }}
       >
@@ -346,8 +355,8 @@ function GoalDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
           </Field>
         )}
         {several && (
-          <Field label="Pour qui ?">
-            <WhoChips value={owner} onChange={setOwner} allowNous={true} />
+          <Field label="Pour qui ?" help={people.length > 1 ? 'Objectif commun : il additionne ce que chacun fait' : undefined}>
+            <PeopleChips value={people} onChange={setPeople} />
           </Field>
         )}
         <Field label="Icône">

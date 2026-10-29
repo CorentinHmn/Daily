@@ -10,7 +10,7 @@ import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, HABIT_ICONS, guessCategory } from '../../domain/catalog';
 import { goalProgress, goalStatus, habitDueOn, nextGymSession } from '../../domain/stats';
 import type { Habit, Task } from '../../domain/types';
-import { concerns, ownedBy } from '../../domain/people';
+import { concerns, goalFor, ownedBy } from '../../domain/people';
 import { DAY_SHORT, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
 import { kg, num } from '../../lib/format';
 import { cn } from '../../ui/cn';
@@ -314,7 +314,7 @@ function GoalsGlance() {
   const data = useApp((s) => s.data);
   const app = useApp.getState();
   const person = useApp((s) => s.person);
-  const mine = data.goals.filter((g) => ownedBy(g.owner, person));
+  const mine = data.goals.filter((g) => goalFor(g, person));
   const goals = mine
     .map((g) => ({ g, p: goalProgress(g, data) }))
     .filter(({ p }) => p.ratio < 1)

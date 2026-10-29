@@ -11,10 +11,20 @@ import { Avatar, ICON_STROKE } from './atoms';
 import { useLiquidGlass } from './glass';
 
 /** Avatar of the person in charge, or two stacked avatars for the household. Null when there is only one person. */
-export function AssigneeBadge({ assignee, className }: { assignee?: string; className?: string }) {
+export function AssigneeBadge({ assignee, people, className }: { assignee?: string; people?: string[]; className?: string }) {
   const members = useApp((s) => s.data.members);
   if (members.length < 2) return null;
-  const m = memberOf(members, assignee);
+  const several = people?.length ? members.filter((x) => people.includes(x.id)) : [];
+  if (several.length > 1) {
+    return (
+      <span title={`Pour ${several.map((x) => x.name).join(' et ')}`} className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
+        {several.map((x) => (
+          <Avatar key={x.id} name={x.name} hue={x.hue} size="xs" />
+        ))}
+      </span>
+    );
+  }
+  const m = memberOf(members, several[0]?.id ?? assignee);
   if (m) {
     return (
       <span title={`Pour ${m.name}`} className={cn('inline-flex shrink-0', className)}>
@@ -66,6 +76,35 @@ export function PersonSwitcher({ className }: { className?: string }) {
           <span className="max-w-[90px] truncate">{m.name}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+/** « Pour qui ? » with several choices (goals): one chip per person, at least one stays ticked. */
+export function PeopleChips({ value, onChange, label = 'Pour qui ?' }: { value: string[]; onChange: (v: string[]) => void; label?: string }) {
+  const members = useApp((s) => s.data.members);
+  if (members.length < 2) return null;
+  return (
+    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+      {members.map((m) => {
+        const on = value.includes(m.id);
+        return (
+          <button
+            key={m.id}
+            type="button"
+            role="checkbox"
+            aria-checked={on}
+            onClick={() => {
+              const next = on ? value.filter((x) => x !== m.id) : [...value, m.id];
+              if (next.length) onChange(members.map((x) => x.id).filter((id) => next.includes(id)));
+            }}
+            className={cn('inline-flex h-9 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label-s transition-[background-color,border-color,color]', on ? 'border-border-accent bg-accent-soft text-text-accent' : 'border-border-default bg-bg-card/70 text-text-secondary hover:border-border-strong hover:text-text-primary')}
+          >
+            <Avatar name={m.name} hue={m.hue} size="xs" className="size-6" />
+            {m.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

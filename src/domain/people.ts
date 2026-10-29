@@ -17,6 +17,18 @@ export function ownedBy(owner: string | undefined, person: string | null): boole
   return !person || !owner || owner === NOUS || owner === person;
 }
 
+/** The people a goal is for: one, several (`owners`), or none = the whole household. */
+export function goalOwners(g: { owner?: string; owners?: string[] }): string[] {
+  if (g.owners?.length) return g.owners;
+  return !g.owner || g.owner === NOUS ? [] : [g.owner];
+}
+
+/** A goal shows under a person's filter when it is theirs, shared with them, or the household's. */
+export function goalFor(g: { owner?: string; owners?: string[] }, person: string | null): boolean {
+  const owners = goalOwners(g);
+  return !person || owners.length === 0 || owners.includes(person);
+}
+
 export function memberOf(members: Member[], id: string | undefined): Member | undefined {
   return id && id !== NOUS ? members.find((m) => m.id === id) : undefined;
 }
@@ -66,6 +78,7 @@ export function keepPeople(d: AppData, members: Member[], meId: string | undefin
   const gen = d.settings.meId;
   if (!members.length || !meId || !members.some((m) => m.id === meId)) return d;
   const owner = <T extends { owner?: string }>(x: T): T => (x.owner === gen ? { ...x, owner: meId } : x);
+  const owners = <T extends { owner?: string; owners?: string[] }>(x: T): T => (x.owners ? { ...owner(x), owners: x.owners.map((o) => (o === gen ? meId : o)) } : owner(x));
   const assignee = <T extends { assignee?: string }>(x: T): T => (x.assignee === gen ? { ...x, assignee: meId } : x);
   return {
     ...d,
@@ -77,6 +90,6 @@ export function keepPeople(d: AppData, members: Member[], meId: string | undefin
     programs: d.programs.map(owner),
     sessions: d.sessions.map(owner),
     runs: d.runs.map(owner),
-    goals: d.goals.map(owner),
+    goals: d.goals.map(owners),
   };
 }

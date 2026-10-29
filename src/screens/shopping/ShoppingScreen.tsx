@@ -4,6 +4,7 @@
  * click (right). Completing the list ticks today's shopping task.
  */
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Copy, EllipsisVertical, ListX, Pencil, Plus, ShoppingBasket, ShoppingCart, Sparkles, Trash2, X } from 'lucide-react';
 import { useApp } from '../../store/app';
@@ -13,7 +14,8 @@ import { normalize } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, EmptyState, ICON_STROKE, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
 import { Ring } from '../../ui/charts';
-import { TextInput } from '../../ui/forms';
+import { ChoiceChips, Field, NumberStepper, TextInput } from '../../ui/forms';
+import { Popover } from '../../ui/popover';
 import { Menu, MenuButton } from '../../ui/overlays';
 import { revealVariants } from '../../theme/motion';
 import { PageHeader } from '../shell/PageHeader';
@@ -262,7 +264,7 @@ function ItemRow({ item }: { item: ShopItem }) {
       <div className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-bg-card/60">
         <CheckCircle checked={item.checked} onChange={() => app.toggleItem(item.id)} label={item.checked ? `Remettre ${item.name}` : `Cocher ${item.name}`} />
         <span className={cn('min-w-0 flex-1 truncate text-body-m', item.checked ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{item.name}</span>
-        {item.qty && <span className="tnum rounded-full bg-bg-raised px-2 py-0.5 text-label-s text-text-secondary">{item.qty}</span>}
+        <QtyButton item={item} />
         <button ref={anchor} type="button" onClick={() => setOpen(true)} aria-label={`Rayon de ${item.name} : ${R.label}`} title={`Rayon : ${R.label}`} className="inline-flex size-8 items-center justify-center rounded-full text-text-muted opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-bg-hover hover:text-text-primary focus-visible:opacity-100 pointer-coarse:opacity-70">
           <R.icon size={15} strokeWidth={ICON_STROKE} aria-hidden />
         </button>
@@ -276,6 +278,77 @@ function ItemRow({ item }: { item: ShopItem }) {
         items={RAYON_ORDER.map((r) => ({ label: RAYONS[r].label, icon: RAYONS[r].icon, onSelect: () => app.updateItem(item.id, { rayon: r }) }))}
       />
     </motion.li>
+  );
+}
+
+const UNITS = [
+  { value: 'u', label: 'u', step: 1, start: 1 },
+  { value: 'g', label: 'g', step: 50, start: 500 },
+  { value: 'kg', label: 'kg', step: 0.5, start: 1 },
+  { value: 'ml', label: 'ml', step: 50, start: 500 },
+  { value: 'cl', label: 'cl', step: 5, start: 25 },
+  { value: 'L', label: 'L', step: 0.5, start: 1 },
+] as const;
+type Unit = (typeof UNITS)[number]['value'];
+
+/** « 500 g » → 500 + g, « 2 » or « 2x » → 2 + u (pieces), « 1,5 l » → 1.5 + L. */
+export function splitQty(qty?: string): { amount: number; unit: Unit } | null {
+  const m = qty?.trim().match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|l|cl|ml|x|u)?$/i);
+  if (!m) return null;
+  const raw = (m[2] ?? 'u').toLowerCase();
+  const unit: Unit = raw === 'x' || raw === 'u' ? 'u' : raw === 'l' ? 'L' : (raw as Unit);
+  return { amount: parseFloat(m[1]!.replace(',', '.')), unit };
+}
+
+export function joinQty(amount: number, unit: Unit): string | undefined {
+  if (!(amount > 0)) return undefined;
+  const n = String(Math.round(amount * 100) / 100).replace('.', ',');
+  return unit === 'u' ? n : `${n} ${unit}`;
+}
+
+/** The quantity of an item (or « Qté » on hover): opens the quantity and its unit, chosen like the aisle. */
+function QtyButton({ item }: { item: ShopItem }) {
+  const app = useApp.getState();
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const parsed = splitQty(item.qty);
+  const amount = parsed?.amount ?? 0;
+  const unit = parsed?.unit ?? 'u';
+  const def = UNITS.find((u) => u.value === unit)!;
+  const set = (a: number, u: Unit) => app.updateItem(item.id, { qty: joinQty(a, u) });
+  return (
+    <>
+      <button
+        ref={anchor}
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={item.qty ? `Quantité de ${item.name} : ${item.qty}` : `Choisir la quantité de ${item.name}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className={cn(
+          'tnum inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-label-s transition-[background-color,color,opacity]',
+          item.qty ? 'bg-bg-raised text-text-secondary hover:bg-bg-hover hover:text-text-primary' : 'border border-dashed border-border-default text-text-muted opacity-0 group-hover/item:opacity-100 hover:text-text-primary focus-visible:opacity-100 pointer-coarse:opacity-70',
+          open && 'opacity-100',
+        )}
+      >
+        {item.qty ?? 'Qté'}
+      </button>
+      <Popover open={open} anchor={anchor} onClose={() => setOpen(false)} width={336} align="end" role="dialog" label={`Quantité de ${item.name}`}>
+        <div className="flex flex-col gap-3 p-3.5">
+          <Field label="Quantité">
+            <NumberStepper label={`quantité de ${item.name}`} value={amount} step={def.step} max={9999} decimals={def.step < 1 ? 1 : 0} suffix={unit === 'u' ? undefined : unit} onChange={(a) => set(a, unit)} />
+          </Field>
+          <Field label="Unité">
+            <ChoiceChips label="Unité" value={unit} onChange={(u) => set(u === unit ? amount : (UNITS.find((x) => x.value === u)!.start), u)} options={UNITS.map((u) => ({ value: u.value, label: u.label }))} />
+          </Field>
+          {item.qty && (
+            <Button variant="ghost" size="s" className="self-start" onClick={() => (app.updateItem(item.id, { qty: undefined }), setOpen(false))}>
+              Sans quantité
+            </Button>
+          )}
+        </div>
+      </Popover>
+    </>
   );
 }
 
@@ -301,15 +374,77 @@ function CartPanel() {
   );
 }
 
+/** Long press (380 ms without moving) on a frequent item, then drag it onto the bin to forget it. */
+const HOLD_MS = 380;
+
+interface Drag {
+  key: string;
+  name: string;
+  rayon: RayonId;
+  x: number;
+  y: number;
+  over: boolean;
+}
+
 function Frequent() {
   const frequent = useApp((s) => s.data.frequent);
   const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0]);
   const app = useApp.getState();
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const bin = useRef<HTMLDivElement>(null);
+  const dragged = useRef(false);
   const onList = new Set(list?.items.filter((i) => !i.checked).map((i) => normalize(i.name)));
   const items = Object.entries(frequent)
     .filter(([k]) => !onList.has(k))
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 24);
+
+  const press = (e: React.PointerEvent, key: string, name: string, rayon: RayonId) => {
+    if (e.button !== 0) return;
+    const start = { x: e.clientX, y: e.clientY };
+    let holding = false;
+    dragged.current = false;
+    const overBin = (x: number, y: number) => {
+      const r = bin.current?.getBoundingClientRect();
+      return !!r && x > r.left - 16 && x < r.right + 16 && y > r.top - 16 && y < r.bottom + 16;
+    };
+    const timer = window.setTimeout(() => {
+      holding = true;
+      dragged.current = true;
+      navigator.vibrate?.(12);
+      setDrag({ key, name, rayon, x: start.x, y: start.y, over: false });
+    }, HOLD_MS);
+    const move = (ev: PointerEvent) => {
+      if (!holding) {
+        if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) stop();
+        return;
+      }
+      setDrag((d) => (d ? { ...d, x: ev.clientX, y: ev.clientY, over: overBin(ev.clientX, ev.clientY) } : d));
+    };
+    // While dragging, the finger must not scroll the page (non-passive listener, cancels the pan).
+    const block = (ev: TouchEvent) => {
+      if (holding) ev.preventDefault();
+    };
+    const up = (ev: PointerEvent) => {
+      if (holding && overBin(ev.clientX, ev.clientY)) app.removeFrequent(key);
+      stop();
+    };
+    const stop = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', stop);
+      window.removeEventListener('touchmove', block);
+      setDrag(null);
+      // The click that may follow the release must not add the item; a later click must.
+      window.setTimeout(() => (dragged.current = false), 0);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', stop);
+    window.addEventListener('touchmove', block, { passive: false });
+  };
+
   return (
     <Panel className="min-h-0 flex-1">
       <PanelHeader title="Articles fréquents" icon={Sparkles} />
@@ -317,22 +452,82 @@ function Frequent() {
         {items.length === 0 ? (
           <p className="px-1 text-body-s text-text-secondary">Les articles que tu ajoutes souvent apparaîtront ici.</p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
-            {items.map(([k, f]) => {
-              const R = RAYONS[f.rayon];
-              return (
-                <li key={k}>
-                  <button type="button" onClick={() => app.addItem(f.name)} className="inline-flex h-9 items-center gap-2 rounded-full border border-border-default bg-bg-card/70 pr-3.5 pl-2.5 text-label-s text-text-primary transition-[background-color,border-color,transform] hover:border-border-accent hover:bg-accent-soft active:scale-95">
-                    <R.icon size={14} strokeWidth={ICON_STROKE} aria-hidden className="text-text-secondary" />
-                    {f.name}
-                    <Plus size={13} strokeWidth={2} aria-hidden className="text-text-muted" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="flex flex-wrap gap-2">
+              {items.map(([k, f]) => {
+                const R = RAYONS[f.rayon];
+                return (
+                  <li key={k}>
+                    <button
+                      type="button"
+                      onPointerDown={(e) => press(e, k, f.name, f.rayon)}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onClick={() => {
+                        if (dragged.current) {
+                          dragged.current = false;
+                          return;
+                        }
+                        app.addItem(f.name);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Delete' || e.key === 'Backspace') app.removeFrequent(k);
+                      }}
+                      aria-label={`Ajouter ${f.name}`}
+                      aria-keyshortcuts="Delete"
+                      className={cn(
+                        'inline-flex h-9 items-center gap-2 rounded-full border border-border-default bg-bg-card/70 pr-3.5 pl-2.5 text-label-s text-text-primary transition-[background-color,border-color,transform,opacity] select-none [-webkit-touch-callout:none] hover:border-border-accent hover:bg-accent-soft active:scale-95',
+                        drag?.key === k && 'opacity-30',
+                      )}
+                    >
+                      <R.icon size={14} strokeWidth={ICON_STROKE} aria-hidden className="text-text-secondary" />
+                      {f.name}
+                      <Plus size={13} strokeWidth={2} aria-hidden className="text-text-muted" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-3 px-1 text-caption text-text-muted">Maintiens un article pour le glisser dans la poubelle.</p>
+          </>
         )}
       </div>
+      {createPortal(
+        <AnimatePresence>
+          {drag && (
+            <>
+              <motion.div
+                key="bin"
+                ref={bin}
+                initial={{ opacity: 0, y: 16, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, x: '-50%', scale: drag.over ? 1.12 : 1 }}
+                exit={{ opacity: 0, y: 16, x: '-50%' }}
+                transition={{ duration: 0.18 }}
+                style={{ position: 'fixed' }}
+                className={cn(
+                  'bottom-10 left-1/2 z-[1350] flex items-center gap-2.5 rounded-full border px-5 py-3.5 text-label-m shadow-[0_12px_32px_rgb(14_16_20/0.18)] backdrop-blur-md max-md:bottom-[calc(env(safe-area-inset-bottom)+104px)]',
+                  drag.over ? 'border-danger-default bg-danger-default text-text-on-accent' : 'border-border-default bg-bg-card/90 text-text-danger',
+                )}
+              >
+                <Trash2 size={20} strokeWidth={ICON_STROKE} aria-hidden />
+                {drag.over ? 'Lâche pour retirer' : 'Glisse ici pour retirer'}
+              </motion.div>
+              <div
+                key="ghost"
+                aria-hidden
+                style={{ position: 'fixed', left: drag.x, top: drag.y }}
+                className="pointer-events-none z-[1360] inline-flex h-9 -translate-x-1/2 -translate-y-1/2 scale-110 items-center gap-2 rounded-full border border-border-accent bg-bg-card pr-3.5 pl-2.5 text-label-s text-text-primary shadow-[0_10px_28px_rgb(14_16_20/0.22)]"
+              >
+                {(() => {
+                  const R = RAYONS[drag.rayon];
+                  return <R.icon size={14} strokeWidth={ICON_STROKE} aria-hidden className="text-text-secondary" />;
+                })()}
+                {drag.name}
+              </div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </Panel>
   );
 }

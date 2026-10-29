@@ -124,6 +124,8 @@ interface Actions {
   updateItem: (id: string, patch: Partial<Omit<ShopItem, 'id'>>) => void;
   toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
+  /** forget a frequent item (key = normalized name) */
+  removeFrequent: (key: string) => void;
   clearChecked: () => void;
 }
 
@@ -478,6 +480,15 @@ export const useApp = create<AppState>()((set, get) => {
       }
     },
     deleteItem: (id) => mutate((d) => mapActiveList(d, (items) => items.filter((i) => i.id !== id))),
+    removeFrequent: (key) => {
+      const f = get().data.frequent[key];
+      if (!f) return;
+      undoable(`« ${f.name} » retiré des articles fréquents`, (d) => {
+        const frequent = { ...d.frequent };
+        delete frequent[key];
+        return { ...d, frequent };
+      });
+    },
     clearChecked: () => {
       const n = activeList(get().data)?.items.filter((i) => i.checked).length ?? 0;
       if (n) undoable(`${n} article${n > 1 ? 's' : ''} retiré${n > 1 ? 's' : ''} de la liste`, (d) => mapActiveList(d, (items) => items.filter((i) => !i.checked)));

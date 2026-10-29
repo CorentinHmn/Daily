@@ -79,17 +79,25 @@ export function WeekBars({ data, format, height = 150, labels }: { data: { label
   );
 }
 
+/** Monotone cubic (Fritsch–Carlson): smooth, but never above a peak nor under zero between two points. */
 function smoothPath(points: [number, number][]): string {
-  if (points.length < 2) return '';
+  const n = points.length;
+  if (n < 2) return '';
+  const dx = points.slice(1).map((p, i) => p[0] - points[i]![0]);
+  const slope = points.slice(1).map((p, i) => (p[1] - points[i]![1]) / (dx[i] || 1));
+  const tangent = points.map((_, i) => {
+    if (i === 0) return slope[0]!;
+    if (i === n - 1) return slope[n - 2]!;
+    const a = slope[i - 1]!;
+    const b = slope[i]!;
+    return a * b <= 0 ? 0 : (3 * (dx[i - 1]! + dx[i]!)) / ((2 * dx[i]! + dx[i - 1]!) / a + (dx[i]! + 2 * dx[i - 1]!) / b);
+  });
   let d = `M${points[0]![0]},${points[0]![1]}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[i + 2] ?? p2;
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-    d += ` C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x1, y1] = points[i]!;
+    const [x2, y2] = points[i + 1]!;
+    const h = dx[i]! / 3;
+    d += ` C${x1 + h},${y1 + tangent[i]! * h} ${x2 - h},${y2 - tangent[i + 1]! * h} ${x2},${y2}`;
   }
   return d;
 }
@@ -135,9 +143,10 @@ export function AreaCurve({ data, format }: { data: { label: string; value: numb
           {line && <motion.path d={`${line} L${last![0]},${H - bottom} L${pts[0]![0]},${H - bottom} Z`} fill={`url(#area-${id})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9, delay: 0.5 }} />}
           {line && <motion.path d={line} fill="none" stroke="var(--color-accent-default)" strokeWidth="2.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, ease: t.expo }} style={{ filter: 'drop-shadow(0 0 6px rgb(90 162 255 / 0.45))' }} />}
           {data.map((d, i) => {
-            // Narrow chart (phone): one label out of two, always the last one.
+            // As many labels as fit (about 44 px each), counted back from the last one, which is always shown.
+            const every = Math.max(1, Math.ceil((data.length * 44) / Math.max(1, W - padX * 2)));
             const last = i === data.length - 1;
-            if (W < 520 && !last && (data.length - 1 - i) % 2 === 1) return null;
+            if (!last && (data.length - 1 - i) % every !== 0) return null;
             return (
               <text key={d.label + i} x={pts[i]![0]} y={H - 8} textAnchor="middle" fontSize="11" className={last ? 'fill-text-accent' : 'fill-text-muted'}>
                 {d.label}

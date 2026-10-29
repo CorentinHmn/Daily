@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ChevronDown, Dumbbell, EllipsisVertical, History, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { useApp } from '../../store/app';
-import { ownedBy } from '../../domain/people';
+import { goalFor, ownedBy } from '../../domain/people';
 import type { ExerciseTemplate, Program } from '../../domain/types';
 import { periodRange, sessionMinutes, sessionVolume, sessionsIn, weeklySeries } from '../../domain/stats';
 import { fromIso, shortDate, todayIso } from '../../lib/dates';
@@ -21,7 +21,7 @@ export function GymView() {
   const all = useApp((s) => s.data);
   const person = useApp((s) => s.person);
   // The selected person's programmes and sessions (all of them with « Tous »).
-  const data = { ...all, sessions: all.sessions.filter((x) => ownedBy(x.owner, person)), programs: all.programs.filter((x) => ownedBy(x.owner, person)), goals: all.goals.filter((x) => ownedBy(x.owner, person)) };
+  const data = { ...all, sessions: all.sessions.filter((x) => ownedBy(x.owner, person)), programs: all.programs.filter((x) => ownedBy(x.owner, person)), goals: all.goals.filter((x) => goalFor(x, person)) };
   const selected = useApp((s) => s.programId);
   const app = useApp.getState();
   const today = todayIso();
@@ -41,7 +41,7 @@ export function GymView() {
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:px-4 max-md:pb-1 max-md:[scrollbar-width:none]">
+      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:-my-3 max-md:px-4 max-md:py-3 max-md:[scrollbar-width:none]">
         {kpis.map((k, i) => (
           <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col max-md:w-[44%] max-md:shrink-0 max-md:snap-start [&>*]:flex-1">
             {k}

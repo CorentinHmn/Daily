@@ -8,8 +8,8 @@ import { Footprints, Gauge, Mountain, Trash2, Trophy } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { ownedBy } from '../../domain/people';
 import type { Run } from '../../domain/types';
-import { kmIn, periodRange, runsIn, weeklySeries } from '../../domain/stats';
-import { addDays, fromIso, shortDate, todayIso } from '../../lib/dates';
+import { kmIn, monthlySeries, periodRange, runsIn, weeklySeries } from '../../domain/stats';
+import { addDays, fromIso, monthEnd, monthShort, shortDate, todayIso, weekStart } from '../../lib/dates';
 import { duration, durationInput, km, num, pace, parseDuration } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
@@ -30,7 +30,6 @@ export function RunView() {
   const avgPace = last30.reduce((s, r) => s + r.durationMin, 0) / Math.max(0.1, last30.reduce((s, r) => s + r.distanceKm, 0));
   const longest = runs.reduce((m, r) => Math.max(m, r.distanceKm), 0);
   const fastest = runs.filter((r) => r.distanceKm >= 3).reduce((m, r) => Math.min(m, r.durationMin / r.distanceKm), Infinity);
-  const series = weeklySeries(12, (from, to) => Math.round(kmIn(runs, { from, to }) * 10) / 10, today).map((w) => ({ label: `${fromIso(w.week).getDate()}/${fromIso(w.week).getMonth() + 1}`, value: w.value }));
   const reveal = revealVariants();
   const kpis = [
     <KpiCard key="a" label="Distance cette semaine" value={Math.round(kmIn(runs, week) * 10) / 10} decimals={1} suffix="km" active />,
@@ -41,7 +40,7 @@ export function RunView() {
   const sorted = [...runs].sort((a, b) => b.date.localeCompare(a.date));
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:px-4 max-md:pb-1 max-md:[scrollbar-width:none]">
+      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:-my-3 max-md:px-4 max-md:py-3 max-md:[scrollbar-width:none]">
         {kpis.map((k, i) => (
           <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col max-md:w-[44%] max-md:shrink-0 max-md:snap-start [&>*]:flex-1">
             {k}
@@ -51,10 +50,7 @@ export function RunView() {
       <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(360px,1fr)_minmax(0,360px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} custom={2} className="flex min-h-0 flex-col">
           <Panel className="flex-1">
-            <PanelHeader title="Kilomètres par semaine" icon={Footprints} />
-            <div className="min-h-0 flex-1 px-5 pt-2 pb-4 max-md:h-[230px] max-md:flex-none max-md:px-3"> 
-              <AreaCurve data={series} format={km} />
-            </div>
+            <DistanceCurve runs={runs} />
             <div className="grid shrink-0 grid-cols-3 gap-3 px-5 pb-5 max-md:grid-cols-1 max-md:gap-2 max-md:px-4 max-md:pb-4">
               <Stat icon={Footprints} label="Sorties ce mois" value={String(runsIn(runs, month).length)} />
               <Stat icon={Mountain} label="Total de l'année" value={km(kmIn(runs, year))} />
@@ -89,6 +85,51 @@ export function RunView() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+const HORIZONS = [
+  { value: '3', label: '3 mois' },
+  { value: '6', label: '6 mois' },
+  { value: '12', label: '1 an' },
+] as const;
+
+/** Distance per week or per month (the step) over the last 3, 6 or 12 months (the horizon), dates shown. */
+function DistanceCurve({ runs }: { runs: Run[] }) {
+  const [step, setStep] = useState<'semaine' | 'mois'>('semaine');
+  const [months, setMonths] = useState<'3' | '6' | '12'>('3');
+  const today = todayIso();
+  const n = Number(months);
+  const value = (from: string, to: string) => Math.round(kmIn(runs, { from, to }) * 10) / 10;
+  const series =
+    step === 'semaine'
+      ? weeklySeries(Math.round((n * 52) / 12), value, today).map((w) => ({ from: w.week, to: addDays(w.week, 6), label: `${fromIso(w.week).getDate()}/${fromIso(w.week).getMonth() + 1}`, value: w.value }))
+      : monthlySeries(n, value, today).map((m) => ({ from: m.month, to: monthEnd(m.month), label: monthShort(m.month), value: m.value }));
+  const from = series[0]!.from;
+  const to = step === 'semaine' ? addDays(weekStart(today), 6) : monthEnd(today);
+  const total = series.reduce((s, x) => s + x.value, 0);
+  return (
+    <>
+      <PanelHeader title={step === 'semaine' ? 'Kilomètres par semaine' : 'Kilomètres par mois'} icon={Footprints} />
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pt-1 max-md:px-4">
+        <ChoiceChips label="Horizon" value={months} onChange={setMonths} options={HORIZONS.map((h) => ({ value: h.value, label: h.label }))} />
+        <ChoiceChips
+          label="Pas"
+          value={step}
+          onChange={setStep}
+          options={[
+            { value: 'semaine', label: 'Semaine' },
+            { value: 'mois', label: 'Mois' },
+          ]}
+        />
+      </div>
+      <p className="tnum shrink-0 px-5 pt-2 text-caption text-text-secondary max-md:px-4">
+        Du {shortDate(from)} au {shortDate(to)} : {km(total)}
+      </p>
+      <div className="min-h-0 flex-1 px-5 pt-1 pb-4 max-md:h-[230px] max-md:flex-none max-md:px-3">
+        <AreaCurve key={`${step}${months}`} data={series} format={km} />
+      </div>
+    </>
   );
 }
 

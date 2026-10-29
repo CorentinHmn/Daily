@@ -18,7 +18,7 @@ import { revealVariants } from '../../theme/motion';
 import { PageHeader } from '../shell/PageHeader';
 import { useIsMobile } from '../../ui/useMedia';
 import { AssigneeBadge } from '../../ui/people';
-import { ownedBy } from '../../domain/people';
+import { goalFor, ownedBy } from '../../domain/people';
 
 const TITLES: Record<GoalPeriod, string> = { semaine: 'Objectifs de la semaine', mois: 'Objectifs du mois', annee: "Objectifs de l'année" };
 const SHORT_TITLES: Record<GoalPeriod, string> = { semaine: 'Cette semaine', mois: 'Ce mois-ci', annee: 'Cette année' };
@@ -28,7 +28,7 @@ export function GoalsScreen() {
   const data = useApp((s) => s.data);
   const app = useApp.getState();
   const person = useApp((s) => s.person);
-  const goals = data.goals.filter((g) => g.period === period && ownedBy(g.owner, person)).map((g) => ({ g, p: goalProgress(g, data) }));
+  const goals = data.goals.filter((g) => g.period === period && goalFor(g, person)).map((g) => ({ g, p: goalProgress(g, data) }));
   const reached = goals.filter(({ p }) => p.ratio >= 1).length;
   const reveal = revealVariants();
   const mobile = useIsMobile();
@@ -82,7 +82,7 @@ function GoalCard({ goal }: { goal: Goal }) {
         <div className="min-w-0 flex-1 pt-0.5">
           <h3 className="flex items-center gap-2 text-title-s text-text-primary">
             <span className="min-w-0">{goal.title}</span>
-            <AssigneeBadge assignee={goal.owner} />
+            <AssigneeBadge assignee={goal.owner} people={goal.owners} />
           </h3>
           {goal.kind === 'auto' && goal.source && (
             <p className="mt-0.5 inline-flex items-center gap-1 text-caption text-text-secondary">
