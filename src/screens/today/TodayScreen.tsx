@@ -1,5 +1,5 @@
 /**
- * Aujourd'hui: the day at a glance. KPI row (label + value), the day's tasks and habits, the next gym session
+ * Aujourd'hui: the day at a glance. KPI row (the day's tasks and habits, label + value), the day's tasks and habits, the next gym session
  * (NotchCard, the only one of the screen), the week at a glance with its « grandes tâches », the shopping list and
  * the goals of the moment.
  */
@@ -8,10 +8,10 @@ import { motion } from 'motion/react';
 import { ArrowRight, Check, Dumbbell, ListChecks, Plus, ShoppingCart, Target } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, HABIT_ICONS, guessCategory } from '../../domain/catalog';
-import { goalProgress, goalStatus, habitDueOn, kmIn, nextGymSession, sessionsIn } from '../../domain/stats';
+import { goalProgress, goalStatus, habitDueOn, nextGymSession } from '../../domain/stats';
 import type { Habit, Task } from '../../domain/types';
 import { concerns, ownedBy } from '../../domain/people';
-import { DAY_SHORT, addDays, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
+import { DAY_SHORT, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
 import { kg, num } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, EmptyState, ICON_STROKE, IconBox, Panel, PanelHeader, ProgressBar } from '../../ui/atoms';
@@ -27,27 +27,22 @@ export function TodayScreen() {
   const person = useApp((s) => s.person);
   const today = todayIso();
   const monday = weekStart(today);
-  const week = { from: monday, to: addDays(monday, 6) };
   const mine = data.tasks.filter((t) => concerns(t.assignee, person));
   const tasks = mine.filter((t) => t.date === today).sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'));
   const overdue = mine.filter((t) => !t.done && t.date < today && t.date >= monday);
   const habits = data.habits.filter((h) => habitDueOn(h, today) && ownedBy(h.owner, person));
   const habitsDone = habits.filter((h) => h.checks.includes(today)).length;
-  const sessions = sessionsIn(data.sessions.filter((x) => ownedBy(x.owner, person)), week).length;
-  const sessionGoal = data.goals.find((g) => g.kind === 'auto' && g.source === 'seances' && g.period === 'semaine' && ownedBy(g.owner, person))?.target ?? mine.filter((t) => t.category === 'sport' && t.date >= week.from && t.date <= week.to).length;
   const reveal = revealVariants();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="Aujourd'hui" />
-      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:px-4 max-md:pb-1 max-md:[scrollbar-width:none]">
+      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-2 gap-4 max-md:gap-3">
         {[
           <KpiCard key="t" label="Tâches du jour" value={tasks.filter((t) => t.done).length} of={tasks.length} active />,
           <KpiCard key="h" label="Habitudes du jour" value={habitsDone} of={habits.length} />,
-          <KpiCard key="s" label="Séances cette semaine" value={sessions} of={sessionGoal || undefined} onClick={() => useApp.getState().set({ view: 'sport', sportView: 'salle' })} />,
-          <KpiCard key="r" label="Course à pied cette semaine" value={Math.round(kmIn(data.runs.filter((x) => ownedBy(x.owner, person)), week) * 10) / 10} decimals={1} suffix="km" onClick={() => useApp.getState().set({ view: 'sport', sportView: 'running' })} />,
         ].map((card, i) => (
-          <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col max-md:w-[44%] max-md:shrink-0 max-md:snap-start [&>*]:flex-1">
+          <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col [&>*]:flex-1">
             {card}
           </motion.div>
         ))}
