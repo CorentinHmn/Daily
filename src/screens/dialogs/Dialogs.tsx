@@ -6,9 +6,10 @@ import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, GOAL_SOURCES, HABIT_ICONS, PERI
 import { NOUS, type CategoryId, type GoalIcon, type GoalKind, type GoalPeriod, type GoalSource, type GoalStep, type HabitIcon } from '../../domain/types';
 import { WhoChips } from '../../ui/people';
 import { sessionVolume } from '../../domain/stats';
-import { todayIso, weekdayIndex } from '../../lib/dates';
+import { addDays, todayIso, weekStart, weekdayIndex } from '../../lib/dates';
 import { duration, kg, uid } from '../../lib/format';
 import { Button, ICON_STROKE, IconButton } from '../../ui/atoms';
+import { cn } from '../../ui/cn';
 import { ChoiceChips, DayPicker, Field, NumberStepper, Select, TextArea, TextInput, Toggle } from '../../ui/forms';
 import { Dialog } from '../../ui/overlays';
 import { useNow } from '../../ui/useNow';
@@ -88,13 +89,30 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
   const meId = app.data.settings.meId;
   const several = app.data.members.length > 1;
   const [assignee, setAssignee] = useState<string>(task?.assignee ?? (dialog?.category === 'sport' || dialog?.category === 'running' ? (meId ?? NOUS) : NOUS));
+  // A new task can go on several days of the date's week, or every week on those days (semaine type).
+  const [days, setDays] = useState<number[]>([weekdayIndex(date)]);
+  const [weekly, setWeekly] = useState(false);
+  const monday = weekStart(date);
+  const pickDays = (next: number[]) => {
+    setDays(next);
+    if (next[0] !== undefined && !next.includes(weekdayIndex(date))) setDate(addDays(monday, next[0]));
+  };
+  const pickDate = (iso: string) => {
+    const wd = weekdayIndex(iso);
+    setDate(iso);
+    setDays((p) => (p.length > 1 ? (p.includes(wd) ? p : [...p, wd].sort()) : [wd]));
+  };
   const programs = app.data.programs;
+  const valid = !!title.trim() && (!!task || days.length > 0);
   return (
-    <Dialog open={!!dialog && !(dialog.id && !task)} onClose={onClose} title={task ? 'Modifier la tâche' : 'Nouvelle tâche'} icon={CalendarDays} footer={<Footer onCancel={onClose} submitLabel={task ? 'Enregistrer' : 'Ajouter'} disabled={!title.trim()} onDelete={task ? () => (app.deleteTask(task.id), onClose()) : undefined} />}>
+    <Dialog open={!!dialog && !(dialog.id && !task)} onClose={onClose} title={task ? 'Modifier la tâche' : 'Nouvelle tâche'} icon={CalendarDays} footer={<Footer onCancel={onClose} submitLabel={task ? 'Enregistrer' : weekly ? 'Ajouter à la semaine type' : 'Ajouter'} disabled={!valid} onDelete={task ? () => (app.deleteTask(task.id), onClose()) : undefined} />}>
       <Form
         onSubmit={() => {
-          if (!title.trim()) return;
-          app.saveTask({ id: task?.id, title: title.trim(), category, date, time: time || undefined, durationMin: minutes || undefined, programId: category === 'sport' ? programId : undefined, note: note.trim() || undefined, routineId: task?.routineId, assignee });
+          if (!valid) return;
+          const base = { title: title.trim(), category, time: time || undefined, durationMin: minutes || undefined, programId: category === 'sport' ? programId : undefined, assignee };
+          if (task) app.saveTask({ ...base, id: task.id, date, note: note.trim() || undefined, routineId: task.routineId });
+          else if (weekly) for (const d of days) app.saveRoutine({ ...base, weekday: d });
+          else for (const d of days) app.saveTask({ ...base, date: addDays(monday, d), note: note.trim() || undefined });
           onClose();
         }}
       >
@@ -123,10 +141,20 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
             <Select id="task-program" value={programId} onChange={setProgramId} placeholder="Aucun" options={programs.map((p) => ({ value: p.id, label: p.name, icon: Dumbbell }))} />
           </Field>
         )}
-        <div className="grid grid-cols-3 gap-3 max-md:grid-cols-2 max-md:[&>*:first-child]:col-span-2">
-          <Field label="Jour" htmlFor="task-date">
-            <TextInput id="task-date" type="date" value={date} onChange={(e) => setDate(e.target.value || date)} />
+        {!task && (
+          <Field label="Jours" help={weekly ? "Chaque semaine, à partir d'aujourd'hui" : days.length > 1 ? `${days.length} tâches cette semaine-là` : undefined}>
+            <div className="flex flex-col gap-3">
+              <DayPicker multiple value={days} onChange={pickDays} />
+              <Toggle checked={weekly} onChange={setWeekly} label="Chaque semaine" description="L'ajouter à la semaine type" />
+            </div>
           </Field>
+        )}
+        <div className={cn('grid gap-3', weekly ? 'grid-cols-2 max-md:grid-cols-1' : 'grid-cols-3 max-md:grid-cols-2 max-md:[&>*:first-child]:col-span-2')}>
+          {!weekly && (
+            <Field label="Jour" htmlFor="task-date">
+              <TextInput id="task-date" type="date" value={date} onChange={(e) => e.target.value && pickDate(e.target.value)} />
+            </Field>
+          )}
           <Field label="Heure" htmlFor="task-time" help="Facultatif">
             <TextInput id="task-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </Field>
@@ -134,9 +162,11 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
             <NumberStepper label="durée en minutes" value={minutes} step={5} max={600} suffix="min" onChange={setMinutes} />
           </Field>
         </div>
-        <Field label="Note" htmlFor="task-note">
-          <TextArea id="task-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Un détail à ne pas oublier" />
-        </Field>
+        {!weekly && (
+          <Field label="Note" htmlFor="task-note">
+            <TextArea id="task-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Un détail à ne pas oublier" />
+          </Field>
+        )}
         {task?.routineId && (
           <p className="flex items-center gap-2 text-caption text-text-secondary">
             <Repeat size={13} strokeWidth={ICON_STROKE} aria-hidden />
@@ -156,7 +186,7 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
   const [title, setTitle] = useState(routine?.title ?? '');
   const [category, setCategory] = useState<CategoryId>(routine?.category ?? 'menage');
   const [touchedCat, setTouchedCat] = useState(!!routine);
-  const [weekday, setWeekday] = useState(routine?.weekday ?? dialog?.weekday ?? weekdayIndex(todayIso()));
+  const [days, setDays] = useState<number[]>([routine?.weekday ?? dialog?.weekday ?? weekdayIndex(todayIso())]);
   const [time, setTime] = useState(routine?.time ?? '');
   const [minutes, setMinutes] = useState(routine?.durationMin ?? 0);
   const [programId, setProgramId] = useState(routine?.programId);
@@ -164,11 +194,15 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
   const several = app.data.members.length > 1;
   const [assignee, setAssignee] = useState<string>(routine?.assignee ?? NOUS);
   return (
-    <Dialog open={!!dialog && !(dialog.id && !routine)} onClose={onClose} title={routine ? 'Modifier la routine' : 'Nouvelle routine'} icon={Repeat} footer={<Footer onCancel={onClose} submitLabel={routine ? 'Enregistrer' : 'Ajouter à la semaine type'} disabled={!title.trim()} deleteLabel="Retirer" onDelete={routine ? () => (app.deleteRoutine(routine.id), onClose()) : undefined} />}>
+    <Dialog open={!!dialog && !(dialog.id && !routine)} onClose={onClose} title={routine ? 'Modifier la routine' : 'Nouvelle routine'} icon={Repeat} footer={<Footer onCancel={onClose} submitLabel={routine ? 'Enregistrer' : 'Ajouter à la semaine type'} disabled={!title.trim() || !days.length} deleteLabel="Retirer" onDelete={routine ? () => (app.deleteRoutine(routine.id), onClose()) : undefined} />}>
       <Form
         onSubmit={() => {
-          if (!title.trim()) return;
-          app.saveRoutine({ id: routine?.id, title: title.trim(), category, weekday, time: time || undefined, durationMin: minutes || undefined, programId: category === 'sport' ? programId : undefined, assignee });
+          if (!title.trim() || !days.length) return;
+          const base = { title: title.trim(), category, time: time || undefined, durationMin: minutes || undefined, programId: category === 'sport' ? programId : undefined, assignee };
+          // One routine per day: an edited routine keeps its day if still ticked, the other days get their own copy.
+          const [first, ...rest] = routine && days.includes(routine.weekday) ? [routine.weekday, ...days.filter((d) => d !== routine.weekday)] : days;
+          app.saveRoutine({ ...base, id: routine?.id, weekday: first! });
+          for (const d of rest) app.saveRoutine({ ...base, weekday: d });
           onClose();
         }}
       >
@@ -197,8 +231,8 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
             <Select id="routine-program" value={programId} onChange={setProgramId} placeholder="Aucun" options={programs.map((p) => ({ value: p.id, label: p.name, icon: Dumbbell }))} />
           </Field>
         )}
-        <Field label="Jour de la semaine">
-          <DayPicker value={[weekday]} onChange={(d) => setWeekday(d[0] ?? 0)} />
+        <Field label="Jours de la semaine" help={days.length > 1 ? `${days.length} routines, une par jour` : undefined}>
+          <DayPicker multiple value={days} onChange={setDays} />
         </Field>
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <Field label="Heure" htmlFor="routine-time" help="Facultatif">
