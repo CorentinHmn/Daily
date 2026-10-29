@@ -65,8 +65,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   (`src/ui/liquid.ts`), pas de `layout` / `layoutId` Motion (ils mesuraient la barre à chaque rendu et se figeaient
   pendant le rendu du nouvel écran) ; `useLiquidBubble` + `useDeferredPick` : le changement part deux images après le clic.
 - Rail du bureau : son verre est un calque plus large que le rail, découpé par un clip-path `path()` animé (le rail +
-  la vague qui sort avec le nom), liseré en trait SVG et ombre (hors du contour) sur le même tracé : une seule pièce
-  de verre, sans jointure. La vague ne peut pas vivre dans le `<nav>` : un `backdrop-filter` ancêtre la couperait.
+  la vague qui sort avec le nom) ; ombre (copie floutée, découpée hors du contour) et liseré (anneau entre le contour
+  et le contour décalé) sont aussi des clip-paths, avec les mêmes images-clés échantillonnées à 60 i/s : rien ne peut
+  se décaler (un `d` SVG animé à part laissait voir une tache noire). La vague ne peut pas vivre dans le `<nav>` : un
+  `backdrop-filter` ancêtre la couperait.
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.

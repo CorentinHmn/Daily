@@ -36,10 +36,13 @@ export const currentShift = (el: HTMLElement, axis: 'x' | 'y' = 'x') => {
  * Keyframes moving a bubble by `d` px along an axis back to its place: the faster it travels, the more it stretches
  * along and thins across (`size` = its new length along the axis, `from` = its old one).
  */
+/** How much a bubble moving `d` px stretches at spring speed `v` (0 at rest, 0.15 at most). */
+export const stretchAt = (d: number, v: number) => Math.min(0.15, Math.abs(d * v) / 6000);
+
 export function travel(d: number, axis: 'x' | 'y', from: number, size: number): Keyframe[] {
   return SPRING.frames.map(({ p, v }) => {
     const grow = (from + (size - from) * p) / size;
-    const stretch = Math.min(0.15, Math.abs(d * v) / 6000);
+    const stretch = stretchAt(d, v);
     const along = grow * (1 + stretch);
     const across = 1 - stretch * 0.45;
     return axis === 'x' ? { transform: `translateX(${d * (1 - p)}px) scale(${along}, ${across})` } : { transform: `translateY(${d * (1 - p)}px) scale(${across}, ${along})` };

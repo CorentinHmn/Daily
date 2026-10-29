@@ -183,27 +183,29 @@
     radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.22), transparent 55%);
   mix-blend-mode: soft-light;
 }
-/* The glass's shadow (--glass-shadow), as drop-shadows of its outline. */
+/* The glass's shadow (--glass-shadow): a blurred, lowered copy of its outline, clipped to what lies outside it. */
 .rail-shadow {
-  fill: rgb(14 16 20);
-  filter: drop-shadow(0 10px 14px rgb(14 16 20 / 0.16)) drop-shadow(0 2px 3px rgb(14 16 20 / 0.06));
+  color: rgb(14 16 20 / 0.17);
+  filter: blur(11px);
+  transform: translateY(9px);
 }
-:root[data-theme='night'] .rail-shadow {
-  fill: rgb(0 0 0);
-  filter: drop-shadow(0 12px 22px rgb(0 0 0 / 0.55));
+/* The rim's light (the .liquid::after ring): bright top left, a glint bottom right, across the rail. */
+.rail-rim {
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.12) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.55)) 0 0 / var(--layout-rail) 100% no-repeat;
 }
-.rail-rim-a { stop-color: rgb(255 255 255 / 0.95); }
-.rail-rim-b { stop-color: rgb(255 255 255 / 0.12); }
-.rail-rim-c { stop-color: rgb(255 255 255 / 0); }
-.rail-rim-d { stop-color: rgb(255 255 255 / 0.55); }
 :root[data-theme='night'] .rail-sheen {
   background:
     radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.16), transparent 46%),
     radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.06), transparent 55%);
 }
-:root[data-theme='night'] .rail-rim-a { stop-color: rgb(255 255 255 / 0.32); }
-:root[data-theme='night'] .rail-rim-b { stop-color: rgb(255 255 255 / 0.04); }
-:root[data-theme='night'] .rail-rim-d { stop-color: rgb(90 162 255 / 0.25); }
+:root[data-theme='night'] .rail-shadow {
+  color: rgb(0 0 0 / 0.5);
+  filter: blur(16px);
+  transform: translateY(12px);
+}
+:root[data-theme='night'] .rail-rim {
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(90 162 255 / 0.25)) 0 0 / var(--layout-rail) 100% no-repeat;
+}
 
 /* Specular sheen: a soft light on the top left of the glass, a faint caustic on the bottom right. */
 .liquid::before {
