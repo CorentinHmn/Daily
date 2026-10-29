@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Footprints, Gauge, Mountain, Trash2, Trophy } from 'lucide-react';
 import { useApp } from '../../store/app';
-import { ownedBy } from '../../domain/people';
+import { goalFor, goalOwners } from '../../domain/people';
+import { NOUS } from '../../domain/types';
 import type { Run } from '../../domain/types';
 import { kmIn, monthlySeries, periodRange, runsIn, weeklySeries } from '../../domain/stats';
 import { addDays, fromIso, monthEnd, monthShort, shortDate, todayIso, weekStart } from '../../lib/dates';
@@ -16,12 +17,15 @@ import { Button, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms'
 import { AreaCurve, KpiCard, KpiText } from '../../ui/charts';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
 import { DateField } from '../../ui/pickers';
+import { AssigneeBadge, PeopleChips } from '../../ui/people';
 import { revealVariants } from '../../theme/motion';
 
 export function RunView() {
   const allRuns = useApp((s) => s.data.runs);
   const person = useApp((s) => s.person);
-  const runs = allRuns.filter((x) => ownedBy(x.owner, person));
+  // A run made together is in each of its people's runs.
+  const runs = allRuns.filter((x) => goalFor(x, person));
+  const several = useApp((s) => s.data.members.length > 1);
   const app = useApp.getState();
   const today = todayIso();
   const week = periodRange('semaine', today);
@@ -72,11 +76,12 @@ export function RunView() {
               {sorted.length === 0 && <li className="px-2 py-3 text-body-s text-text-secondary">Tes sorties apparaîtront ici.</li>}
               {sorted.slice(0, 60).map((r) => (
                 <li key={r.id} className="group/run flex items-center gap-3 rounded-md px-2 py-2 hover:bg-bg-card/60">
-                  <button type="button" onClick={() => app.openDialog({ kind: 'run', id: r.id })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                    <span className="tnum w-14 shrink-0 text-label-s text-text-secondary">{shortDate(r.date)}</span>
-                    <span className="tnum min-w-0 flex-1 truncate text-label-m text-text-primary">{km(r.distanceKm)}</span>
+                  <button type="button" onClick={() => app.openDialog({ kind: 'run', id: r.id })} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                    <span className="tnum w-12 shrink-0 text-label-s text-text-secondary">{shortDate(r.date)}</span>
+                    <span className="tnum shrink-0 text-label-m text-text-primary">{km(r.distanceKm)}</span>
+                    <span className="flex min-w-0 flex-1">{several && !person && <AssigneeBadge assignee={r.owner} people={r.owners} />}</span>
                     <span className="tnum text-caption text-text-secondary">{duration(r.durationMin)}</span>
-                    <span className="tnum w-20 text-right text-label-s text-text-primary">{pace(r.durationMin / r.distanceKm)}</span>
+                    <span className="tnum w-16 shrink-0 text-right text-label-s text-text-primary">{pace(r.durationMin / r.distanceKm)}</span>
                   </button>
                   <IconButton icon={Trash2} label="Supprimer la sortie" variant="danger" size="xs" className="opacity-0 group-hover/run:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-70" onClick={() => app.deleteRun(r.id)} />
                 </li>
@@ -160,13 +165,24 @@ export function RunForm({ run, date, onSaved, compact }: { run?: Run; date?: str
   const [time, setTime] = useState(run ? durationInput(run.durationMin) : '');
   const [feeling, setFeeling] = useState<string>(String(run?.feeling ?? 3));
   const [tried, setTried] = useState(false);
+  // Who ran: one person, or several who ran together at the same pace (it counts for each of them).
+  const members = useApp((s) => s.data.members);
+  const memberIds = members.map((x) => x.id);
+  const [people, setPeople] = useState<string[]>(() => {
+    const owners = run ? goalOwners(run) : app.data.settings.meId ? [app.data.settings.meId] : [];
+    return owners.length ? owners : memberIds;
+  });
   const d = parseFloat(dist.replace(',', '.'));
   const m = parseDuration(time);
   const valid = Number.isFinite(d) && d > 0 && m !== null && m > 0;
   const submit = () => {
     setTried(true);
     if (!valid) return;
-    app.saveRun({ id: run?.id, date: day, distanceKm: Math.round(d * 100) / 100, durationMin: Math.round(m! * 100) / 100, feeling: Number(feeling) });
+    // As for goals: one person = owner; everyone = the household (NOUS); some of them = owners, NOUS as owner.
+    const mine = people.filter((id) => memberIds.includes(id));
+    const owner = mine.length === 1 ? mine[0]! : NOUS;
+    const owners = mine.length > 1 && mine.length < memberIds.length ? mine : undefined;
+    app.saveRun({ id: run?.id, date: day, distanceKm: Math.round(d * 100) / 100, durationMin: Math.round(m! * 100) / 100, feeling: Number(feeling), owner, owners });
     if (!run) {
       setDist('');
       setTime('');
@@ -193,6 +209,11 @@ export function RunForm({ run, date, onSaved, compact }: { run?: Run; date?: str
           <TextInput id="run-time" placeholder="48:30" value={time} onChange={(e) => setTime(e.target.value)} invalid={tried && !(m && m > 0)} />
         </Field>
       </div>
+      {members.length > 1 && (
+        <Field label="Qui a couru ?" help={people.length > 1 ? 'Ensemble, au même rythme : la sortie compte pour chacun.' : undefined}>
+          <PeopleChips value={people} onChange={setPeople} label="Qui a couru ?" />
+        </Field>
+      )}
       <div className="flex items-center justify-between gap-3">
         <ChoiceChips label="Ressenti" value={feeling as '5' | '3' | '1'} onChange={setFeeling} options={FEELINGS.map((f) => ({ value: f.value, label: f.label }))} />
         <span className="tnum shrink-0 text-label-m text-text-secondary">

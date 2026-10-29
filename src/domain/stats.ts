@@ -54,7 +54,8 @@ export function goalProgress(goal: Goal, data: Pick<AppData, 'runs' | 'sessions'
     const who = goalOwners(goal);
     const theirs = (owner?: string) => !who.length || !owner || owner === NOUS || who.includes(owner);
     const sessions = data.sessions.filter((x) => theirs(x.owner));
-    const runs = data.runs.filter((x) => theirs(x.owner));
+    // A run made together counts for each of its people.
+    const runs = data.runs.filter((x) => !who.length || goalOwners(x).length === 0 || goalOwners(x).some((o) => who.includes(o)));
     const tasks = who.length ? data.tasks.filter((t) => t.assignee && who.includes(t.assignee)) : data.tasks;
     if (goal.source === 'seances') value = sessionsIn(sessions, r).length;
     else if (goal.source === 'km') value = Math.round(kmIn(runs, r) * 10) / 10;

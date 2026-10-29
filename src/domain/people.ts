@@ -18,13 +18,13 @@ export function ownedBy(owner: string | undefined, person: string | null): boole
   return !person || !owner || owner === NOUS || owner === person;
 }
 
-/** The people a goal is for: one, several (`owners`), or none = the whole household. */
+/** The people a goal (or a run) is for: one, several (`owners`), or none = the whole household. */
 export function goalOwners(g: { owner?: string; owners?: string[] }): string[] {
   if (g.owners?.length) return g.owners;
   return !g.owner || g.owner === NOUS ? [] : [g.owner];
 }
 
-/** A goal shows under a person's filter when it is theirs, shared with them, or the household's. */
+/** A goal (or a run) shows under a person's filter when it is theirs, shared with them, or the household's. */
 export function goalFor(g: { owner?: string; owners?: string[] }, person: string | null): boolean {
   const owners = goalOwners(g);
   return !person || owners.length === 0 || owners.includes(person);
@@ -136,7 +136,7 @@ export function keepPeople(d: AppData, members: Member[], meId: string | undefin
     }),
     programs: d.programs.map(owner),
     sessions: d.sessions.map(owner),
-    runs: d.runs.map(owner),
+    runs: d.runs.map(owners),
     goals: d.goals.map(owners),
   };
 }

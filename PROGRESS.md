@@ -100,6 +100,11 @@
   coches simultanées (même hors ligne) sont fusionnées. Vérifié : 6 tests unitaires, parcours navigateur à deux
   appareils (l'un hors ligne coche Louise pendant que l'autre décoche Corentin → les deux gardés), e2e 15/15.
 
+- Sorties running : « Qui a couru ? » à cases multiples (formulaire de Running et fenêtre de la sortie) ; une sortie à
+  deux compte pour chacun (filtre, distances de la semaine / du mois, objectifs km et sorties), une fois pour le foyer ;
+  avatars dans la liste avec le filtre « Tous ». Vérifié : test unitaire, parcours navigateur (1440, 1280, téléphone),
+  e2e 15/15.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

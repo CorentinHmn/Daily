@@ -103,7 +103,10 @@ export interface Run {
   /** 1 (dur) … 5 (facile) */
   feeling?: number;
   note?: string;
+  /** a member id, or NOUS for the household */
   owner?: string;
+  /** run together (not the whole household): their ids, `owner` is then NOUS; it counts for each of them */
+  owners?: string[];
 }
 
 export type GoalPeriod = 'semaine' | 'mois' | 'annee';

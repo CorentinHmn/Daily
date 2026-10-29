@@ -35,3 +35,20 @@ describe('objectif à plusieurs', () => {
     expect(goalFor({ owner: NOUS }, 'c')).toBe(true);
   });
 });
+
+describe('sortie à plusieurs', () => {
+  const base = { id: 'g', title: 'Courir', period: 'semaine' as const, kind: 'auto' as const, source: 'km' as const, target: 20, value: 0, steps: [], icon: 'target' as const };
+  const runs = [
+    { id: '1', date: '2026-10-27', distanceKm: 10, durationMin: 55, owner: NOUS, owners: ['a', 'b'] },
+    { id: '2', date: '2026-10-28', distanceKm: 4, durationMin: 25, owner: 'b' },
+    { id: '3', date: '2026-10-28', distanceKm: 6, durationMin: 35, owner: NOUS },
+  ];
+  const data = { runs, sessions: [], tasks: [] };
+  it('compte pour chacune de ses personnes, une fois pour le foyer', () => {
+    expect(goalProgress({ ...base, owner: 'a' }, data, '2026-10-29').value).toBe(16);
+    expect(goalProgress({ ...base, owner: 'b' }, data, '2026-10-29').value).toBe(20);
+    expect(goalProgress({ ...base, owner: 'c' }, data, '2026-10-29').value).toBe(6);
+    expect(goalProgress({ ...base, owner: NOUS }, data, '2026-10-29').value).toBe(20);
+    expect(goalProgress({ ...base, source: 'sorties', owner: 'a' }, data, '2026-10-29').value).toBe(2);
+  });
+});
