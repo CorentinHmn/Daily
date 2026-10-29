@@ -9,6 +9,7 @@ import { memberOf } from '../domain/people';
 import { cn } from './cn';
 import { Avatar, ICON_STROKE } from './atoms';
 import { useLiquidGlass } from './glass';
+import { useDeferredPick, useLiquidBubble } from './liquid';
 
 /** Avatar of the person in charge, or two stacked avatars for the household. Null when there is only one person. */
 export function AssigneeBadge({ assignee, people, className }: { assignee?: string; people?: string[]; className?: string }) {
@@ -47,16 +48,20 @@ export function PersonSwitcher({ className }: { className?: string }) {
   const person = useApp((s) => s.person);
   const meId = useApp((s) => s.data.settings.meId);
   const glass = useLiquidGlass<HTMLDivElement>({ bezel: 12, strength: 8 });
+  // The liquid bubble of the bars; every screen re-filters, so the change follows two frames later.
+  const { shown, pick: set } = useDeferredPick<string | null>(person, (p) => useApp.getState().set({ person: p }));
+  const { bubble, item } = useLiquidBubble<string | null>(shown, members.length);
   if (members.length < 2) return null;
-  const set = (p: string | null) => useApp.getState().set({ person: p });
   return (
     <div ref={glass} role="radiogroup" aria-label="Personne" className={cn('liquid inline-flex items-center gap-1 rounded-full p-1', className)}>
+      <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
       <button
+        ref={item(null)}
         type="button"
         role="radio"
-        aria-checked={person === null}
+        aria-checked={shown === null}
         onClick={() => set(null)}
-        className={cn('inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-label-s transition-colors', person === null ? 'bg-accent-default text-text-on-accent' : 'text-text-secondary hover:text-text-primary')}
+        className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-label-s transition-colors duration-200', shown === null ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
       >
         <Users size={15} strokeWidth={ICON_STROKE} aria-hidden />
         Tous
@@ -64,13 +69,14 @@ export function PersonSwitcher({ className }: { className?: string }) {
       {members.map((m) => (
         <button
           key={m.id}
+          ref={item(m.id)}
           type="button"
           role="radio"
-          aria-checked={person === m.id}
+          aria-checked={shown === m.id}
           aria-label={m.id === meId ? `${m.name} (moi)` : m.name}
           title={m.name}
           onClick={() => set(m.id)}
-          className={cn('inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors', person === m.id ? 'bg-accent-default text-text-on-accent' : 'text-text-secondary hover:text-text-primary')}
+          className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors duration-200', shown === m.id ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
         >
           <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" className="size-7 text-[10px]" />
           <span className="max-w-[90px] truncate">{m.name}</span>

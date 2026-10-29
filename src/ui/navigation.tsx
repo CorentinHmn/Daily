@@ -2,14 +2,12 @@
  * Halo shell pieces (Components 71:294, 66:343): NavRail in liquid glass and SegmentedControl (view switch of the page
  * header).
  */
-import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Plus, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
 import { ICON_STROKE, Logo } from './atoms';
 import { useLiquidGlass } from './glass';
-import { springGesture } from '../theme/motion';
-import { SPRING, reducedMotion, travel } from './liquid';
+import { SPRING, reducedMotion, travel, useDeferredPick, useLiquidBubble } from './liquid';
 
 export type NavItem<T extends string> = { id: T; label: string; icon: LucideIcon; badge?: string; live?: boolean };
 
@@ -208,23 +206,26 @@ export function NavRail<T extends string>({
 
 /** View or mode switch (2–4 options, SegmentedControl 66:343), in liquid glass. */
 export function SegmentedControl<T extends string>({ options, value, onChange, label }: { options: readonly { value: T; label: ReactNode; icon?: LucideIcon }[]; value: T; onChange: (v: T) => void; label: string }) {
-  const id = useId();
   const glass = useLiquidGlass<HTMLDivElement>({ bezel: 12, strength: 8 });
+  // Same bubble as the tab bar: it moves at once, the view (often a heavy screen) follows two frames later.
+  const { shown, pick } = useDeferredPick(value, onChange);
+  const { bubble, item } = useLiquidBubble(shown, options.length);
   return (
     <div ref={glass} role="radiogroup" aria-label={label} className="liquid inline-flex gap-1 rounded-full p-1">
+      <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
       {options.map((o) => {
-        const active = o.value === value;
+        const active = o.value === shown;
         const Icon = o.icon;
         return (
           <button
             key={o.value}
+            ref={item(o.value)}
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => onChange(o.value)}
-            className={cn('relative inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-label-m transition-colors duration-(--v-duree-courte)', active ? 'text-text-on-accent' : 'text-text-secondary hover:text-text-primary')}
+            onClick={() => pick(o.value)}
+            className={cn('relative inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-label-m transition-colors duration-200', active ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
           >
-            {active && <motion.span layoutId={`seg-${id}`} transition={springGesture()} className="absolute inset-0 rounded-full bg-accent-default shadow-hairline-top" />}
             {Icon && <Icon className="relative" size={16} strokeWidth={ICON_STROKE} aria-hidden />}
             <span className="relative">{o.label}</span>
           </button>

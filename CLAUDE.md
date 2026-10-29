@@ -61,9 +61,9 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Bouton `ghost` + couleur : le gris du variant passe après dans la feuille de style, d'où `text-text-danger!`.
 - Les popovers (menus, listes) sont dans `<body>` mais React fait remonter leurs clics aux ancêtres du bouton qui les
   ouvre : `popover.tsx` arrête la propagation (sinon « Supprimer » dans le menu d'une tâche ouvrait aussi la tâche).
-- Bulles de navigation (barre du téléphone, rail du bureau) : Web Animations sur des images-clés de ressort
+- Bulles (barre du téléphone, rail du bureau, SegmentedControl, filtre des personnes, interrupteur) : Web Animations sur des images-clés de ressort
   (`src/ui/liquid.ts`), pas de `layout` / `layoutId` Motion (ils mesuraient la barre à chaque rendu et se figeaient
-  pendant le rendu du nouvel écran) ; la navigation part deux images après le clic.
+  pendant le rendu du nouvel écran) ; `useLiquidBubble` + `useDeferredPick` : le changement part deux images après le clic.
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.

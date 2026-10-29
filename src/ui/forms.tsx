@@ -2,14 +2,13 @@
  * Halo forms (Components 67:300): Field, TextInput, TextArea, Select, ChoiceChips, DayPicker, NumberStepper, Toggle.
  * Field = bg/raised, border/default, radius 12, height 40 (size/control-md), focus = border/accent + soft ring.
  */
-import { useId, useRef, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { Check, ChevronDown, Minus, Plus, type LucideIcon } from 'lucide-react';
-import { motion } from 'motion/react';
 import { cn } from './cn';
 import { ICON_STROKE } from './atoms';
 import { Popover } from './popover';
 import { DAY_LETTER, DAY_LONG } from '../lib/dates';
-import { springGesture } from '../theme/motion';
+import { SPRING, reducedMotion, travel } from './liquid';
 
 export const fieldShell =
   'flex min-h-10 w-full min-w-0 items-center gap-2.5 rounded-md border border-border-default bg-bg-card/70 px-3 text-body-s text-text-primary transition-[border-color,box-shadow,background-color] duration-(--v-duree-courte) hover:border-border-strong focus-within:border-border-accent focus-within:bg-bg-card focus-within:shadow-field-focus';
@@ -237,6 +236,19 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 9999, 
 
 /** On/off switch (Toggle 67:263, Anim · Interrupteur: spring). */
 export function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
+  // The knob slides with the bars' liquid spring (Web Animations), from where it was to where it now sits.
+  const knob = useRef<HTMLSpanElement>(null);
+  const was = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const k = knob.current;
+    if (!k) return;
+    const x = k.offsetLeft;
+    const from = was.current;
+    was.current = x;
+    if (from === null || from === x || reducedMotion()) return;
+    k.getAnimations().forEach((a) => a.cancel());
+    k.animate(travel(from - x, 'x', k.offsetWidth, k.offsetWidth), { duration: SPRING.ms, easing: 'linear' });
+  }, [checked]);
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4">
       <span className="min-w-0">
@@ -251,7 +263,7 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
         onClick={() => onChange(!checked)}
         className={cn('relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors duration-(--v-duree-courte)', checked ? 'bg-accent-default' : 'bg-bg-hover')}
       >
-        <motion.span layout transition={springGesture()} className={cn('size-6 rounded-full bg-bg-card shadow-[0_1px_3px_rgb(14_16_20/0.25)]', checked && 'ml-auto')} />
+        <span ref={knob} className={cn('size-6 rounded-full bg-bg-card shadow-[0_1px_3px_rgb(14_16_20/0.25)] will-change-transform', checked && 'ml-auto')} />
       </button>
     </label>
   );
