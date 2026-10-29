@@ -4,17 +4,17 @@
  * of the week (ticked / planned per category).
  */
 import { useEffect, useState, type DragEvent } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Clock, Plus, Repeat } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER } from '../../domain/catalog';
 import type { Routine, Task } from '../../domain/types';
-import { DAY_LONG, DAY_SHORT, addDays, capitalize, fromIso, todayIso, weekDays, weekRangeLabel, weekStart } from '../../lib/dates';
+import { DAY_LONG, DAY_SHORT, addDays, capitalize, fromIso, todayIso, weekDays, weekRangeLabel, weekStart, weekdayIndex } from '../../lib/dates';
 import { duration, percent } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, ICON_STROKE, IconButton, ProgressBar } from '../../ui/atoms';
 import { SegmentedControl } from '../../ui/navigation';
-import { revealVariants } from '../../theme/motion';
+import { motionTokens, revealVariants } from '../../theme/motion';
 import { useIsMobile } from '../../ui/useMedia';
 import { AssigneeBadge } from '../../ui/people';
 import { concerns } from '../../domain/people';
@@ -26,35 +26,67 @@ export function WeekScreen() {
   const mode = useApp((s) => s.weekMode);
   const offset = useApp((s) => s.weekOffset);
   const app = useApp.getState();
+  const mobile = useIsMobile();
   const monday = addDays(weekStart(todayIso()), offset * 7);
+  // The first view of the screen comes in panel by panel; a switch (mode or week) slides the content sideways instead,
+  // from the side it comes from, and the header and the day strip stay put.
+  const [switched, setSwitched] = useState(false);
+  const [dir, setDir] = useState(1);
+  const go = (patch: { weekMode?: 'agenda' | 'type'; weekOffset?: number }, d: number) => {
+    setSwitched(true);
+    setDir(d);
+    app.set(patch);
+  };
+  const prev = () => go({ weekOffset: offset - 1 }, -1);
+  const next = () => go({ weekOffset: offset + 1 }, 1);
+  const now = () => go({ weekOffset: 0 }, offset > 0 ? -1 : 1);
+  const t = motionTokens();
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <PageHeader title="Semaine">
-        {mode === 'agenda' && (
-          <div className="flex items-center gap-1">
-            <IconButton icon={ChevronLeft} label="Semaine précédente" variant="ghost" size="s" onClick={() => app.set({ weekOffset: offset - 1 })} />
-            <button type="button" onClick={() => app.set({ weekOffset: 0 })} className={cn('tnum min-w-[150px] rounded-full px-3 py-2 text-center text-label-m transition-colors hover:bg-bg-card/70', offset === 0 ? 'text-text-primary' : 'text-text-accent')} title="Revenir à cette semaine">
+        {!mobile && (
+          <div className={cn('flex items-center gap-1 transition-opacity duration-(--v-duree-courte)', mode === 'type' && 'pointer-events-none opacity-0')} aria-hidden={mode === 'type' || undefined}>
+            <IconButton icon={ChevronLeft} label="Semaine précédente" variant="ghost" size="s" onClick={prev} tabIndex={mode === 'type' ? -1 : undefined} />
+            <button type="button" onClick={now} tabIndex={mode === 'type' ? -1 : undefined} className={cn('tnum min-w-[150px] rounded-full px-3 py-2 text-center text-label-m transition-colors hover:bg-bg-card/70', offset === 0 ? 'text-text-primary' : 'text-text-accent')} title="Revenir à cette semaine">
               {offset === 0 ? 'Cette semaine' : weekRangeLabel(monday)}
             </button>
-            <IconButton icon={ChevronRight} label="Semaine suivante" variant="ghost" size="s" onClick={() => app.set({ weekOffset: offset + 1 })} />
+            <IconButton icon={ChevronRight} label="Semaine suivante" variant="ghost" size="s" onClick={next} tabIndex={mode === 'type' ? -1 : undefined} />
           </div>
         )}
         <SegmentedControl
           label="Vue"
           value={mode}
-          onChange={(v) => app.set({ weekMode: v })}
+          onChange={(v) => go({ weekMode: v }, v === 'type' ? 1 : -1)}
           options={[
             { value: 'agenda', label: 'Agenda' },
             { value: 'type', label: 'Semaine type' },
           ]}
         />
       </PageHeader>
-      {mode === 'agenda' ? <Agenda monday={monday} /> : <TemplateWeek />}
+      {mobile && <WeekStrip mode={mode} monday={monday} onPrev={prev} onNext={next} />}
+      {/* popLayout: the new view slides in while the old one slides out (no blank between the two). */}
+      <AnimatePresence mode="popLayout" initial={false} custom={dir}>
+        <motion.div
+          key={mode === 'agenda' ? monday : 'type'}
+          custom={dir}
+          variants={{
+            enter: (d: number) => ({ opacity: 0, x: d * 24 }),
+            center: { opacity: 1, x: 0, transition: { duration: t.medium, ease: t.entry } },
+            leave: (d: number) => ({ opacity: 0, x: d * -24, transition: { duration: t.short, ease: t.exit } }),
+          }}
+          initial="enter"
+          animate="center"
+          exit="leave"
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {mode === 'agenda' ? <Agenda monday={monday} offset={offset} onNow={now} entrance={!switched} /> : <TemplateWeek entrance={!switched} />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
 
-function Agenda({ monday }: { monday: string }) {
+function Agenda({ monday, offset, onNow, entrance }: { monday: string; offset: number; onNow: () => void; entrance: boolean }) {
   const all = useApp((s) => s.data.tasks);
   const person = useApp((s) => s.person);
   const tasks = all.filter((t) => concerns(t.assignee, person));
@@ -69,12 +101,20 @@ function Agenda({ monday }: { monday: string }) {
   const big = CATEGORY_ORDER.map((c) => ({ c, total: weekTasks.filter((t) => t.category === c).length, done: weekTasks.filter((t) => t.category === c && t.done).length })).filter((x) => x.total > 0);
   const reveal = revealVariants();
   const mobile = useIsMobile();
+  const from = entrance ? 'hidden' : false;
   return (
     <>
-      <motion.div initial="hidden" animate="show" variants={reveal} className="glass-panel flex shrink-0 items-center gap-5 rounded-xl px-5 py-3 max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-4">
+      <motion.div initial={from} animate="show" variants={reveal} className="glass-panel flex shrink-0 items-center gap-5 rounded-xl px-5 py-3 max-md:mt-3 max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-4">
         <div className="flex w-[190px] shrink-0 flex-col gap-1.5 max-md:w-full">
           <div className="flex items-center justify-between">
-            <span className="text-label-m text-text-primary">Semaine accomplie</span>
+            {mobile ? (
+              // Phone: the week's name (the arrows are on the day strip); tap = back to this week.
+              <button type="button" onClick={onNow} disabled={offset === 0} className={cn('tnum text-label-m', offset === 0 ? 'text-text-primary' : 'text-text-accent')}>
+                {offset === 0 ? 'Cette semaine' : `${weekRangeLabel(monday)} · revenir`}
+              </button>
+            ) : (
+              <span className="text-label-m text-text-primary">Semaine accomplie</span>
+            )}
             <span className="tnum text-label-m text-text-accent">{percent(weekTasks.length ? done / weekTasks.length : 0)}</span>
           </div>
           <ProgressBar value={weekTasks.length ? done / weekTasks.length : 0} label="Semaine accomplie" />
@@ -96,10 +136,9 @@ function Agenda({ monday }: { monday: string }) {
           })}
         </ul>
       </motion.div>
-      {mobile && <WeekStrip days={days} tasks={weekTasks} />}
       <div className="mt-4 grid min-h-0 flex-1 grid-cols-7 gap-3 pb-1 max-md:mt-3 max-md:grid-cols-1">
         {days.map((d, i) => (
-          <motion.div key={d} initial="hidden" animate="show" variants={reveal} custom={i + 1} className="flex min-h-0 min-w-0 flex-col">
+          <motion.div key={d} initial={from} animate="show" variants={reveal} custom={i + 1} className="flex min-h-0 min-w-0 flex-col">
             <DayColumn date={d} index={i} tasks={weekTasks.filter((t) => t.date === d)} />
           </motion.div>
         ))}
@@ -204,15 +243,16 @@ function WeekTaskCard({ task }: { task: Task }) {
   );
 }
 
-function TemplateWeek() {
+function TemplateWeek({ entrance }: { entrance: boolean }) {
   const allRoutines = useApp((s) => s.data.routines);
   const person = useApp((s) => s.person);
   const routines = allRoutines.filter((r) => concerns(r.assignee, person));
   const reveal = revealVariants();
   const total = routines.reduce((s, r) => s + (r.durationMin ?? 0), 0);
+  const from = entrance ? 'hidden' : false;
   return (
     <>
-      <motion.div initial="hidden" animate="show" variants={reveal} className="glass-panel flex shrink-0 items-center gap-4 rounded-xl px-5 py-3 max-md:flex-wrap max-md:px-4">
+      <motion.div initial={from} animate="show" variants={reveal} className="glass-panel flex shrink-0 items-center gap-4 rounded-xl px-5 py-3 max-md:mt-3 max-md:flex-wrap max-md:px-4">
         <span aria-hidden className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-text-accent">
           <Repeat size={18} strokeWidth={ICON_STROKE} />
         </span>
@@ -222,7 +262,7 @@ function TemplateWeek() {
       </motion.div>
       <div className="mt-4 grid min-h-0 flex-1 grid-cols-7 gap-3 pb-1 max-md:mt-3 max-md:grid-cols-1">
         {DAY_LONG.map((_, i) => (
-          <motion.div key={i} initial="hidden" animate="show" variants={reveal} custom={i + 1} className="flex min-h-0 min-w-0 flex-col">
+          <motion.div key={i} initial={from} animate="show" variants={reveal} custom={i + 1} className="flex min-h-0 min-w-0 flex-col">
             <TemplateColumn weekday={i} routines={routines.filter((r) => r.weekday === i).sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'))} />
           </motion.div>
         ))}
@@ -235,7 +275,7 @@ function TemplateColumn({ weekday, routines }: { weekday: number; routines: Rout
   const app = useApp.getState();
   const drop = useDrop((id) => app.moveRoutine(id, weekday), 'text/cadence-routine');
   return (
-    <section aria-label={DAY_LONG[weekday]} {...drop.props} className={cn('glass-panel flex min-h-0 flex-1 flex-col rounded-xl transition-[border-color]', drop.over && '!border-border-accent !bg-accent-soft')}>
+    <section id={`weekday-${weekday}`} aria-label={DAY_LONG[weekday]} {...drop.props} className={cn('glass-panel flex min-h-0 flex-1 flex-col rounded-xl transition-[border-color]', drop.over && '!border-border-accent !bg-accent-soft')}>
       <header className="flex items-center px-3.5 pt-3.5 pb-2">
         <span className="text-title-s text-text-primary">{capitalize(DAY_LONG[weekday] ?? '')}</span>
       </header>
@@ -281,33 +321,71 @@ function TemplateColumn({ weekday, routines }: { weekday: number; routines: Rout
   );
 }
 
-/** Phone: the 7 days in a glass strip that sticks under the title bar; a tap scrolls to the day. */
-function WeekStrip({ days, tasks }: { days: string[]; tasks: Task[] }) {
+/**
+ * Phone: the 7 days in a glass strip that sticks under the title bar, the same in both views (dates and the week's
+ * arrows in Agenda, routines per day in Semaine type, the arrows fading out but keeping their place); a tap scrolls to
+ * the day.
+ */
+function WeekStrip({ mode, monday, onPrev, onNext }: { mode: 'agenda' | 'type'; monday: string; onPrev: () => void; onNext: () => void }) {
   const { element } = usePageScroll();
   const glass = useLiquidGlass<HTMLDivElement>({ bezel: 16, strength: 10 });
+  const all = useApp((s) => s.data.tasks);
+  const allRoutines = useApp((s) => s.data.routines);
+  const person = useApp((s) => s.person);
   const today = todayIso();
-  const go = (d: string) => {
-    const target = document.getElementById(`day-${d}`);
+  const days = weekDays(monday);
+  const tasks = all.filter((t) => concerns(t.assignee, person) && t.date >= monday && t.date <= days[6]!);
+  const routines = allRoutines.filter((r) => concerns(r.assignee, person));
+  const todayIndex = weekdayIndex(today);
+  const type = mode === 'type';
+  const scrollTo = (id: string) => {
+    const target = document.getElementById(id);
     if (!element || !target) return;
     const top = target.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 128;
     element.scrollTo({ top, behavior: 'smooth' });
   };
+  const arrow = (side: 'prev' | 'next') => (
+    <IconButton
+      icon={side === 'prev' ? ChevronLeft : ChevronRight}
+      label={side === 'prev' ? 'Semaine précédente' : 'Semaine suivante'}
+      variant="ghost"
+      size="s"
+      onClick={side === 'prev' ? onPrev : onNext}
+      tabIndex={type ? -1 : undefined}
+      aria-hidden={type || undefined}
+      className={cn('shrink-0 transition-opacity duration-(--v-duree-courte)', type && 'pointer-events-none opacity-0')}
+    />
+  );
   return (
-    <div className="sticky top-[calc(env(safe-area-inset-top)+58px)] z-20 mt-3">
-      <div ref={glass} className="liquid liquid-bar grid grid-cols-7 gap-1 rounded-2xl p-1.5">
-        {days.map((d, i) => {
-          const list = tasks.filter((t) => t.date === d);
-          const done = list.filter((t) => t.done).length;
-          const isToday = d === today;
-          const complete = list.length > 0 && done === list.length;
-          return (
-            <button key={d} type="button" onClick={() => go(d)} aria-label={`${DAY_LONG[i]} ${fromIso(d).getDate()} : ${done} sur ${list.length}`} className={cn('flex flex-col items-center gap-0.5 rounded-xl py-1.5 transition-colors', isToday ? 'bg-accent-default text-text-on-accent' : 'text-text-secondary active:bg-bg-card/70')}>
-              <span className="text-[10px] leading-tight font-medium">{DAY_SHORT[i]}</span>
-              <span className="tnum text-label-m">{fromIso(d).getDate()}</span>
-              <span aria-hidden className={cn('size-1.5 rounded-full', !list.length ? 'bg-transparent' : complete ? (isToday ? 'bg-text-on-accent' : 'bg-signal-default') : isToday ? 'bg-text-on-accent/50' : 'bg-border-strong')} />
-            </button>
-          );
-        })}
+    <div className="sticky top-[calc(env(safe-area-inset-top)+58px)] z-20">
+      <div ref={glass} className="liquid liquid-bar flex items-center gap-0.5 rounded-2xl p-1">
+        {arrow('prev')}
+        <div className="grid min-w-0 flex-1 grid-cols-7 gap-0.5">
+          {days.map((d, i) => {
+            const list = tasks.filter((t) => t.date === d);
+            const done = list.filter((t) => t.done).length;
+            const count = routines.filter((r) => r.weekday === i).length;
+            const isToday = type ? i === todayIndex : d === today;
+            const complete = list.length > 0 && done === list.length;
+            const dot = type ? (count ? (isToday ? 'bg-text-on-accent/50' : 'bg-border-strong') : 'bg-transparent') : !list.length ? 'bg-transparent' : complete ? (isToday ? 'bg-text-on-accent' : 'bg-signal-default') : isToday ? 'bg-text-on-accent/50' : 'bg-border-strong';
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollTo(type ? `weekday-${i}` : `day-${d}`)}
+                aria-label={type ? `${DAY_LONG[i]} : ${count} routine${count > 1 ? 's' : ''}` : `${DAY_LONG[i]} ${fromIso(d).getDate()} : ${done} sur ${list.length}`}
+                className={cn('flex flex-col items-center gap-0.5 rounded-xl py-1.5 transition-colors duration-(--v-duree-courte)', isToday ? 'bg-accent-default text-text-on-accent' : 'text-text-secondary active:bg-bg-card/70')}
+              >
+                <span className="text-[10px] leading-tight font-medium">{DAY_SHORT[i]}</span>
+                <motion.span key={type ? `t${i}` : d} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className={cn('tnum text-label-m', type && !count && !isToday && 'text-text-muted')}>
+                  {type ? count || '–' : fromIso(d).getDate()}
+                </motion.span>
+                <span aria-hidden className={cn('size-1.5 rounded-full transition-colors', dot)} />
+              </button>
+            );
+          })}
+        </div>
+        {arrow('next')}
       </div>
     </div>
   );
