@@ -1,16 +1,30 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
 import { useRef, useState } from 'react';
-import { Download, Eraser, Moon, Plus, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
+import { Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
 import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
 import type { MemberHue } from '../../domain/types';
 import { Avatar, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
 import { useApp, type StartMode } from '../../store/app';
-import { todayIso } from '../../lib/dates';
+import { shortDate, todayIso } from '../../lib/dates';
 import { Button } from '../../ui/atoms';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
 import { ConfirmDialog, Dialog } from '../../ui/overlays';
+
+/**
+ * Drops the offline copy of the app (service worker and its caches) and reloads from the site: the latest version,
+ * whatever an installed iPhone app had kept. The data stay (local copy and send queue are in localStorage).
+ */
+export async function forceUpdate(): Promise<void> {
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations()) ?? [];
+    await Promise.all(regs.map((r) => r.unregister()));
+    if ('caches' in window) await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
+  } finally {
+    window.location.reload();
+  }
+}
 
 export async function exportData(): Promise<void> {
   const app = useApp.getState();
@@ -92,6 +106,17 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                 if (ok) await relinkMe().catch(() => undefined);
               }}
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-label-s text-text-secondary">Version</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="tnum text-body-s text-text-secondary">
+                {__APP_VERSION__}, du {shortDate(__APP_BUILT__.slice(0, 10))} à {new Date(__APP_BUILT__).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <Button variant="secondary" size="s" icon={RefreshCw} onClick={() => void forceUpdate()}>
+                Charger la dernière version
+              </Button>
+            </div>
           </div>
         </div>
       </Dialog>

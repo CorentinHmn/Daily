@@ -252,15 +252,22 @@ export interface MenuItem {
 /** Contextual menu (Menu / MenuItem 67:300) opened from a trigger; keyboard ↑ ↓ Enter Esc. */
 export function Menu({ items, anchor, open, onClose, width = 230, align = 'end' }: { items: MenuItem[]; anchor: RefObject<HTMLElement | null>; open: boolean; onClose: () => void; width?: number; align?: 'start' | 'end' }) {
   const [active, setActive] = useState(0);
+  // More items below the fold: the bottom fades out, so the list reads as scrollable rather than cut.
+  const [more, setMore] = useState(false);
   return (
     // Tall enough for every item (36 px each + padding); the popover still shrinks to the room on screen, then the list
     // scrolls instead of cutting its last items.
     <Popover open={open} anchor={anchor} onClose={onClose} width={width} align={align} role="menu" maxHeight={items.length * 36 + 14}>
       <ul
-        className="min-h-0 overflow-y-auto overscroll-contain p-1.5 outline-none"
+        className={cn('min-h-0 overflow-y-auto overscroll-contain p-1.5 outline-none', more && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-28px),transparent)]')}
         tabIndex={-1}
         ref={(el) => {
           if (open) el?.focus();
+          if (el) setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+        }}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
         }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {

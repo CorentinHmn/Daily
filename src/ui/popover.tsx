@@ -26,10 +26,15 @@ function measure(anchor: HTMLElement, width: number | 'anchor', align: 'start' |
   const w = width === 'anchor' ? r.width : width;
   const below = window.innerHeight - r.bottom - MARGIN;
   const aboveSpace = r.top - MARGIN;
-  const above = below < Math.min(preferredHeight, 240) && aboveSpace > below;
-  const maxHeight = Math.max(160, Math.min(preferredHeight, (above ? aboveSpace : below) - GAP));
+  // Opens where it fits whole, else on the roomier side (a 10-item menu opened low on the screen was cut short).
+  const above = below < preferredHeight && aboveSpace > below;
   let left = align === 'end' ? r.right - w : r.left;
   left = Math.max(MARGIN, Math.min(left, window.innerWidth - w - MARGIN));
+  // Fits on neither side but fits the screen: slide it up over the anchor rather than cutting it.
+  if (Math.max(below, aboveSpace) - GAP < preferredHeight && preferredHeight <= window.innerHeight - MARGIN * 2) {
+    return { top: window.innerHeight - MARGIN - preferredHeight, left, width: w, maxHeight: preferredHeight, above: false };
+  }
+  const maxHeight = Math.max(160, Math.min(preferredHeight, (above ? aboveSpace : below) - GAP));
   return { top: above ? r.top - GAP : r.bottom + GAP, left, width: w, maxHeight, above };
 }
 
