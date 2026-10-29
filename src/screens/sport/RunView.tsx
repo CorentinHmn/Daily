@@ -15,6 +15,7 @@ import { cn } from '../../ui/cn';
 import { Button, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
 import { AreaCurve, KpiCard, KpiText } from '../../ui/charts';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
+import { DateField } from '../../ui/pickers';
 import { revealVariants } from '../../theme/motion';
 
 export function RunView() {
@@ -183,7 +184,7 @@ export function RunForm({ run, date, onSaved, compact }: { run?: Run; date?: str
     >
       <div className={cn('grid gap-3', compact ? 'grid-cols-[1.2fr_0.8fr_1fr] max-md:grid-cols-2 max-md:[&>*:first-child]:col-span-2' : 'grid-cols-3 max-md:grid-cols-2 max-md:[&>*:first-child]:col-span-2')}>
         <Field label="Date" htmlFor="run-date">
-          <TextInput id="run-date" type="date" value={day} max={todayIso()} onChange={(e) => setDay(e.target.value || todayIso())} />
+          <DateField id="run-date" value={day} max={todayIso()} onChange={setDay} />
         </Field>
         <Field label="Distance" htmlFor="run-dist" error={tried && !(Number.isFinite(d) && d > 0) ? 'En km, ex. 8,5' : null}>
           <TextInput id="run-dist" inputMode="decimal" placeholder="8,5" value={dist} onChange={(e) => setDist(e.target.value)} invalid={tried && !(Number.isFinite(d) && d > 0)} trailing={<span className="text-caption text-text-muted">km</span>} />

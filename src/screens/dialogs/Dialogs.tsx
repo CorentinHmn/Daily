@@ -13,6 +13,7 @@ import { Button, ICON_STROKE, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
 import { ChoiceChips, DayPicker, Field, NumberStepper, Select, TextArea, TextInput, Toggle } from '../../ui/forms';
 import { Dialog } from '../../ui/overlays';
+import { DateField, TimeField } from '../../ui/pickers';
 import { useNow } from '../../ui/useNow';
 import { RunForm } from '../sport/RunView';
 import { parseItem } from '../shopping/ShoppingScreen';
@@ -153,11 +154,11 @@ function TaskDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 
         <div className={cn('grid gap-3', weekly ? 'grid-cols-2 max-md:grid-cols-1' : 'grid-cols-3 max-md:grid-cols-2 max-md:[&>*:first-child]:col-span-2')}>
           {!weekly && (
             <Field label="Jour" htmlFor="task-date">
-              <TextInput id="task-date" type="date" value={date} onChange={(e) => e.target.value && pickDate(e.target.value)} />
+              <DateField id="task-date" label="Jour" value={date} onChange={pickDate} />
             </Field>
           )}
           <Field label="Heure" htmlFor="task-time" help="Facultatif">
-            <TextInput id="task-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <TimeField id="task-time" value={time} onChange={setTime} />
           </Field>
           <Field label="Durée" help={minutes ? duration(minutes) : 'Facultatif'}>
             <NumberStepper label="durée en minutes" value={minutes} step={5} max={600} suffix="min" onChange={setMinutes} />
@@ -237,7 +238,7 @@ function RoutineDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
         </Field>
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <Field label="Heure" htmlFor="routine-time" help="Facultatif">
-            <TextInput id="routine-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <TimeField id="routine-time" value={time} onChange={setTime} />
           </Field>
           <Field label="Durée" help={minutes ? duration(minutes) : 'Facultatif'}>
             <NumberStepper label="durée en minutes" value={minutes} step={5} max={600} suffix="min" onChange={setMinutes} />

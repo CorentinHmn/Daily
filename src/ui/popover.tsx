@@ -1,7 +1,9 @@
 /**
- * Floating layer anchored to an element (menus, selects, quick add), in liquid glass.
+ * Floating layer anchored to an element (menus, selects, pickers, quick add), in liquid glass.
  * Portal to <body>, fixed position under the anchor (above when there is no room), same width as the anchor unless
  * `width` is given. Closes on outside click and Escape; follows the anchor when a panel scrolls.
+ * It comes out of its trigger like the rail's wave: a drop as wide as the trigger, just under it, that swells into the
+ * panel with the same spring (clip-path keyframes), the content fading in; it flows back into the trigger to close.
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
@@ -9,6 +11,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { cn } from './cn';
 import { useLiquidGlass } from './glass';
 import { motionTokens } from '../theme/motion';
+import { SPRING, reducedMotion } from './liquid';
 
 interface Place {
   top: number;
@@ -16,6 +19,22 @@ interface Place {
   width: number;
   maxHeight: number;
   above: boolean;
+  /** The trigger's span across the panel: px from the panel's left and right edges (where the drop comes out). */
+  from: { left: number; right: number };
+}
+
+/**
+ * Transform keyframes from the drop at the trigger (as wide as it, a sliver high) to the whole panel, on the bars'
+ * spring (its overshoot halved: a panel swells a little past its size, then settles). Scaling, not clipping: the
+ * panel's glass, rim and shadow grow with it, and the compositor plays it.
+ */
+function emerge(place: Place): string[] {
+  const sx = Math.max(0.25, Math.min(1, (place.width - place.from.left - place.from.right) / place.width));
+  const sy = 0.16;
+  return SPRING.frames.map(({ p }) => {
+    const q = 1 + (p - 1) * 0.5;
+    return `scale(${(sx + (1 - sx) * q).toFixed(4)}, ${(sy + (1 - sy) * q).toFixed(4)})`;
+  });
 }
 
 const GAP = 6;
@@ -30,12 +49,13 @@ function measure(anchor: HTMLElement, width: number | 'anchor', align: 'start' |
   const above = below < preferredHeight && aboveSpace > below;
   let left = align === 'end' ? r.right - w : r.left;
   left = Math.max(MARGIN, Math.min(left, window.innerWidth - w - MARGIN));
+  const from = { left: Math.max(0, Math.min(w, r.left - left)), right: Math.max(0, Math.min(w, left + w - r.right)) };
   // Fits on neither side but fits the screen: slide it up over the anchor rather than cutting it.
   if (Math.max(below, aboveSpace) - GAP < preferredHeight && preferredHeight <= window.innerHeight - MARGIN * 2) {
-    return { top: window.innerHeight - MARGIN - preferredHeight, left, width: w, maxHeight: preferredHeight, above: false };
+    return { top: window.innerHeight - MARGIN - preferredHeight, left, width: w, maxHeight: preferredHeight, above: false, from };
   }
   const maxHeight = Math.max(160, Math.min(preferredHeight, (above ? aboveSpace : below) - GAP));
-  return { top: above ? r.top - GAP : r.bottom + GAP, left, width: w, maxHeight, above };
+  return { top: above ? r.top - GAP : r.bottom + GAP, left, width: w, maxHeight, above, from };
 }
 
 export function Popover({
@@ -104,6 +124,8 @@ export function Popover({
   }, [open, anchor, width, align, maxHeight]);
 
   const t = motionTokens();
+  const still = reducedMotion();
+  const frames = place && !still ? emerge(place) : null;
   return createPortal(
     <AnimatePresence>
       {open && place && (
@@ -119,20 +141,29 @@ export function Popover({
           id={id}
           role={role}
           aria-label={label}
-          initial={{ opacity: 0, y: place.above ? 6 : -6, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: t.medium * 0.7, ease: t.entry } }}
-          exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+          initial={frames ? { transform: frames[0], opacity: 0 } : { opacity: 0 }}
+          animate={frames ? { transform: frames, opacity: 1, transition: { transform: { duration: SPRING.ms / 1000, ease: 'linear' }, opacity: { duration: 0.08 } } } : { opacity: 1, transition: { duration: t.short } }}
+          exit={frames ? { transform: frames[0], opacity: 0, transition: { transform: { duration: 0.2, ease: [0.5, 0, 0.9, 0.6] }, opacity: { duration: 0.08, delay: 0.12 } } } : { opacity: 0, transition: { duration: t.short } }}
           style={{
             position: 'fixed',
             left: place.left,
             width: place.width,
             maxHeight: place.maxHeight,
             ...(place.above ? { bottom: window.innerHeight - place.top } : { top: place.top }),
-            transformOrigin: place.above ? 'bottom' : 'top',
+            // It grows from the trigger: the middle of the trigger's span, on the side facing it.
+            transformOrigin: `${place.from.left + (place.width - place.from.left - place.from.right) / 2}px ${place.above ? '100%' : '0%'}`,
           }}
           className={cn('liquid liquid-strong z-[1350] flex flex-col overflow-hidden rounded-lg', className)}
         >
-          {children}
+          {/* The content shows once the glass has come out, and leaves first. */}
+          <motion.div
+            className="flex min-h-0 flex-1 flex-col"
+            initial={{ opacity: still ? 1 : 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.18, delay: still ? 0 : SPRING.ms / 1000 * 0.22 } }}
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+          >
+            {children}
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>,
