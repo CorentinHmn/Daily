@@ -56,7 +56,7 @@ function Account() {
         <ul className="flex flex-col gap-1.5">
           {members.map((m) => (
             <li key={m.id} className="flex items-center gap-3 rounded-lg px-1 py-1">
-              <Avatar name={m.name} hue={m.hue} size="s" />
+              <Avatar name={m.name} hue={m.hue} photo={m.photo} size="s" />
               <span className="min-w-0 flex-1 truncate text-label-m text-text-primary">
                 {m.name}
                 {m.id === meId ? ' (moi)' : ''}

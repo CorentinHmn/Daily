@@ -12,6 +12,7 @@ import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
 import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
+import { SPRING, currentShift, reducedMotion, travel } from '../../ui/liquid';
 
 export function MobileShell<T extends string>({
   items,
@@ -70,36 +71,6 @@ export function MobileShell<T extends string>({
   );
 }
 
-/**
- * The tab bubble's spring, sampled once into keyframes (60 per second): Web Animations then plays them on the
- * compositor, so the bubble keeps moving while the new screen renders on the main thread. Slightly underdamped
- * (ζ ≈ 0.6): a small overshoot, then it settles.
- */
-const SPRING = (() => {
-  const k = 380;
-  const c = 24;
-  const dt = 1 / 240;
-  const out: { p: number; v: number }[] = [{ p: 0, v: 0 }];
-  let p = 0;
-  let v = 0;
-  for (let i = 1; i < 240 * 1.5; i++) {
-    v += (-k * (p - 1) - c * v) * dt;
-    p += v * dt;
-    if (i % 4 === 0) out.push({ p, v });
-    if (Math.abs(p - 1) < 0.0015 && Math.abs(v) < 0.02 && i % 4 === 0) break;
-  }
-  out.push({ p: 1, v: 0 });
-  return { frames: out, ms: ((out.length - 1) * 1000) / 60 };
-})();
-
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** translateX in px of a running transform (0 when none). */
-const currentShift = (el: HTMLElement) => {
-  const t = getComputedStyle(el).transform;
-  return t && t !== 'none' ? new DOMMatrixReadOnly(t).m41 : 0;
-};
-
 function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; onFab: () => void; fabRef: (el: HTMLButtonElement | null) => void }) {
   const glass = useLiquidGlass<HTMLElement>({ bezel: 20, strength: 14 });
   const plus = useLiquidGlass<HTMLButtonElement>({ bezel: 20, strength: 14 });
@@ -139,15 +110,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
     rest.current = { icons: layoutX };
     if (!to || !prev || !fromWidth || reducedMotion()) return;
     const dx = fromCenter - (to.left + to.width / 2);
-    b.animate(
-      SPRING.frames.map(({ p, v }) => {
-        const w = (fromWidth + (to.width - fromWidth) * p) / to.width;
-        // Liquid: the faster it travels, the more it stretches along and thins across.
-        const stretch = Math.min(0.15, Math.abs(dx * v) / 6000);
-        return { transform: `translateX(${dx * (1 - p)}px) scale(${w * (1 + stretch)}, ${1 - stretch * 0.45})` };
-      }),
-      { duration: SPRING.ms, easing: 'linear' },
-    );
+    b.animate(travel(dx, 'x', fromWidth, to.width), { duration: SPRING.ms, easing: 'linear' });
     for (const [k, el] of icons.current) {
       const from = (prev.icons.get(k) ?? 0) + (shifts.get(k) ?? 0);
       const d = from - (layoutX.get(k) ?? 0);

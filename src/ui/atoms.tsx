@@ -118,18 +118,20 @@ const avatarGradient = {
   violet: 'bg-(image:--gradient-avatar-violet)',
 } as const;
 
-export function Avatar({ name, hue = 'warm', size = 'm', className }: { name: string; hue?: keyof typeof avatarGradient; size?: 'xs' | 's' | 'm'; className?: string }) {
+/** Initials on the person's gradient, or their photo. */
+export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { name: string; hue?: keyof typeof avatarGradient; size?: 'xs' | 's' | 'm'; photo?: string; className?: string }) {
   return (
     <span
       aria-hidden
+      style={photo ? { backgroundImage: `url(${photo})` } : undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-medium text-text-on-accent',
-        avatarGradient[hue],
+        'inline-flex shrink-0 items-center justify-center rounded-full bg-cover bg-center font-medium text-text-on-accent',
+        !photo && avatarGradient[hue],
         size === 'xs' ? 'size-5 border border-bg-card text-[8px]' : size === 's' ? 'size-8 border-2 border-bg-card text-caption' : 'size-11 border-2 border-bg-card text-label-m',
         className,
       )}
     >
-      {name ? toInitials(name) : null}
+      {name && !photo ? toInitials(name) : null}
     </span>
   );
 }

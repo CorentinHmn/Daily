@@ -19,7 +19,7 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
     return (
       <span title={`Pour ${several.map((x) => x.name).join(' et ')}`} className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
         {several.map((x) => (
-          <Avatar key={x.id} name={x.name} hue={x.hue} size="xs" />
+          <Avatar key={x.id} name={x.name} hue={x.hue} photo={x.photo} size="xs" />
         ))}
       </span>
     );
@@ -28,14 +28,14 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
   if (m) {
     return (
       <span title={`Pour ${m.name}`} className={cn('inline-flex shrink-0', className)}>
-        <Avatar name={m.name} hue={m.hue} size="xs" />
+        <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" />
       </span>
     );
   }
   return (
     <span title="Pour le foyer" className={cn('inline-flex shrink-0 -space-x-1.5', className)}>
       {members.slice(0, 2).map((x) => (
-        <Avatar key={x.id} name={x.name} hue={x.hue} size="xs" />
+        <Avatar key={x.id} name={x.name} hue={x.hue} photo={x.photo} size="xs" />
       ))}
     </span>
   );
@@ -72,7 +72,7 @@ export function PersonSwitcher({ className }: { className?: string }) {
           onClick={() => set(m.id)}
           className={cn('inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors', person === m.id ? 'bg-accent-default text-text-on-accent' : 'text-text-secondary hover:text-text-primary')}
         >
-          <Avatar name={m.name} hue={m.hue} size="xs" className="size-7 text-[10px]" />
+          <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" className="size-7 text-[10px]" />
           <span className="max-w-[90px] truncate">{m.name}</span>
         </button>
       ))}
@@ -100,7 +100,7 @@ export function PeopleChips({ value, onChange, label = 'Pour qui ?' }: { value: 
             }}
             className={cn('inline-flex h-9 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label-s transition-[background-color,border-color,color]', on ? 'border-border-accent bg-accent-soft text-text-accent' : 'border-border-default bg-bg-card/70 text-text-secondary hover:border-border-strong hover:text-text-primary')}
           >
-            <Avatar name={m.name} hue={m.hue} size="xs" className="size-6" />
+            <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" className="size-6" />
             {m.name}
           </button>
         );
@@ -130,11 +130,11 @@ export function WhoChips({ value, onChange, allowNous = true, label = 'Qui ?' }:
             className={cn('inline-flex h-9 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label-s transition-[background-color,border-color,color]', on ? 'border-border-accent bg-accent-soft text-text-accent' : 'border-border-default bg-bg-card/70 text-text-secondary hover:border-border-strong hover:text-text-primary')}
           >
             {m ? (
-              <Avatar name={m.name} hue={m.hue} size="xs" className="size-6" />
+              <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" className="size-6" />
             ) : (
               <span className="inline-flex -space-x-1.5">
                 {members.slice(0, 2).map((x) => (
-                  <Avatar key={x.id} name={x.name} hue={x.hue} size="xs" />
+                  <Avatar key={x.id} name={x.name} hue={x.hue} photo={x.photo} size="xs" />
                 ))}
               </span>
             )}

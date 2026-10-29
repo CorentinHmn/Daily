@@ -86,6 +86,7 @@ function UserChip({ compact }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const app = useApp.getState();
   const hue = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.hue ?? 'warm');
+  const photo = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.photo);
   return (
     <>
       <button
@@ -109,7 +110,7 @@ function UserChip({ compact }: { compact?: boolean }) {
           </>
         )}
         <span className="relative">
-          <Avatar name={name || 'Moi'} hue={hue} />
+          <Avatar name={name || 'Moi'} hue={hue} photo={photo} />
           <SyncDot />
         </span>
       </button>

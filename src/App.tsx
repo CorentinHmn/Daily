@@ -140,7 +140,7 @@ function Workspace() {
           <i />
           <b />
         </div>
-        <NavRail items={nav} active={view} onNavigate={navigate} onLogo={() => navigate('today')} onFab={() => setQuickAdd((o) => !o)} fabLabel="Ajouter" fabRef={setFab} />
+        <NavRail items={nav} active={view} onNavigate={navigate} onLogo={() => navigate('today')} onFab={() => setQuickAdd((o) => !o)} fabLabel="Ajouter" fabRef={setFab} onSettings={() => useApp.getState().openDialog({ kind: 'settings' })} />
         <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

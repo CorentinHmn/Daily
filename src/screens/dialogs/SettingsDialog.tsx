@@ -1,9 +1,10 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
 import { useRef, useState } from 'react';
-import { Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users } from 'lucide-react';
+import { Camera, Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users, X } from 'lucide-react';
 import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
-import type { MemberHue } from '../../domain/types';
+import type { Member, MemberHue } from '../../domain/types';
+import { squarePhoto } from '../../lib/image';
 import { Avatar, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
 import { useApp, type StartMode } from '../../store/app';
@@ -156,6 +157,47 @@ const CONFIRM: Record<StartMode, { title: string; text: string; label: string }>
 const HUE_LABEL: Record<MemberHue, string> = { warm: 'Cuivre', violet: 'Violet', green: 'Vert', blue: 'Bleu' };
 
 /** The household's people: first name and avatar colour; add someone (to assign tasks before they join). */
+/** The person's avatar: a tap chooses a photo (cropped square), the small × takes it off. */
+function PhotoButton({ member: m }: { member: Member }) {
+  const app = useApp.getState();
+  return (
+    <span className="group/photo relative shrink-0">
+      <label className="relative block cursor-pointer rounded-full focus-within:shadow-(--shadow-focus-ring)" title={m.photo ? 'Changer la photo' : 'Ajouter une photo'}>
+        <Avatar name={m.name || '?'} hue={m.hue} photo={m.photo} size="s" />
+        <span aria-hidden className="absolute inset-0 inline-flex items-center justify-center rounded-full bg-[rgb(14_16_20/0.45)] text-text-on-accent opacity-0 transition-opacity group-hover/photo:opacity-100 pointer-coarse:hidden">
+          <Camera size={14} strokeWidth={2} />
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          aria-label={m.photo ? `Changer la photo de ${m.name}` : `Ajouter une photo à ${m.name}`}
+          className="sr-only"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (!f) return;
+            try {
+              app.saveMember({ ...m, photo: await squarePhoto(f) });
+            } catch {
+              app.toast({ tone: 'danger', title: 'Photo illisible', text: 'Essaie avec une photo JPEG ou PNG.' });
+            }
+          }}
+        />
+      </label>
+      {!m.photo && (
+        <span aria-hidden className="pointer-events-none absolute -right-1 -bottom-1 inline-flex size-[18px] items-center justify-center rounded-full border border-border-default bg-bg-card text-text-secondary">
+          <Camera size={10} strokeWidth={2} />
+        </span>
+      )}
+      {m.photo && (
+        <button type="button" aria-label={`Retirer la photo de ${m.name}`} title="Retirer la photo" onClick={() => app.saveMember({ ...m, photo: undefined })} className="absolute -top-1.5 -right-1.5 inline-flex size-5 items-center pointer-coarse:size-6 justify-center rounded-full border border-border-default bg-bg-card text-text-secondary shadow-sm hover:text-text-danger">
+          <X size={11} strokeWidth={2.5} aria-hidden />
+        </button>
+      )}
+    </span>
+  );
+}
+
 function Household() {
   const members = useApp((s) => s.data.members);
   const meId = useApp((s) => s.data.settings.meId);
@@ -167,7 +209,7 @@ function Household() {
       <ul className="flex flex-col gap-2">
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-2.5">
-            <Avatar name={m.name || '?'} hue={m.hue} size="s" />
+            <PhotoButton member={m} />
             <TextInput value={m.name} onChange={(e) => app.saveMember({ ...m, name: e.target.value })} aria-label={m.id === meId ? 'Mon prénom' : `Prénom de ${m.name}`} className="flex-1" />
             <div role="radiogroup" aria-label={`Couleur de ${m.name}`} className="flex shrink-0 gap-1">
               {MEMBER_HUES.map((h) => (

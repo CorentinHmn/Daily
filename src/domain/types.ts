@@ -6,6 +6,8 @@ export interface Member {
   id: string;
   name: string;
   hue: MemberHue;
+  /** profile photo: a small square JPEG as a data URL (synced with the member, no file storage) */
+  photo?: string;
 }
 /** Assignee meaning « the whole household ». */
 export const NOUS = 'nous';
