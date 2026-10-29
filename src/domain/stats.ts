@@ -79,9 +79,10 @@ export function habitDueOn(h: Habit, iso: ISODate): boolean {
   return h.days.includes(weekdayIndex(iso));
 }
 
-/** Consecutive due days done, counting back from today (today counts only once done). */
-export function habitStreak(h: Habit, today = todayIso()): number {
-  const done = new Set(h.checks);
+/** Consecutive due days done (`checks`: one person's, see people.ts › habitChecks), counting back from today (today
+ * counts only once done). */
+export function habitStreak(h: Habit, checks: ISODate[], today = todayIso()): number {
+  const done = new Set(checks);
   let n = 0;
   let d = today;
   if (!done.has(d)) d = addDays(d, -1);

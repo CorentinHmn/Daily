@@ -142,9 +142,14 @@ export interface Habit {
   icon: HabitIcon;
   /** weekdays when it applies (0 = lundi) */
   days: number[];
-  /** dates when it was done */
+  /** dates when it was done (a habit for one person) */
   checks: ISODate[];
+  /** a member id, or NOUS for the household (each person ticks their own) */
   owner?: string;
+  /** several people (not the whole household): their ids; `owner` is then NOUS */
+  owners?: string[];
+  /** a habit for several people: the dates each one did it (src/domain/people.ts › habitChecks) */
+  checksBy?: Record<string, ISODate[]>;
 }
 
 export type RayonId = 'fruits' | 'boulangerie' | 'frais' | 'viandes' | 'epicerie' | 'surgeles' | 'boissons' | 'hygiene' | 'maison' | 'autre';

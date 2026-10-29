@@ -5,7 +5,7 @@ import { useApp, type DialogState } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, GOAL_SOURCES, HABIT_ICONS, PERIOD_LABEL, guessCategory } from '../../domain/catalog';
 import { NOUS, type CategoryId, type GoalIcon, type GoalKind, type GoalPeriod, type GoalSource, type GoalStep, type HabitIcon } from '../../domain/types';
 import { PeopleChips, WhoChips } from '../../ui/people';
-import { goalOwners } from '../../domain/people';
+import { goalOwners, habitPeople } from '../../domain/people';
 import { sessionVolume } from '../../domain/stats';
 import { addDays, todayIso, weekStart, weekdayIndex } from '../../lib/dates';
 import { duration, kg, uid } from '../../lib/format';
@@ -377,13 +377,18 @@ function HabitDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind:
   const [icon, setIcon] = useState<HabitIcon>(habit?.icon ?? 'droplets');
   const [days, setDays] = useState<number[]>(habit?.days ?? [0, 1, 2, 3, 4, 5, 6]);
   const several = app.data.members.length > 1;
-  const [owner, setOwner] = useState<string>(habit?.owner ?? app.data.settings.meId ?? NOUS);
+  const memberIds = app.data.members.map((m) => m.id);
+  const [people, setPeople] = useState<string[]>(() => (habit ? habitPeople(habit, app.data.members) : app.data.settings.meId ? [app.data.settings.meId] : memberIds));
   return (
     <Dialog open={!!dialog} onClose={onClose} title={habit ? "Modifier l'habitude" : 'Nouvelle habitude'} icon={Flame} footer={<Footer onCancel={onClose} submitLabel={habit ? 'Enregistrer' : 'Ajouter'} disabled={!title.trim() || days.length === 0} onDelete={habit ? () => (app.deleteHabit(habit.id), onClose()) : undefined} />}>
       <Form
         onSubmit={() => {
           if (!title.trim() || !days.length) return;
-          app.saveHabit({ id: habit?.id, title: title.trim(), icon, days, owner });
+          // As for goals: one person = owner; everyone = the household (NOUS); some of them = owners, NOUS as owner.
+          const mine = people.filter((id) => memberIds.includes(id));
+          const owner = mine.length === 1 ? mine[0]! : NOUS;
+          const owners = mine.length > 1 && mine.length < memberIds.length ? mine : undefined;
+          app.saveHabit({ id: habit?.id, title: title.trim(), icon, days, owner, owners });
           onClose();
         }}
       >
@@ -394,8 +399,8 @@ function HabitDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kind:
           <ChoiceChips label="Icône" iconOnly value={icon} onChange={setIcon} options={(Object.keys(HABIT_ICONS) as HabitIcon[]).map((k) => ({ value: k, label: HABIT_ICONS[k].label, icon: HABIT_ICONS[k].icon }))} />
         </Field>
         {several && (
-          <Field label="Pour qui ?">
-            <WhoChips value={owner} onChange={setOwner} allowNous={false} />
+          <Field label="Pour qui ?" help={people.length > 1 ? 'Chacun coche sa case.' : undefined}>
+            <PeopleChips value={people} onChange={setPeople} />
           </Field>
         )}
         <Field label="Jours">

@@ -13,11 +13,11 @@
 import { create } from 'zustand';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { supabase } from './client';
-import { applyRows, flatten, diff, keyOf, unflatten, type Change, type Flat, type Row } from './records';
+import { applyRows, flatten, diff, keyOf, mergeHabit, unflatten, type Change, type Flat, type Row } from './records';
 import { useApp } from '../store/app';
 import { emptyData } from '../domain/seed';
 import { newMember } from '../domain/people';
-import type { AppData, Member } from '../domain/types';
+import type { AppData, Habit, Member } from '../domain/types';
 import { normalize } from '../lib/format';
 
 export type SyncStatus =
@@ -136,7 +136,12 @@ function watchStore(): void {
     const next = flatten(s.data);
     if (!applying && current) {
       const changes = diff(current, next);
-      for (const c of changes) outbox.set(keyOf(c.collection, c.id), c);
+      for (const c of changes) {
+        const k = keyOf(c.collection, c.id);
+        // A habit keeps what it was before its first unsent change (mergeHabit).
+        if (c.collection === 'habits') c.base = outbox.has(k) ? outbox.get(k)!.base : current.get(k)?.data;
+        outbox.set(k, c);
+      }
       if (changes.length) {
         saveOutbox();
         scheduleFlush();
@@ -172,7 +177,12 @@ async function flush(): Promise<void> {
     return;
   }
   // Only what did not change again while it was being sent leaves the outbox.
-  for (const [k, json] of sent) if (JSON.stringify(outbox.get(k)?.data) === json) outbox.delete(k);
+  for (const [k, json] of sent) {
+    const c = outbox.get(k);
+    if (JSON.stringify(c?.data) === json) outbox.delete(k);
+    // Changed again meanwhile: what was sent is now the server's version, the one to merge against (mergeHabit).
+    else if (c?.collection === 'habits') c.base = JSON.parse(json);
+  }
   saveOutbox();
   useSync.setState({ status: 'synced', error: null, lastSyncAt: Date.now() });
   if (outbox.size) scheduleFlush(50);
@@ -224,7 +234,20 @@ function applyRemote(rows: Row[], notify: boolean): void {
   const st = useApp.getState();
   const flat = flatten(st.data);
   if (notify) void announce(rows, new Map(flat));
-  const changed = applyRows(flat, rows, new Set(outbox.keys()));
+  // A habit changed here and there: merged (each person's ticks), sent again from the server's version.
+  let merged = false;
+  for (const r of rows) {
+    const k = keyOf(r.collection, r.id);
+    const mine = outbox.get(k);
+    const here = flat.get(k);
+    if (r.collection !== 'habits' || r.deleted || !mine?.data || !here) continue;
+    const data = mergeHabit(r.data as Habit, mine.data as Habit, mine.base as Habit | undefined);
+    outbox.set(k, { ...mine, data, base: r.data });
+    flat.set(k, { ...here, data, json: JSON.stringify(data) });
+    merged = true;
+  }
+  if (merged) saveOutbox();
+  const changed = applyRows(flat, rows, new Set(outbox.keys())) || merged;
   rememberPull(rows);
   // A new person in the household: their account is linked now (« Compte relié »).
   if (rows.some((r) => r.collection === 'members')) void loadLinked().catch(() => undefined);

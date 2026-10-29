@@ -13,7 +13,7 @@ import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib
 import { normalize, uid } from '../lib/format';
 import { guessRayon } from '../domain/catalog';
 import { blankData, emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
-import { keepPeople, newMember, normalizeData } from '../domain/people';
+import { keepPeople, newMember, normalizeData, withHabitCheck, withHabitPeople } from '../domain/people';
 import { NOUS, type AppData, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
 import type { ToastItem } from '../ui/overlays';
 
@@ -116,7 +116,8 @@ interface Actions {
 
   saveHabit: (h: Omit<Habit, 'id' | 'checks'> & { id?: string }) => void;
   deleteHabit: (id: string) => void;
-  toggleHabit: (id: string, date: ISODate) => void;
+  /** `who`: whose tick (a habit for several people has one per person). */
+  toggleHabit: (id: string, date: ISODate, who: string) => void;
 
   addList: (name: string) => void;
   renameList: (id: string, name: string) => void;
@@ -419,15 +420,15 @@ export const useApp = create<AppState>()((set, get) => {
 
     saveHabit: (h) =>
       mutate((d) => {
-        if (h.id) return { ...d, habits: d.habits.map((x) => (x.id === h.id ? { ...x, ...h, id: x.id } : x)) };
-        return { ...d, habits: [...d.habits, { ...h, id: uid(), checks: [], owner: h.owner ?? d.settings.meId }] };
+        const { id, owner = d.settings.meId ?? NOUS, owners, ...rest } = h;
+        if (id) return { ...d, habits: d.habits.map((x) => (x.id === id ? { ...withHabitPeople(x, owner, owners), ...rest } : x)) };
+        return { ...d, habits: [...d.habits, { ...rest, id: uid(), checks: [], owner, owners }] };
       }),
     deleteHabit: (id) => {
       const h = get().data.habits.find((x) => x.id === id);
       undoable(`Habitude « ${h?.title ?? ''} » supprimée`, (d) => ({ ...d, habits: d.habits.filter((x) => x.id !== id) }));
     },
-    toggleHabit: (id, date) =>
-      mutate((d) => ({ ...d, habits: d.habits.map((h) => (h.id !== id ? h : { ...h, checks: h.checks.includes(date) ? h.checks.filter((c) => c !== date) : [...h.checks, date] })) })),
+    toggleHabit: (id, date, who) => mutate((d) => ({ ...d, habits: d.habits.map((h) => (h.id !== id ? h : withHabitCheck(h, date, who))) })),
 
     // ── Courses
     addList: (name) => {

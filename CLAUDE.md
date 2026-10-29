@@ -89,6 +89,11 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Pas d'attribut `title` (infobulles du navigateur) : `aria-label` pour les lecteurs d'écran.
 - Heure et date : `TimeField` / `DateField` (`src/ui/pickers.tsx`), jamais `<input type="time|date">` (sélecteurs gris
   du navigateur).
+- Habitudes : une, plusieurs (`owners`, `owner` = NOUS) ou toutes les personnes, comme les objectifs, mais chacun coche
+  la sienne : une habitude d'une seule personne garde ses dates dans `checks`, à plusieurs dans `checksBy` (personne →
+  dates) ; toujours passer par `habitChecks` / `withHabitCheck` / `withHabitPeople` / `habitEntries` (people.ts). Une
+  coche locale non envoyée et celle de l'autre arrivée entre-temps sont fusionnées (`mergeHabit`, base gardée dans la
+  file d'envoi), pas écrasées.
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.

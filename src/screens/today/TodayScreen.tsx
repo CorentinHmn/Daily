@@ -10,7 +10,8 @@ import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, HABIT_ICONS, guessCategory } from '../../domain/catalog';
 import { goalProgress, goalStatus, habitDueOn, nextGymSession } from '../../domain/stats';
 import type { Habit, Task } from '../../domain/types';
-import { concerns, goalFor, ownedBy } from '../../domain/people';
+import { AssigneeBadge } from '../../ui/people';
+import { concerns, goalFor, habitChecks, habitEntries } from '../../domain/people';
 import { DAY_SHORT, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
 import { kg, num } from '../../lib/format';
 import { cn } from '../../ui/cn';
@@ -30,8 +31,13 @@ export function TodayScreen() {
   const mine = data.tasks.filter((t) => concerns(t.assignee, person));
   const tasks = mine.filter((t) => t.date === today).sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'));
   const overdue = mine.filter((t) => !t.done && t.date < today && t.date >= monday);
-  const habits = data.habits.filter((h) => habitDueOn(h, today) && ownedBy(h.owner, person));
-  const habitsDone = habits.filter((h) => h.checks.includes(today)).length;
+  // One per habit and person: each ticks their own.
+  const habits = habitEntries(
+    data.habits.filter((h) => habitDueOn(h, today)),
+    data.members,
+    person,
+  );
+  const habitsDone = habits.filter(({ habit, who }) => habitChecks(habit, who).includes(today)).length;
   const reveal = revealVariants();
 
   return (
@@ -64,8 +70,10 @@ export function TodayScreen() {
   );
 }
 
-function DayPanel({ tasks, overdue, habits }: { tasks: Task[]; overdue: Task[]; habits: Habit[] }) {
+function DayPanel({ tasks, overdue, habits }: { tasks: Task[]; overdue: Task[]; habits: { habit: Habit; who: string }[] }) {
   const today = todayIso();
+  // Everyone's habits: whose each one is.
+  const everyone = useApp((s) => !s.person);
   const [draft, setDraft] = useState('');
   const app = useApp.getState();
   const done = tasks.filter((t) => t.done).length;
@@ -110,16 +118,18 @@ function DayPanel({ tasks, overdue, habits }: { tasks: Task[]; overdue: Task[]; 
           <div className="mt-4 border-t border-border-subtle px-2.5 pt-4">
             <p className="mb-2.5 text-label-m text-text-primary">Habitudes</p>
             <div className="flex flex-wrap gap-2">
-              {habits.map((h) => {
-                const on = h.checks.includes(today);
+              {habits.map(({ habit: h, who }) => {
+                const on = habitChecks(h, who).includes(today);
                 const Icon = HABIT_ICONS[h.icon].icon;
+                const name = everyone ? app.data.members.find((m) => m.id === who)?.name : undefined;
                 return (
                   <button
-                    key={h.id}
+                    key={`${h.id}-${who}`}
                     type="button"
                     role="checkbox"
                     aria-checked={on}
-                    onClick={() => app.toggleHabit(h.id, today)}
+                    aria-label={name ? `${h.title}, ${name}` : undefined}
+                    onClick={() => app.toggleHabit(h.id, today, who)}
                     className={cn(
                       'inline-flex h-10 items-center gap-2 rounded-full border pr-4 pl-1.5 text-label-s transition-[background-color,border-color,color] duration-(--v-duree-courte)',
                       on ? 'border-signal-default/40 bg-signal-soft text-text-signal' : 'border-border-default bg-bg-card/70 text-text-secondary hover:border-border-strong hover:text-text-primary',
@@ -129,6 +139,7 @@ function DayPanel({ tasks, overdue, habits }: { tasks: Task[]; overdue: Task[]; 
                       {on ? <Check size={14} strokeWidth={2.5} aria-hidden /> : <Icon size={14} strokeWidth={ICON_STROKE} aria-hidden />}
                     </span>
                     {h.title}
+                    {everyone && <AssigneeBadge assignee={who} className="-mr-2.5" />}
                   </button>
                 );
               })}

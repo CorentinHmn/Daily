@@ -3,7 +3,8 @@
  * (owner). Undefined or NOUS = the whole household. The person filter of the screens: null = everyone.
  */
 import { uid } from '../lib/format';
-import { NOUS, type AppData, type Member, type MemberHue } from './types';
+import type { ISODate } from '../lib/dates';
+import { NOUS, type AppData, type Habit, type Member, type MemberHue } from './types';
 
 export const MEMBER_HUES: MemberHue[] = ['warm', 'violet', 'green', 'blue'];
 
@@ -27,6 +28,47 @@ export function goalOwners(g: { owner?: string; owners?: string[] }): string[] {
 export function goalFor(g: { owner?: string; owners?: string[] }, person: string | null): boolean {
   const owners = goalOwners(g);
   return !person || owners.length === 0 || owners.includes(person);
+}
+
+/**
+ * Habits are one, several (`owners`) or all the household's people (same fields as goals), but each person ticks their
+ * own: a habit for one person keeps its dates in `checks`, a habit for several in `checksBy` (person → dates).
+ */
+const habitAlone = (h: Habit) => !!h.owner && h.owner !== NOUS;
+
+/** The people a habit is for (the household = all its people). */
+export function habitPeople(h: Habit, members: Member[]): string[] {
+  const owners = goalOwners(h);
+  return owners.length ? owners : members.map((m) => m.id);
+}
+
+/** The dates `who` did the habit (`checks`, before a habit could be shared: everyone's until they tick their own). */
+export function habitChecks(h: Habit, who: string): ISODate[] {
+  return habitAlone(h) ? h.checks : (h.checksBy?.[who] ?? h.checks);
+}
+
+/** The habit with `who`'s tick of `date` turned on or off. */
+export function withHabitCheck(h: Habit, date: ISODate, who: string): Habit {
+  const flip = (dates: ISODate[]) => (dates.includes(date) ? dates.filter((c) => c !== date) : [...dates, date]);
+  if (habitAlone(h)) return { ...h, checks: flip(h.checks) };
+  return { ...h, checksBy: { ...h.checksBy, [who]: flip(habitChecks(h, who)) } };
+}
+
+/** The habit for other people, each keeping their ticks (one person's become theirs when it is shared, and back). */
+export function withHabitPeople(h: Habit, owner: string, owners: string[] | undefined): Habit {
+  const alone = owner !== NOUS;
+  if (habitAlone(h) && !alone) return { ...h, owner, owners, checks: [], checksBy: { ...h.checksBy, [h.owner!]: h.checks } };
+  if (!habitAlone(h) && alone) return { ...h, owner, owners, checks: habitChecks(h, owner) };
+  return { ...h, owner, owners };
+}
+
+/** One line per habit and person (all of them, or the filtered one): each ticks their own. */
+export function habitEntries(habits: Habit[], members: Member[], person: string | null): { habit: Habit; who: string }[] {
+  return habits.flatMap((habit) =>
+    habitPeople(habit, members)
+      .filter((who) => !person || who === person)
+      .map((who) => ({ habit, who })),
+  );
 }
 
 export function memberOf(members: Member[], id: string | undefined): Member | undefined {
@@ -86,7 +128,12 @@ export function keepPeople(d: AppData, members: Member[], meId: string | undefin
     settings: { ...d.settings, meId, name: members.find((m) => m.id === meId)?.name ?? d.settings.name },
     tasks: d.tasks.map(assignee),
     routines: d.routines.map(assignee),
-    habits: d.habits.map(owner),
+    habits: d.habits.map((h) => {
+      const x = owners(h);
+      if (!h.checksBy || !gen || !(gen in h.checksBy)) return x;
+      const { [gen]: mine, ...rest } = h.checksBy;
+      return { ...x, checksBy: { ...rest, [meId]: mine ?? [] } };
+    }),
     programs: d.programs.map(owner),
     sessions: d.sessions.map(owner),
     runs: d.runs.map(owner),

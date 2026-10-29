@@ -4,10 +4,12 @@
  *  - shopping lists are split: the list (without its items) and each item (with its listId), so two people ticking
  *    items of the same list at the same time do not overwrite each other;
  *  - generatedWeeks become « weeks » records, so a device does not refill a week the other one already filled;
+ *  - a habit for several people is one record where each person ticks their own (`checksBy`): an unsent local tick and
+ *    the other's tick that arrives meanwhile are merged (mergeHabit), not overwritten;
  *  - the household's settings (prefs) are one record;
  *  - settings (this device's name, theme, me) and the session in progress stay on the device.
  */
-import type { AppData, FrequentItem, GoalStep, HouseholdPrefs, Member, ShopItem, ShopList, Task } from '../domain/types';
+import type { AppData, FrequentItem, GoalStep, Habit, HouseholdPrefs, Member, ShopItem, ShopList, Task } from '../domain/types';
 
 export type Collection = 'members' | 'tasks' | 'routines' | 'weeks' | 'programs' | 'sessions' | 'runs' | 'goals' | 'habits' | 'lists' | 'items' | 'frequent' | 'prefs';
 
@@ -49,6 +51,21 @@ export interface Change {
   id: string;
   /** null = deleted */
   data: unknown | null;
+  /** habits: the record before the first local change not sent yet (to merge the other's ticks, see mergeHabit) */
+  base?: unknown;
+}
+
+/**
+ * A habit changed here (not sent yet) and on the server: the local version wins (title, days, people…), but each
+ * person's ticks that the local change did not touch come from the server — two people ticking their own case of the
+ * same habit at the same time both keep it.
+ */
+export function mergeHabit(remote: Habit, local: Habit, base: Habit | undefined): Habit {
+  if (!remote.checksBy) return local;
+  const same = (a?: string[], b?: string[]) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  const checksBy = { ...local.checksBy };
+  for (const [who, dates] of Object.entries(remote.checksBy)) if (same(local.checksBy?.[who], base?.checksBy?.[who])) checksBy[who] = dates;
+  return { ...local, checksBy };
 }
 
 /** What changed from `prev` to `next` (added or modified objects, deleted ones). */

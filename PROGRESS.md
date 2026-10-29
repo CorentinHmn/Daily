@@ -94,6 +94,12 @@
   1,1 s, survol de l'onglet actif), reflux en 300 ms comme le menu du profil (380 avant), réfraction SVG en pause
   pendant la vague (le verre refiltré à chaque image la ralentissait). Rail ouvert : pas de vague.
 
+- Habitudes pour une ou plusieurs personnes (« Pour qui ? » à cases multiples, comme les objectifs) ; chacun coche la
+  sienne (choix de l'utilisateur) : une ligne par habitude et par personne dans Aujourd'hui et Objectifs (avatar avec
+  le filtre « Tous »), séries et compteur par personne. Partager une habitude garde les coches de sa personne ; deux
+  coches simultanées (même hors ligne) sont fusionnées. Vérifié : 6 tests unitaires, parcours navigateur à deux
+  appareils (l'un hors ligne coche Louise pendant que l'autre décoche Corentin → les deux gardés), e2e 15/15.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

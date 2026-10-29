@@ -18,7 +18,7 @@ import { revealVariants } from '../../theme/motion';
 import { PageHeader } from '../shell/PageHeader';
 import { useIsMobile } from '../../ui/useMedia';
 import { AssigneeBadge } from '../../ui/people';
-import { goalFor, ownedBy } from '../../domain/people';
+import { goalFor, habitChecks, habitEntries } from '../../domain/people';
 
 const TITLES: Record<GoalPeriod, string> = { semaine: 'Objectifs de la semaine', mois: 'Objectifs du mois', annee: "Objectifs de l'année" };
 const SHORT_TITLES: Record<GoalPeriod, string> = { semaine: 'Cette semaine', mois: 'Ce mois-ci', annee: 'Cette année' };
@@ -137,8 +137,10 @@ function GoalCard({ goal }: { goal: Goal }) {
 
 function Habits() {
   const allHabits = useApp((s) => s.data.habits);
+  const members = useApp((s) => s.data.members);
   const person = useApp((s) => s.person);
-  const habits = allHabits.filter((h) => ownedBy(h.owner, person));
+  // One line per habit and person: each ticks their own.
+  const habits = habitEntries(allHabits, members, person);
   const app = useApp.getState();
   const today = todayIso();
   const days = weekDays(weekStart(today));
@@ -151,15 +153,17 @@ function Habits() {
         <EmptyState icon={Flame} title="Aucune habitude suivie" text="Une habitude, c'est une case à cocher chaque jour : boire de l'eau, s'étirer, lire." action={<Button size="s" icon={Plus} onClick={() => app.openDialog({ kind: 'habit' })}>Ajouter</Button>} className="flex-1" />
       ) : (
         <ul className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-2 pb-4">
-          {habits.map((h) => {
+          {habits.map(({ habit: h, who }) => {
             const Icon = HABIT_ICONS[h.icon].icon;
-            const streak = habitStreak(h, today);
+            const checks = habitChecks(h, who);
+            const streak = habitStreak(h, checks, today);
+            const name = members.length > 1 ? members.find((m) => m.id === who)?.name : undefined;
             return (
-              <li key={h.id} className="inset-tile flex flex-col gap-3 rounded-xl px-3.5 py-3">
+              <li key={`${h.id}-${who}`} className="inset-tile flex flex-col gap-3 rounded-xl px-3.5 py-3">
                 <button type="button" onClick={() => app.openDialog({ kind: 'habit', id: h.id })} className="flex min-w-0 items-center gap-2.5 text-left">
                   <IconBox icon={Icon} tone="glass" size="s" />
                   <span className="min-w-0 flex-1 truncate text-label-m text-text-primary">{h.title}</span>
-                  <AssigneeBadge assignee={h.owner} />
+                  <AssigneeBadge assignee={who} />
                   {streak > 0 ? (
                     <span className="tnum inline-flex shrink-0 items-center gap-1 text-label-s text-text-warn" aria-label={`Série de ${streak} jour${streak > 1 ? 's' : ''}`}>
                       <Flame size={14} strokeWidth={ICON_STROKE} aria-hidden />
@@ -172,7 +176,7 @@ function Habits() {
                 <div className="grid grid-cols-7 gap-1.5">
                   {days.map((d, i) => {
                     const due = habitDueOn(h, d);
-                    const on = h.checks.includes(d);
+                    const on = checks.includes(d);
                     const future = d > today;
                     return (
                       <button
@@ -180,9 +184,9 @@ function Habits() {
                         type="button"
                         role="checkbox"
                         aria-checked={on}
-                        aria-label={`${h.title}, ${DAY_LONG[i]} ${fromIso(d).getDate()}`}
+                        aria-label={`${h.title}${name ? `, ${name}` : ''}, ${DAY_LONG[i]} ${fromIso(d).getDate()}`}
                         disabled={future || !due}
-                        onClick={() => app.toggleHabit(h.id, d)}
+                        onClick={() => app.toggleHabit(h.id, d, who)}
                         className={cn(
                           'mx-auto inline-flex size-8 items-center justify-center rounded-full border text-caption transition-[background-color,border-color,transform] duration-(--v-duree-courte) active:scale-90 disabled:cursor-not-allowed',
                           !due
