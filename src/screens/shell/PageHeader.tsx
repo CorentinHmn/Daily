@@ -4,7 +4,7 @@
  * Phone: the large title and the avatar on one line, the actions under it; once the page scrolls past the title, a
  * compact glass bar keeps the title at the top (iOS large-title behaviour).
  */
-import { useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronDown, Download, LogOut, Moon, Settings, Sun, Users } from 'lucide-react';
@@ -13,7 +13,7 @@ import { cn } from '../../ui/cn';
 import { useApp } from '../../store/app';
 import { Avatar, ICON_STROKE } from '../../ui/atoms';
 import { useLiquidGlass } from '../../ui/glass';
-import { Menu } from '../../ui/overlays';
+import { ChipMenu } from '../../ui/chipMenu';
 import { useIsMobile } from '../../ui/useMedia';
 import { motionTokens } from '../../theme/motion';
 import { exportData } from '../dialogs/SettingsDialog';
@@ -78,56 +78,43 @@ function CompactBar({ title }: { title: string }) {
   );
 }
 
+/** The user's chip: liquid glass that grows into its menu (ChipMenu), the sync dot on the avatar above its rim. */
 function UserChip({ compact }: { compact?: boolean }) {
   const name = useApp((s) => s.data.settings.name);
   const theme = useApp((s) => s.data.settings.theme);
-  const anchor = useRef<HTMLButtonElement | null>(null);
-  const glass = useLiquidGlass<HTMLButtonElement>({ bezel: 14, strength: 9 });
-  const [open, setOpen] = useState(false);
   const app = useApp.getState();
   const hue = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.hue ?? 'warm');
   const photo = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.photo);
   return (
-    <>
-      <button
-        ref={(el) => {
-          anchor.current = el;
-          glass(el);
-        }}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        aria-label={compact ? `${name || 'Moi'}, menu` : undefined}
-        className={compact ? 'liquid inline-flex size-12 items-center justify-center rounded-full' : 'liquid flex h-[52px] items-center gap-3 rounded-full py-1 pr-1.5 pl-4 text-left'}
-      >
-        {!compact && (
-          <>
-            <span className="flex flex-col">
-              <span className="text-label-m text-text-primary">{name || 'Moi'}</span>
-            </span>
-            <ChevronDown size={14} strokeWidth={ICON_STROKE} aria-hidden className="text-text-muted" />
-          </>
-        )}
-        <span className="relative">
-          <Avatar name={name || 'Moi'} hue={hue} photo={photo} />
-          <SyncDot />
-        </span>
-      </button>
-      <Menu
-        open={open}
-        anchor={anchor}
-        onClose={() => setOpen(false)}
-        width={240}
-        items={[
-          { label: 'Foyer et compte', icon: Users, onSelect: () => app.openDialog({ kind: 'account' }) },
-          { label: 'Paramètres', icon: Settings, onSelect: () => app.openDialog({ kind: 'settings' }) },
-          { label: theme === 'day' ? 'Passer en sombre' : 'Passer en clair', icon: theme === 'day' ? Moon : Sun, onSelect: () => app.setTheme(theme === 'day' ? 'night' : 'day') },
-          { label: 'Exporter mes données', icon: Download, onSelect: () => void exportData() },
-          { label: 'Se déconnecter', icon: LogOut, onSelect: () => void signOut() },
-        ]}
-      />
-    </>
+    <ChipMenu
+      label={compact ? `${name || 'Moi'}, menu` : undefined}
+      className={compact ? 'inline-flex size-12 items-center justify-center rounded-full' : 'flex h-[52px] items-center gap-3 rounded-full py-1 pr-1.5 pl-4 text-left'}
+      width={240}
+      items={[
+        { label: 'Foyer et compte', icon: Users, onSelect: () => app.openDialog({ kind: 'account' }) },
+        { label: 'Paramètres', icon: Settings, onSelect: () => app.openDialog({ kind: 'settings' }) },
+        { label: theme === 'day' ? 'Passer en sombre' : 'Passer en clair', icon: theme === 'day' ? Moon : Sun, onSelect: () => app.setTheme(theme === 'day' ? 'night' : 'day') },
+        { label: 'Exporter mes données', icon: Download, onSelect: () => void exportData() },
+        { label: 'Se déconnecter', icon: LogOut, onSelect: () => void signOut() },
+      ]}
+    >
+      {(open) => (
+        <>
+          {!compact && (
+            <>
+              <span className="flex flex-col">
+                <span className="text-label-m text-text-primary">{name || 'Moi'}</span>
+              </span>
+              <ChevronDown size={14} strokeWidth={ICON_STROKE} aria-hidden className={cn('text-text-muted transition-transform duration-(--v-duree-moyenne)', open && 'rotate-180')} />
+            </>
+          )}
+          <span className="relative">
+            <Avatar name={name || 'Moi'} hue={hue} photo={photo} />
+            <SyncDot />
+          </span>
+        </>
+      )}
+    </ChipMenu>
   );
 }
 

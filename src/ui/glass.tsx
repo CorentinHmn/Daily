@@ -153,6 +153,13 @@ export interface LiquidOptions {
   /** Frost of the backdrop, px (SVG stdDeviation). */
   blur?: number;
   saturate?: number;
+  /**
+   * The lens is a rounded rectangle inside the element rather than the element itself (a glass layer larger than the
+   * shape it shows, like a chip that grows into its menu): its place in the element, read when the element is sized.
+   */
+  lens?: () => { x: number; y: number; w: number; h: number; r: number } | null;
+  /** Changes when the lens moves without the element being resized (the filter is then rebuilt). */
+  lensKey?: string;
 }
 
 /**
@@ -160,8 +167,12 @@ export interface LiquidOptions {
  * `backdrop-filter: url(#…)`. Returns a callback ref to put on the element (which should carry the `.liquid` class);
  * it works for elements mounted later (popovers, dialogs).
  */
-export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 14, blur = 1.6, saturate = 1.7 }: LiquidOptions = {}): (el: T | null) => void {
+export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 14, blur = 1.6, saturate = 1.7, lens, lensKey }: LiquidOptions = {}): (el: T | null) => void {
   const node = useRef<T | null>(null);
+  const lensRef = useRef(lens);
+  useLayoutEffect(() => {
+    lensRef.current = lens;
+  });
   const last = useRef<T | null>(null);
   const [version, setVersion] = useState(0);
   // Merged ref callbacks are new functions on every render: React detaches (null) then re-attaches the same element.
@@ -183,13 +194,16 @@ export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 1
       const h = Math.round(el.offsetHeight);
       if (w < 8 || h < 8) return;
       const css = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
-      const r = Math.min(css, w / 2, h / 2);
-      const b = Math.min(bezel, Math.min(w, h) / 2);
+      const l = lensRef.current?.() ?? null;
+      const r = l ? Math.min(l.r, l.w / 2, l.h / 2) : Math.min(css, w / 2, h / 2);
+      const b = Math.min(bezel, l ? Math.min(l.w, l.h) / 2 : Math.min(w, h) / 2);
+      const at = l ? `-l${Math.round(l.x)}_${Math.round(l.y)}_${Math.round(l.w)}x${Math.round(l.h)}` : '';
+      const field = l ? lensField(l.w, l.h, r, b) : lensField(w, h, r, b);
       const id = ensureFilter({
-        key: `${w}x${h}-r${Math.round(r)}-b${Math.round(b)}-s${strength}-f${blur}-c${saturate}`.replace(/\./g, '_'),
+        key: `${w}x${h}${at}-r${Math.round(r)}-b${Math.round(b)}-s${strength}-f${blur}-c${saturate}`.replace(/\./g, '_'),
         w,
         h,
-        map: () => drawMap(w, h, lensField(w, h, r, b)),
+        map: () => drawMap(w, h, l ? (x, y) => field(x - l.x, y - l.y) : field),
         scale: strength * 2,
         blur,
         saturate,
@@ -206,7 +220,7 @@ export function useLiquidGlass<T extends HTMLElement>({ bezel = 18, strength = 1
       ro.disconnect();
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [version, bezel, strength, blur, saturate]);
+  }, [version, bezel, strength, blur, saturate, lensKey]);
   return setRef;
 }
 

@@ -32,7 +32,7 @@ function emerge(place: Place): string[] {
   const sx = Math.max(0.25, Math.min(1, (place.width - place.from.left - place.from.right) / place.width));
   const sy = 0.16;
   return SPRING.frames.map(({ p }) => {
-    const q = 1 + (p - 1) * 0.5;
+    const q = p > 1 ? 1 + (p - 1) * 0.5 : p;
     return `scale(${(sx + (1 - sx) * q).toFixed(4)}, ${(sy + (1 - sy) * q).toFixed(4)})`;
   });
 }

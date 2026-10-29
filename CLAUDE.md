@@ -71,6 +71,12 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   et le contour décalé) sont aussi des clip-paths, avec les mêmes images-clés échantillonnées à 60 i/s : rien ne peut
   se décaler (un `d` SVG animé à part laissait voir une tache noire). La vague ne peut pas vivre dans le `<nav>` : un
   `backdrop-filter` ancêtre la couperait.
+- Pastille du profil (`src/ui/chipMenu.tsx`) : même technique que le rail (calque de verre plus grand que la pastille,
+  clip-path animé pastille → pastille + menu, ombre et liseré sur le même tracé, réfraction gardée sur la pastille par
+  l'option `lens` de `useLiquidGlass`) ; la liste est toujours montée (mesurée, `inert` fermée) et découpée par le même
+  contour. Les autres panneaux (`popover.tsx`) naissent de leur bouton par une mise à l'échelle sur le même ressort.
+- Heure et date : `TimeField` / `DateField` (`src/ui/pickers.tsx`), jamais `<input type="time|date">` (sélecteurs gris
+  du navigateur).
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.

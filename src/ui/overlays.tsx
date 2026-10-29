@@ -249,70 +249,78 @@ export interface MenuItem {
   hint?: string;
 }
 
-/** Contextual menu (Menu / MenuItem 67:300) opened from a trigger; keyboard ↑ ↓ Enter Esc. */
-export function Menu({ items, anchor, open, onClose, width = 230, align = 'end' }: { items: MenuItem[]; anchor: RefObject<HTMLElement | null>; open: boolean; onClose: () => void; width?: number; align?: 'start' | 'end' }) {
+/** The items of a menu (MenuItem 67:300), keyboard ↑ ↓ Enter; shown by Menu, or inside a glass that grows into it. */
+export function MenuList({ items, onClose, autoFocus = true }: { items: MenuItem[]; onClose: () => void; autoFocus?: boolean }) {
   const [active, setActive] = useState(0);
   // More items below the fold: the bottom fades out, so the list reads as scrollable rather than cut.
   const [more, setMore] = useState(false);
   return (
+    <ul
+      className={cn('min-h-0 overflow-y-auto overscroll-contain p-1.5 outline-none', more && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-28px),transparent)]')}
+      tabIndex={-1}
+      ref={(el) => {
+        // Focused when it appears, for ↑ ↓ Enter.
+        if (autoFocus && el && el !== document.activeElement && !el.contains(document.activeElement)) el.focus();
+        if (el) setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+      }}
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setActive((i) => (i + 1) % items.length);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setActive((i) => (i - 1 + items.length) % items.length);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const it = items[active];
+          if (it && !it.disabled) {
+            it.onSelect();
+            onClose();
+          }
+        }
+      }}
+    >
+      {items.map((it, i) => {
+        const Icon = it.icon;
+        return (
+          <li key={it.label} role="none">
+            <button
+              type="button"
+              role="menuitem"
+              disabled={it.disabled}
+              onMouseEnter={() => setActive(i)}
+              onClick={() => {
+                it.onSelect();
+                onClose();
+              }}
+              className={cn(
+                'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-body-s transition-colors duration-(--v-duree-courte) disabled:cursor-not-allowed disabled:text-text-disabled',
+                i === active && 'bg-bg-card/80',
+                it.tone === 'danger' ? 'text-text-danger' : 'text-text-primary',
+              )}
+            >
+              {Icon && <Icon size={16} strokeWidth={ICON_STROKE} aria-hidden className={it.tone === 'danger' ? undefined : 'text-text-secondary'} />}
+              <span className="flex-1">{it.label}</span>
+              {it.hint && <span className="text-caption text-text-muted">{it.hint}</span>}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Contextual menu (Menu / MenuItem 67:300) opened from a trigger; keyboard ↑ ↓ Enter Esc. */
+export function Menu({ items, anchor, open, onClose, width = 230, align = 'end' }: { items: MenuItem[]; anchor: RefObject<HTMLElement | null>; open: boolean; onClose: () => void; width?: number; align?: 'start' | 'end' }) {
+  return (
     // Tall enough for every item (36 px each + padding); the popover still shrinks to the room on screen, then the list
     // scrolls instead of cutting its last items.
     <Popover open={open} anchor={anchor} onClose={onClose} width={width} align={align} role="menu" maxHeight={items.length * 36 + 14}>
-      <ul
-        className={cn('min-h-0 overflow-y-auto overscroll-contain p-1.5 outline-none', more && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-28px),transparent)]')}
-        tabIndex={-1}
-        ref={(el) => {
-          if (open) el?.focus();
-          if (el) setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
-        }}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setActive((i) => (i + 1) % items.length);
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setActive((i) => (i - 1 + items.length) % items.length);
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            const it = items[active];
-            if (it && !it.disabled) {
-              it.onSelect();
-              onClose();
-            }
-          }
-        }}
-      >
-        {items.map((it, i) => {
-          const Icon = it.icon;
-          return (
-            <li key={it.label} role="none">
-              <button
-                type="button"
-                role="menuitem"
-                disabled={it.disabled}
-                onMouseEnter={() => setActive(i)}
-                onClick={() => {
-                  it.onSelect();
-                  onClose();
-                }}
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-body-s transition-colors duration-(--v-duree-courte) disabled:cursor-not-allowed disabled:text-text-disabled',
-                  i === active && 'bg-bg-card/80',
-                  it.tone === 'danger' ? 'text-text-danger' : 'text-text-primary',
-                )}
-              >
-                {Icon && <Icon size={16} strokeWidth={ICON_STROKE} aria-hidden className={it.tone === 'danger' ? undefined : 'text-text-secondary'} />}
-                <span className="flex-1">{it.label}</span>
-                {it.hint && <span className="text-caption text-text-muted">{it.hint}</span>}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      <MenuList items={items} onClose={onClose} />
     </Popover>
   );
 }
