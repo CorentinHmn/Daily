@@ -168,23 +168,43 @@
 .liquid-bar {
   background: var(--glass-bar);
 }
-/* Desktop rail: the glass that pours out of the rail around the active item's name (NavRail), with the rail's tint;
-   next to a refracting rail (Chromium), a light blur like that of the refraction filter. */
-.rail-sleeve {
-  /* a little whiter than the rail's tint: the rail also gets light from its sheen and rims */
-  background: color-mix(in srgb, var(--glass-liquid), white 16%);
+/* Desktop rail (NavRail): its glass is a layer wider than the rail, shaped by an animated clip-path (the rail, and the
+   wave that pours out with the active item's name), with the .liquid tint and frost; the sheen covers the rail only and
+   the rim is an SVG stroke along the same outline, so the wave and the rail are one piece of glass. */
+.rail-glass {
+  isolation: isolate;
+  background: var(--glass-liquid);
   -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
   backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
-  box-shadow:
-    inset 0 1.5px 0 -0.5px var(--glass-rim-light),
-    inset 0 -1px 0 -0.25px var(--glass-rim-soft);
 }
-:root[data-theme='night'] .rail-sleeve {
-  background: var(--glass-liquid);
+.rail-sheen {
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.5), transparent 46%),
+    radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.22), transparent 55%);
+  mix-blend-mode: soft-light;
 }
-nav[data-refract] ~ .rail-sleeve {
-  backdrop-filter: blur(2px) saturate(1.7) brightness(1.05);
+/* The glass's shadow (--glass-shadow), as drop-shadows of its outline. */
+.rail-shadow {
+  fill: rgb(14 16 20);
+  filter: drop-shadow(0 10px 14px rgb(14 16 20 / 0.16)) drop-shadow(0 2px 3px rgb(14 16 20 / 0.06));
 }
+:root[data-theme='night'] .rail-shadow {
+  fill: rgb(0 0 0);
+  filter: drop-shadow(0 12px 22px rgb(0 0 0 / 0.55));
+}
+.rail-rim-a { stop-color: rgb(255 255 255 / 0.95); }
+.rail-rim-b { stop-color: rgb(255 255 255 / 0.12); }
+.rail-rim-c { stop-color: rgb(255 255 255 / 0); }
+.rail-rim-d { stop-color: rgb(255 255 255 / 0.55); }
+:root[data-theme='night'] .rail-sheen {
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.16), transparent 46%),
+    radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.06), transparent 55%);
+}
+:root[data-theme='night'] .rail-rim-a { stop-color: rgb(255 255 255 / 0.32); }
+:root[data-theme='night'] .rail-rim-b { stop-color: rgb(255 255 255 / 0.04); }
+:root[data-theme='night'] .rail-rim-d { stop-color: rgb(90 162 255 / 0.25); }
+
 /* Specular sheen: a soft light on the top left of the glass, a faint caustic on the bottom right. */
 .liquid::before {
   content: '';

@@ -34,20 +34,46 @@ function RailTip({ children }: { children: ReactNode }) {
 
 /** Extra width of the name's bubble, kept hidden so that its spring can overshoot (the liquid bounce) without a gap. */
 const OVERSHOOT = 14;
-/** Glass around the poured bubble (px), and radius of the hollow curves where it leaves the rail. */
-const SLEEVE = 7;
-const FILLET = 14;
-/** Room left around the name's bubble for its glow (a clip-path also clips the shadow). */
-const GLOW = 22;
+/** Glass of the wave around the poured bubble (px), and radius of its hollow curves where it leaves the rail. */
+const SLEEVE = 12;
+const FILLET = 26;
+/** Width of the rail's glass beyond the rail, where the wave can go. */
+const ROOM = 190;
 /** The name pours out once the bubble has (almost) arrived. */
 const ARRIVE_MS = (SPRING.frames.findIndex((f) => f.p > 0.9) * 1000) / 60;
+/** The rim can follow the wave where CSS can animate an SVG path (Chromium, Firefox); elsewhere it fades meanwhile. */
+const dAnimates = typeof CSS !== 'undefined' && CSS.supports('d', 'path("M0 0")');
+
+/** Clip of the shadow: everything but the glass's outline (even-odd: a large frame minus the outline). */
+const outside = (W: number, H: number, d: string) => `path(evenodd, 'M -80 -80 H ${W + ROOM + 80} V ${H + 80} H -80 Z ${d}')`;
+
+/**
+ * Outline of the rail's glass: the rail (W × H, corners R) and, on its right side around height `cy`, the wave: a
+ * pill out by `e` px, `hh` high on each side of `cy`, joined to the rail by two hollow curves. Always the same commands,
+ * so that the path can be interpolated (e = 0: the bare rail).
+ */
+function railShape(W: number, H: number, R: number, e: number, cy: number, hh: number): string {
+  const f = Math.min(FILLET, e * 0.75);
+  const c = Math.max(0, Math.min(hh, e - f));
+  const top = cy - hh;
+  const bottom = cy + hh;
+  const n = (v: number) => Math.round(v * 100) / 100;
+  return [
+    `M ${R} 0 H ${W - R} A ${R} ${R} 0 0 1 ${W} ${R}`,
+    `V ${n(top - f)} A ${n(f)} ${n(f)} 0 0 0 ${n(W + f)} ${n(top)}`,
+    `H ${n(W + e - c)} A ${n(c)} ${n(hh)} 0 0 1 ${n(W + e)} ${n(cy)} A ${n(c)} ${n(hh)} 0 0 1 ${n(W + e - c)} ${n(bottom)}`,
+    `H ${n(W + f)} A ${n(f)} ${n(f)} 0 0 0 ${W} ${n(bottom + f)}`,
+    `V ${H - R} A ${R} ${R} 0 0 1 ${W - R} ${H} H ${R} A ${R} ${R} 0 0 1 0 ${H - R} V ${R} A ${R} ${R} 0 0 1 ${R} 0 Z`,
+  ].join(' ');
+}
 
 /**
  * Vertical app rail (NavRail 71:238), liquid glass. Active item = the only light of the rail. No « Menu » label.
  * The light is one bubble that travels between the items like the phone's tab bar (spring keyframes played by Web
- * Animations on the compositor). Once there, it pours out of the rail with the item's name, the rail's glass
- * stretching around it with hollow curves, then both flow back in; hovering the active item shows the name again.
- * The stretched glass sits next to the rail, not in it: inside, it would only see the rail (backdrop root).
+ * Animations on the compositor). Once there, it pours out of the rail with the item's name: the rail's own glass
+ * swells into a wave around it, following the same spring, then both flow back in; hovering the active item shows
+ * the name again. The glass is one layer wider than the rail, shaped by an animated clip-path, with its rim drawn
+ * along the same outline: the wave and the rail are one piece, no seam between them.
  */
 export function NavRail<T extends string>({
   items,
@@ -68,14 +94,17 @@ export function NavRail<T extends string>({
   onLogo?: () => void;
   onSettings?: () => void;
 }) {
-  const glass = useLiquidGlass<HTMLElement>({ bezel: 26, strength: 18 });
-  const railRef = useRef<HTMLElement | null>(null);
+  const glass = useLiquidGlass<HTMLDivElement>({ bezel: 26, strength: 18 });
+  const railRef = useRef<HTMLElement>(null);
+  const shell = useRef<HTMLDivElement | null>(null);
+  const rim = useRef<SVGSVGElement>(null);
+  const rimShade = useRef<SVGPathElement>(null);
+  const rimLight = useRef<SVGPathElement>(null);
+  const shadow = useRef<SVGSVGElement>(null);
+  const shadowPath = useRef<SVGPathElement>(null);
   const bubble = useRef<HTMLSpanElement>(null);
   const tongue = useRef<HTMLSpanElement>(null);
   const name = useRef<HTMLSpanElement>(null);
-  const sleeve = useRef<HTMLSpanElement>(null);
-  const filletTop = useRef<HTMLSpanElement>(null);
-  const filletBottom = useRef<HTMLSpanElement>(null);
   const glow = useRef<Animation | null>(null);
   const tabs = useRef(new Map<T, HTMLButtonElement>());
   const placed = useRef(false);
@@ -84,55 +113,109 @@ export function NavRail<T extends string>({
   const shown = pending && pending.from === active ? pending.id : active;
   const label = items.find((i) => i.id === shown)?.label ?? '';
 
-  /** The bubble pours out of the rail with the name and the rail's glass, holds, then all flow back in. */
-  const pour = useCallback((delay: number) => {
-    const [t, n, b, sl, ft, fb, rail] = [tongue.current, name.current, bubble.current, sleeve.current, filletTop.current, filletBottom.current, railRef.current];
-    if (!t || !n || !b || !sl || !ft || !fb || !rail || reducedMotion()) return;
-    for (const el of [t, n, sl, ft, fb]) el.getAnimations().forEach((a) => a.cancel());
-    glow.current?.cancel();
-    const size = t.offsetHeight;
-    const width = t.offsetWidth;
-    const hidden = width - size;
-    const r = size / 2;
-    const inside = rail.offsetWidth - (t.offsetLeft - SLEEVE);
-    const hold = 1100;
-    const back = 320;
-    const total = delay + SPRING.ms + hold + back;
-    // The right edge of the poured bubble, as the amount clipped off its right (shared by the bubble and the glass).
-    const steps: { at: number; right: number; easing?: string }[] = [
-      { at: delay, right: hidden },
-      ...SPRING.frames.slice(1).map(({ p }, i) => ({ at: delay + ((i + 1) * 1000) / 60, right: OVERSHOOT + (hidden - OVERSHOOT) * (1 - p) })),
-      { at: delay + SPRING.ms + hold, right: OVERSHOOT, easing: 'cubic-bezier(0.5, 0, 0.9, 0.6)' },
-      { at: total, right: hidden },
-    ];
-    const opts = { duration: total, easing: 'linear' };
-    const frames = (f: (right: number) => Keyframe, before: Keyframe) => [{ offset: 0, ...before }, { offset: Math.max(0, delay - 1) / total, ...before }, ...steps.map((s) => ({ offset: s.at / total, easing: s.easing, ...f(s.right) }))];
-    const off = 'inset(0 100% 0 0)';
-    t.animate(frames((right) => ({ clipPath: `inset(-${GLOW}px ${right - GLOW}px -${GLOW}px -${GLOW}px round ${r + GLOW}px)` }), { clipPath: off }), opts);
-    sl.animate(frames((right) => ({ clipPath: `inset(0 ${right}px 0 ${inside}px round 0 ${r + SLEEVE}px ${r + SLEEVE}px 0)` }), { clipPath: off }), opts);
-    // The hollow curves grow with the glass that comes out of the rail.
-    const out = (right: number) => Math.max(0, Math.min(1, (width - right + SLEEVE - inside) / (FILLET * 2)));
-    for (const el of [ft, fb]) el.animate(frames((right) => ({ opacity: out(right), transform: `scale(${out(right)})` }), { opacity: 0, transform: 'scale(0)' }), opts);
-    // One light only: while the name's bubble (with its own glow) is out, the round one gives up its glow.
-    const rest = getComputedStyle(b).boxShadow;
-    glow.current = b.animate([{ offset: 0, boxShadow: rest }, { offset: delay / total, boxShadow: rest }, { offset: Math.min(1, (delay + 1) / total), boxShadow: 'none' }, { offset: (total - 1) / total, boxShadow: 'none' }, { offset: 1, boxShadow: rest }], { duration: total });
-    n.animate(
-      [
-        { offset: 0, opacity: 0, transform: 'translateX(-8px)' },
-        { offset: (delay + SPRING.ms * 0.25) / total, opacity: 0, transform: 'translateX(-8px)' },
-        { offset: (delay + SPRING.ms * 0.6) / total, opacity: 1, transform: 'none' },
-        { offset: (delay + SPRING.ms + hold) / total, opacity: 1, transform: 'none' },
-        { offset: (delay + SPRING.ms + hold + back * 0.6) / total, opacity: 0, transform: 'translateX(-6px)' },
-        { offset: 1, opacity: 0 },
-      ],
-      { duration: total, easing: 'ease-out' },
-    );
+  /** Size of the rail and the radius of its corners. */
+  const geometry = useCallback(() => {
+    const nav = railRef.current;
+    if (!nav) return null;
+    return { W: nav.offsetWidth, H: nav.offsetHeight, R: parseFloat(getComputedStyle(nav).borderTopLeftRadius) || 28 };
   }, []);
 
+  /** The glass at rest: the bare rail. */
+  const rest = useCallback(() => {
+    const g = geometry();
+    const [sl, rv, sh] = [shell.current, rim.current, shadow.current];
+    if (!g || !sl || !rv || !sh) return;
+    const d = railShape(g.W, g.H, g.R, 0, g.H / 2, 0);
+    sl.style.clipPath = rv.style.clipPath = `path('${d}')`;
+    sh.style.clipPath = outside(g.W, g.H, d);
+    for (const p of [rimShade.current, rimLight.current, shadowPath.current]) p?.setAttribute('d', d);
+    rv.setAttribute('viewBox', `0 0 ${g.W + ROOM} ${g.H}`);
+    // The rim's light runs at 140° across the rail, like the .liquid rim: bright top left, a glint bottom right.
+    const grad = rv.querySelector('linearGradient');
+    const [dx, dy] = [Math.sin((140 * Math.PI) / 180), -Math.cos((140 * Math.PI) / 180)];
+    const half = (g.W * Math.abs(dx) + g.H * Math.abs(dy)) / 2;
+    grad?.setAttribute('x1', String(g.W / 2 - dx * half));
+    grad?.setAttribute('y1', String(g.H / 2 - dy * half));
+    grad?.setAttribute('x2', String(g.W / 2 + dx * half));
+    grad?.setAttribute('y2', String(g.H / 2 + dy * half));
+  }, [geometry]);
+
+  /** The bubble pours out with the name and the rail's glass swells around it, holds, then all flow back in. */
+  const pour = useCallback(
+    (delay: number) => {
+      const [t, n, b, sl, rv] = [tongue.current, name.current, bubble.current, shell.current, rim.current];
+      const g = geometry();
+      if (!t || !n || !b || !sl || !rv || !g || reducedMotion()) return;
+      const sh = shadow.current;
+      for (const el of [t, n, sl, rv, sh, rimShade.current, rimLight.current, shadowPath.current]) el?.getAnimations().forEach((a) => a.cancel());
+      glow.current?.cancel();
+      const size = t.offsetHeight;
+      const width = t.offsetWidth;
+      const hidden = width - size;
+      const r = size / 2;
+      const cy = t.offsetTop + r;
+      const hold = 1100;
+      const back = 320;
+      const total = delay + SPRING.ms + hold + back;
+      // How much of the name's bubble is clipped off on the right, and how thin the pour is (fast = thinner).
+      const steps: { at: number; right: number; thin: number; easing?: string }[] = [
+        { at: delay, right: hidden, thin: 1 },
+        ...SPRING.frames.slice(1).map(({ p, v }, i) => ({ at: delay + ((i + 1) * 1000) / 60, right: OVERSHOOT + (hidden - OVERSHOOT) * (1 - p), thin: 1 - Math.min(0.16, Math.abs(hidden * v) / 5000) })),
+        { at: delay + SPRING.ms + hold, right: OVERSHOOT, thin: 1, easing: 'cubic-bezier(0.5, 0, 0.9, 0.6)' },
+        { at: total, right: hidden, thin: 1 },
+      ];
+      const opts = { duration: total, easing: 'linear' };
+      const frames = (f: (s: (typeof steps)[number]) => Keyframe, before: Keyframe) => [{ offset: 0, ...before }, { offset: Math.max(0, delay - 1) / total, ...before }, ...steps.map((s) => ({ offset: s.at / total, easing: s.easing, ...f(s) }))];
+      const shape = (s: (typeof steps)[number]) => {
+        const e = Math.max(0, t.offsetLeft + width - s.right + SLEEVE - g.W);
+        return railShape(g.W, g.H, g.R, e, cy, r * s.thin + SLEEVE);
+      };
+      const bare = railShape(g.W, g.H, g.R, 0, cy, r + SLEEVE);
+      // Thinner as it pours fast: clipped from the top and the bottom too (over the round bubble, a liquid neck).
+      t.animate(
+        frames((s) => {
+          const v = r * (1 - s.thin);
+          return { clipPath: `inset(${v}px ${s.right}px ${v}px 0 round ${r - v}px)` };
+        }, { clipPath: 'inset(0 100% 0 0)' }),
+        opts,
+      );
+      for (const el of [sl, rv]) el.animate(frames((s) => ({ clipPath: `path('${shape(s)}')` }), { clipPath: `path('${bare}')` }), opts);
+      if (dAnimates) {
+        for (const el of [rimShade.current, rimLight.current, shadowPath.current]) el?.animate(frames((s) => ({ d: `path('${shape(s)}')` }), { d: `path('${bare}')` }), opts);
+        sh?.animate(frames((s) => ({ clipPath: outside(g.W, g.H, shape(s)) }), { clipPath: outside(g.W, g.H, bare) }), opts);
+      } else rv.animate([{ opacity: 1 }, { offset: delay / total, opacity: 0 }, { offset: (total - 60) / total, opacity: 0 }, { opacity: 1 }], { duration: total });
+      // One blue: the round bubble's glow fades while the name is out (a clip-path would cut the glow of the rest).
+      const lit = getComputedStyle(b).boxShadow;
+      const fade = 140;
+      glow.current = b.animate(
+        [
+          { offset: 0, boxShadow: lit },
+          { offset: delay / total, boxShadow: lit },
+          { offset: Math.min(1, (delay + fade) / total), boxShadow: 'none' },
+          { offset: (total - back) / total, boxShadow: 'none' },
+          { offset: 1, boxShadow: lit },
+        ],
+        { duration: total },
+      );
+      n.animate(
+        [
+          { offset: 0, opacity: 0, transform: 'translateX(-8px)' },
+          { offset: (delay + SPRING.ms * 0.25) / total, opacity: 0, transform: 'translateX(-8px)' },
+          { offset: (delay + SPRING.ms * 0.6) / total, opacity: 1, transform: 'none' },
+          { offset: (delay + SPRING.ms + hold) / total, opacity: 1, transform: 'none' },
+          { offset: (delay + SPRING.ms + hold + back * 0.6) / total, opacity: 0, transform: 'translateX(-6px)' },
+          { offset: 1, opacity: 0 },
+        ],
+        { duration: total, easing: 'ease-out' },
+      );
+    },
+    [geometry],
+  );
+
   useLayoutEffect(() => {
-    const [b, t, sl, ft, fb, nav] = [bubble.current, tongue.current, sleeve.current, filletTop.current, filletBottom.current, railRef.current];
+    const [b, t, nav] = [bubble.current, tongue.current, railRef.current];
     const tab = tabs.current.get(shown);
-    if (!b || !t || !sl || !ft || !fb || !nav || !tab) return;
+    if (!b || !t || !nav || !tab) return;
     // Where the bubble is seen now (mid-flight included), before moving it to the new item.
     const seen = b.getBoundingClientRect();
     const fromCenter = seen.top - nav.getBoundingClientRect().top + seen.height / 2;
@@ -140,10 +223,6 @@ export function NavRail<T extends string>({
     const { offsetTop: top, offsetLeft: left, offsetWidth: size } = tab;
     Object.assign(b.style, { top: `${top}px`, left: `${left}px`, width: `${size}px`, height: `${size}px` });
     Object.assign(t.style, { top: `${top}px`, left: `${left}px`, height: `${size}px` });
-    Object.assign(sl.style, { top: `${top - SLEEVE}px`, left: `${left - SLEEVE}px`, height: `${size + SLEEVE * 2}px`, width: `${t.offsetWidth + SLEEVE * 2}px` });
-    const edge = `${nav.offsetWidth}px`;
-    Object.assign(ft.style, { top: `${top - SLEEVE - FILLET}px`, left: edge });
-    Object.assign(fb.style, { top: `${top + size + SLEEVE}px`, left: edge });
     const first = !placed.current;
     placed.current = true;
     if (first || !seen.height || reducedMotion()) return;
@@ -153,20 +232,50 @@ export function NavRail<T extends string>({
     pour(moves ? ARRIVE_MS : 0);
   }, [shown, pour]);
 
+  // The glass at rest follows the rail's size (window resized).
+  useLayoutEffect(() => {
+    rest();
+    const nav = railRef.current;
+    if (!nav) return;
+    const ro = new ResizeObserver(() => rest());
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [rest]);
+
   return (
     <div className="relative z-20 flex h-full shrink-0">
-      <nav
+      {/* The glass's shadow (only outside its outline, so it never darkens the glass), then the glass, wider than the
+          rail for the wave. */}
+      <svg ref={shadow} aria-hidden style={{ width: `calc(var(--layout-rail) + ${ROOM}px)` }} className="pointer-events-none absolute inset-y-0 left-0 h-full overflow-visible">
+        <path ref={shadowPath} className="rail-shadow" />
+      </svg>
+      <div
         ref={(el) => {
-          railRef.current = el;
+          shell.current = el;
           glass(el);
         }}
-        aria-label="Navigation principale"
-        className="liquid relative z-10 flex h-full w-(--layout-rail) shrink-0 flex-col items-center rounded-2xl pt-[22px] pb-[23px]"
+        aria-hidden
+        style={{ width: `calc(var(--layout-rail) + ${ROOM}px)` }}
+        className="rail-glass pointer-events-none absolute inset-y-0 left-0"
       >
+        <div className="rail-sheen absolute inset-y-0 left-0 w-(--layout-rail) rounded-2xl" />
+      </div>
+      <svg ref={rim} aria-hidden style={{ width: `calc(var(--layout-rail) + ${ROOM}px)` }} className="pointer-events-none absolute inset-y-0 left-0 h-full overflow-visible" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="rail-rim" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="96" y2="300">
+            <stop offset="0" className="rail-rim-a" />
+            <stop offset="0.34" className="rail-rim-b" />
+            <stop offset="0.56" className="rail-rim-c" />
+            <stop offset="1" className="rail-rim-d" />
+          </linearGradient>
+        </defs>
+        <path ref={rimShade} fill="none" strokeWidth="2" className="stroke-(--glass-rim-shade)" />
+        <path ref={rimLight} fill="none" strokeWidth="3" stroke="url(#rail-rim)" />
+      </svg>
+      <nav ref={railRef} aria-label="Navigation principale" className="relative z-10 flex h-full w-(--layout-rail) shrink-0 flex-col items-center rounded-2xl pt-[22px] pb-[23px]">
         <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
-        {/* The name's bubble: the same blue as the round one, over it and over the rail's rim (z-1, the items z-2);
-            clipped away at rest. */}
-        <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-accent-default pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-accent [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)]">
+        {/* The name's bubble: the same blue as the round one, over it (z-1, the items z-2); clipped away at rest. */}
+        <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-accent-default pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-accent shadow-hairline-top">
           <span ref={name} className="opacity-0">
             {label}
           </span>
@@ -229,10 +338,6 @@ export function NavRail<T extends string>({
           </button>
         </div>
       </nav>
-      {/* The rail's glass stretching around the poured bubble, and its two hollow curves (clipped away at rest). */}
-      <span ref={sleeve} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="rail-sleeve pointer-events-none absolute" />
-      <span ref={filletTop} aria-hidden style={{ width: FILLET, height: FILLET, opacity: 0, transformOrigin: '0 100%', maskImage: `radial-gradient(circle at 100% 0, transparent ${FILLET - 0.5}px, #000 ${FILLET}px)` }} className="rail-sleeve pointer-events-none absolute" />
-      <span ref={filletBottom} aria-hidden style={{ width: FILLET, height: FILLET, opacity: 0, transformOrigin: '0 0', maskImage: `radial-gradient(circle at 100% 100%, transparent ${FILLET - 0.5}px, #000 ${FILLET}px)` }} className="rail-sleeve pointer-events-none absolute" />
     </div>
   );
 }
