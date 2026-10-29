@@ -80,6 +80,8 @@ interface Actions {
   reset: () => void;
   ensureWeek: (monday: ISODate) => void;
   setTheme: (theme: ThemeName) => void;
+  /** the household's icon for a tab (null = the default one) */
+  setTabIcon: (tab: View, icon: string | null) => void;
   setName: (name: string) => void;
   saveMember: (m: Member) => void;
   addMember: (name: string) => string;
@@ -217,6 +219,13 @@ export const useApp = create<AppState>()((set, get) => {
     },
 
     setTheme: (theme) => mutate((d) => ({ ...d, settings: { ...d.settings, theme } })),
+    setTabIcon: (tab, icon) =>
+      mutate((d) => {
+        const tabIcons = { ...d.prefs?.tabIcons };
+        if (icon) tabIcons[tab] = icon;
+        else delete tabIcons[tab];
+        return { ...d, prefs: { ...d.prefs, tabIcons } };
+      }),
     setName: (name) => mutate((d) => ({ ...d, settings: { ...d.settings, name }, members: d.members.map((m) => (m.id === d.settings.meId ? { ...m, name: name.trim() || m.name } : m)) })),
     saveMember: (m) => mutate((d) => ({ ...d, members: d.members.map((x) => (x.id === m.id ? m : x)), settings: m.id === d.settings.meId ? { ...d.settings, name: m.name } : d.settings })),
     addMember: (name) => {

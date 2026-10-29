@@ -4,11 +4,12 @@
  *  - shopping lists are split: the list (without its items) and each item (with its listId), so two people ticking
  *    items of the same list at the same time do not overwrite each other;
  *  - generatedWeeks become « weeks » records, so a device does not refill a week the other one already filled;
+ *  - the household's settings (prefs) are one record;
  *  - settings (this device's name, theme, me) and the session in progress stay on the device.
  */
-import type { AppData, FrequentItem, GoalStep, Member, ShopItem, ShopList, Task } from '../domain/types';
+import type { AppData, FrequentItem, GoalStep, HouseholdPrefs, Member, ShopItem, ShopList, Task } from '../domain/types';
 
-export type Collection = 'members' | 'tasks' | 'routines' | 'weeks' | 'programs' | 'sessions' | 'runs' | 'goals' | 'habits' | 'lists' | 'items' | 'frequent';
+export type Collection = 'members' | 'tasks' | 'routines' | 'weeks' | 'programs' | 'sessions' | 'runs' | 'goals' | 'habits' | 'lists' | 'items' | 'frequent' | 'prefs';
 
 export interface Rec {
   collection: Collection;
@@ -39,6 +40,7 @@ export function flatten(d: AppData): Flat {
     for (const it of l.items) put('items', it.id, { ...it, listId: l.id });
   }
   for (const [k, v] of Object.entries(d.frequent)) put('frequent', k, v);
+  if (d.prefs && Object.keys(d.prefs).length) put('prefs', 'foyer', d.prefs);
   return m;
 }
 
@@ -92,6 +94,7 @@ export function unflatten(base: AppData, flat: Flat): AppData {
     lists,
     activeListId: lists.some((l) => l.id === base.activeListId) ? base.activeListId : (lists[0]?.id ?? null),
     frequent,
+    prefs: flat.get(keyOf('prefs', 'foyer'))?.data as HouseholdPrefs | undefined,
   };
 }
 

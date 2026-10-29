@@ -40,6 +40,7 @@ import {
   Bath,
   type LucideIcon,
 } from 'lucide-react';
+import { Activity, Bike, CalendarCheck, CalendarDays, CalendarHeart, CalendarRange, Carrot, Clock, CloudSun, Coffee, Flag, Flame, HeartPulse, ListChecks, Medal, Rocket, ShoppingBag, Star, Store, Sunrise, Utensils, Zap } from 'lucide-react';
 import type { CategoryId, GoalIcon, GoalSource, HabitIcon, RayonId } from './types';
 import { normalize } from '../lib/format';
 
@@ -152,3 +153,52 @@ export const HABIT_ICONS: Record<HabitIcon, { icon: LucideIcon; label: string }>
 };
 
 export const PERIOD_LABEL = { semaine: 'Semaine', mois: 'Mois', annee: 'Année' } as const;
+
+/** Icons a household can give its tabs (Paramètres > Onglets), 6 × 6, by theme: day, week, sport, goals, shopping, life. */
+export const TAB_ICONS: Record<string, { icon: LucideIcon; label: string }> = {
+  sun: { icon: Sun, label: 'Soleil' },
+  sunrise: { icon: Sunrise, label: 'Lever du jour' },
+  'cloud-sun': { icon: CloudSun, label: 'Éclaircie' },
+  coffee: { icon: Coffee, label: 'Café' },
+  house: { icon: House, label: 'Maison' },
+  'list-checks': { icon: ListChecks, label: 'Liste cochée' },
+  'list-todo': { icon: ListTodo, label: 'À faire' },
+  'calendar-days': { icon: CalendarDays, label: 'Calendrier' },
+  'calendar-range': { icon: CalendarRange, label: 'Semaine' },
+  'calendar-check': { icon: CalendarCheck, label: 'Jour coché' },
+  'calendar-heart': { icon: CalendarHeart, label: 'Jour cœur' },
+  clock: { icon: Clock, label: 'Horloge' },
+  dumbbell: { icon: Dumbbell, label: 'Haltère' },
+  footprints: { icon: Footprints, label: 'Pas' },
+  bike: { icon: Bike, label: 'Vélo' },
+  'heart-pulse': { icon: HeartPulse, label: 'Pouls' },
+  activity: { icon: Activity, label: 'Activité' },
+  mountain: { icon: Mountain, label: 'Montagne' },
+  target: { icon: Target, label: 'Cible' },
+  trophy: { icon: Trophy, label: 'Trophée' },
+  flag: { icon: Flag, label: 'Drapeau' },
+  star: { icon: Star, label: 'Étoile' },
+  medal: { icon: Medal, label: 'Médaille' },
+  rocket: { icon: Rocket, label: 'Fusée' },
+  'shopping-cart': { icon: ShoppingCart, label: 'Chariot' },
+  'shopping-basket': { icon: ShoppingBasket, label: 'Panier' },
+  'shopping-bag': { icon: ShoppingBag, label: 'Sac' },
+  store: { icon: Store, label: 'Magasin' },
+  apple: { icon: Apple, label: 'Pomme' },
+  carrot: { icon: Carrot, label: 'Carotte' },
+  utensils: { icon: Utensils, label: 'Couverts' },
+  sparkles: { icon: Sparkles, label: 'Étincelles' },
+  leaf: { icon: Leaf, label: 'Feuille' },
+  heart: { icon: Heart, label: 'Cœur' },
+  flame: { icon: Flame, label: 'Flamme' },
+  zap: { icon: Zap, label: 'Éclair' },
+};
+
+/** The tabs' icons when the household has not chosen any. */
+export const DEFAULT_TAB_ICONS: Record<string, string> = { today: 'sun', week: 'calendar-range', sport: 'dumbbell', goals: 'target', shopping: 'shopping-cart' };
+
+/** The icon of a tab: the household's choice, else the default one. */
+export function tabIcon(tab: string, prefs: { tabIcons?: Record<string, string> } | undefined): LucideIcon {
+  const id = prefs?.tabIcons?.[tab] ?? DEFAULT_TAB_ICONS[tab] ?? 'sun';
+  return (TAB_ICONS[id] ?? TAB_ICONS.sun!).icon;
+}

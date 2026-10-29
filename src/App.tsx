@@ -6,7 +6,8 @@
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CalendarDays, CalendarRange, Dumbbell, Footprints, ListPlus, ShoppingCart, Sun, Target, Repeat } from 'lucide-react';
+import { CalendarDays, Footprints, ListPlus, Target, Repeat } from 'lucide-react';
+import { tabIcon } from './domain/catalog';
 import { useApp, type View } from './store/app';
 import { todayIso, weekStart } from './lib/dates';
 import { NavRail, type NavItem } from './ui/navigation';
@@ -83,12 +84,14 @@ function Workspace() {
     if (onboarded && caughtUp) useApp.getState().ensureWeek(weekStart(today));
   }, [today, onboarded, caughtUp]);
 
+  // The tabs' icons are the household's choice (Paramètres > Onglets).
+  const prefs = useApp((s) => s.data.prefs);
   const nav: NavItem<View>[] = [
-    { id: 'today', label: "Aujourd'hui", icon: Sun },
-    { id: 'week', label: 'Semaine', icon: CalendarRange },
-    { id: 'sport', label: 'Sport', icon: Dumbbell, live: sessionLive && view !== 'sport' },
-    { id: 'goals', label: 'Objectifs', icon: Target },
-    { id: 'shopping', label: 'Courses', icon: ShoppingCart, badge: remaining ? String(remaining) : undefined },
+    { id: 'today', label: "Aujourd'hui", icon: tabIcon('today', prefs) },
+    { id: 'week', label: 'Semaine', icon: tabIcon('week', prefs) },
+    { id: 'sport', label: 'Sport', icon: tabIcon('sport', prefs), live: sessionLive && view !== 'sport' },
+    { id: 'goals', label: 'Objectifs', icon: tabIcon('goals', prefs) },
+    { id: 'shopping', label: 'Courses', icon: tabIcon('shopping', prefs), badge: remaining ? String(remaining) : undefined },
   ];
 
   const Screen = SCREENS[view];

@@ -178,6 +178,12 @@ export interface Settings {
   meId?: string;
 }
 
+/** Settings shared by the household (synced, one `prefs` record): for now, the icons chosen for the tabs. */
+export interface HouseholdPrefs {
+  /** tab (view id) → icon (TAB_ICONS key) */
+  tabIcons?: Record<string, string>;
+}
+
 export interface AppData {
   version: 1;
   onboarded: boolean;
@@ -196,4 +202,5 @@ export interface AppData {
   lists: ShopList[];
   activeListId: string | null;
   frequent: Record<string, FrequentItem>;
+  prefs?: HouseholdPrefs;
 }

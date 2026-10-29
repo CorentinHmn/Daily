@@ -12,6 +12,13 @@ describe('records', () => {
     }
   });
 
+  it("the household's settings travel as one record", () => {
+    const withPrefs = { ...data, prefs: { tabIcons: { today: 'sunrise' } } };
+    expect(unflatten({ ...data, prefs: undefined }, flatten(withPrefs)).prefs).toEqual(withPrefs.prefs);
+    expect(diff(flatten(data), flatten(withPrefs))).toEqual([{ collection: 'prefs', id: 'foyer', data: withPrefs.prefs }]);
+    expect(diff(flatten(withPrefs), flatten({ ...withPrefs, prefs: {} }))).toEqual([{ collection: 'prefs', id: 'foyer', data: null }]);
+  });
+
   it('ticking one shopping item changes one record only', () => {
     const list = data.lists[0]!;
     const next = { ...data, lists: [{ ...list, items: list.items.map((i, n) => (n === 0 ? { ...i, checked: !i.checked } : i)) }, ...data.lists.slice(1)] };

@@ -33,6 +33,8 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 ## Supabase (projet `dyqqvtpdttwzwkxtpzfp`, outils MCP Supabase)
 - Tables `households`, `household_members`, `records` (un objet de l'appli par ligne, jsonb, suppression = `deleted`),
   RLS réservée aux membres du foyer ; RPC `create_household`, `join_household`, `claim_member` ; Realtime sur `records`.
+  Réglages du foyer (icônes des onglets…) : une ligne `prefs` / `foyer` (`AppData.prefs`) ; un nouveau type de ligne
+  demande d'élargir la contrainte `records_collection_check` (migration `reglages_du_foyer`).
 - Fonction Edge `signup` (verify_jwt = false) : crée le compte déjà confirmé (pas d'e-mail de confirmation à attendre).
   Après modification de `supabase/functions/signup/index.ts`, la redéployer (MCP `deploy_edge_function`).
 

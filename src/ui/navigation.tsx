@@ -23,15 +23,6 @@ function RailDots() {
   );
 }
 
-/** Tooltip of a rail button, outside the rail on the right (hover and keyboard focus). */
-function RailTip({ children }: { children: ReactNode }) {
-  return (
-    <span aria-hidden className="pointer-events-none absolute left-full z-10 ml-3 rounded-sm bg-text-primary px-2 py-1 text-label-s whitespace-nowrap text-bg-card opacity-0 transition-opacity duration-(--v-duree-courte) group-hover/nav:opacity-100 group-focus-visible/nav:opacity-100">
-      {children}
-    </span>
-  );
-}
-
 /** Extra width of the name's bubble, kept hidden so that its spring can overshoot (the liquid bounce) without a gap. */
 const OVERSHOOT = 14;
 /** Glass of the wave around the poured bubble (px), and radius of its hollow curves where it leaves the rail. */
@@ -341,7 +332,6 @@ export function NavRail<T extends string>({
                     <span className="tnum absolute -top-1 -right-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-border-default bg-bg-card px-1 text-[10px] font-medium text-text-primary">{item.badge}</span>
                   )}
                   {item.live && <span aria-label="Séance en cours" className="live-halo absolute top-1 right-1 size-2.5 rounded-full bg-accent-default text-accent-default ring-2 ring-bg-card" />}
-                  {!on && <RailTip>{item.label}</RailTip>}
                 </button>
               </li>
             );
@@ -351,7 +341,6 @@ export function NavRail<T extends string>({
           {onSettings && (
             <button type="button" onClick={onSettings} aria-label="Paramètres" className="group/nav relative inline-flex size-12 items-center justify-center rounded-full text-text-secondary transition-colors duration-(--v-duree-courte) hover:bg-bg-card/70 hover:text-text-primary">
               <Settings size={20} strokeWidth={ICON_STROKE} aria-hidden />
-              <RailTip>Paramètres</RailTip>
             </button>
           )}
           <button

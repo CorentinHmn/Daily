@@ -5,9 +5,11 @@ import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
 import type { Member, MemberHue } from '../../domain/types';
 import { squarePhoto } from '../../lib/image';
-import { Avatar, IconButton } from '../../ui/atoms';
+import { Avatar, ICON_STROKE, IconButton } from '../../ui/atoms';
+import { Popover } from '../../ui/popover';
+import { DEFAULT_TAB_ICONS, TAB_ICONS } from '../../domain/catalog';
 import { cn } from '../../ui/cn';
-import { useApp, type StartMode } from '../../store/app';
+import { useApp, type StartMode, type View } from '../../store/app';
 import { shortDate, todayIso } from '../../lib/dates';
 import { Button } from '../../ui/atoms';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
@@ -63,6 +65,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               ]}
             />
           </Field>
+          <TabIcons />
           <div className="flex flex-col gap-2">
             <p className="text-label-s text-text-secondary">Partage en ligne</p>
             <div className="flex flex-wrap items-center gap-3">
@@ -157,6 +160,89 @@ const CONFIRM: Record<StartMode, { title: string; text: string; label: string }>
 const HUE_LABEL: Record<MemberHue, string> = { warm: 'Cuivre', violet: 'Violet', green: 'Vert', blue: 'Bleu' };
 
 /** The household's people: first name and avatar colour; add someone (to assign tasks before they join). */
+const TABS: { id: View; label: string }[] = [
+  { id: 'today', label: "Aujourd'hui" },
+  { id: 'week', label: 'Semaine' },
+  { id: 'sport', label: 'Sport' },
+  { id: 'goals', label: 'Objectifs' },
+  { id: 'shopping', label: 'Courses' },
+];
+
+/** The household's icons for the tabs (rail and tab bar): one chip per tab, which opens the icon grid. */
+function TabIcons() {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-label-s text-text-secondary">Icônes des onglets</p>
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <TabIconPicker key={t.id} tab={t.id} label={t.label} />
+        ))}
+      </div>
+      <p className="text-caption text-text-muted">Pour tout le foyer.</p>
+    </div>
+  );
+}
+
+function TabIconPicker({ tab, label }: { tab: View; label: string }) {
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const prefs = useApp((s) => s.data.prefs);
+  const app = useApp.getState();
+  const current = prefs?.tabIcons?.[tab] ?? DEFAULT_TAB_ICONS[tab] ?? 'sun';
+  const Icon = (TAB_ICONS[current] ?? TAB_ICONS.sun!).icon;
+  const pick = (id: string | null) => {
+    app.setTabIcon(tab, id === DEFAULT_TAB_ICONS[tab] ? null : id);
+    setOpen(false);
+    anchor.current?.focus();
+  };
+  return (
+    <>
+      <button
+        ref={anchor}
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`Icône de l'onglet ${label}`}
+        onClick={() => setOpen((o) => !o)}
+        className={cn('inline-flex h-10 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label-s text-text-primary transition-[border-color,background-color]', open ? 'border-border-accent bg-accent-soft' : 'border-border-default bg-bg-card/70 hover:border-border-strong')}
+      >
+        <span aria-hidden className="inline-flex size-7 items-center justify-center rounded-full bg-accent-default text-text-on-accent shadow-hairline-top">
+          <Icon size={15} strokeWidth={ICON_STROKE} />
+        </span>
+        {label}
+      </button>
+      <Popover open={open} anchor={anchor} onClose={() => setOpen(false)} width={280} maxHeight={340} role="dialog" label={`Icône de l'onglet ${label}`}>
+        <div role="radiogroup" aria-label={`Icône de l'onglet ${label}`} className="grid grid-cols-6 gap-1 p-2">
+          {Object.entries(TAB_ICONS).map(([id, { icon: I, label: name }]) => {
+            const on = id === current;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={name}
+                title={name}
+                onClick={() => pick(id)}
+                className={cn('inline-flex size-10 items-center justify-center rounded-full transition-colors duration-(--v-duree-courte)', on ? 'bg-accent-default text-text-on-accent shadow-hairline-top' : 'text-text-secondary hover:bg-bg-card/80 hover:text-text-primary')}
+              >
+                <I size={18} strokeWidth={ICON_STROKE} aria-hidden />
+              </button>
+            );
+          })}
+        </div>
+        {prefs?.tabIcons?.[tab] && (
+          <div className="flex justify-end border-t border-border-subtle p-2">
+            <Button variant="ghost" size="s" onClick={() => pick(null)}>
+              Icône d'origine
+            </Button>
+          </div>
+        )}
+      </Popover>
+    </>
+  );
+}
+
 /** The person's avatar: a tap chooses a photo (cropped square), the small × takes it off. */
 function PhotoButton({ member: m }: { member: Member }) {
   const app = useApp.getState();
