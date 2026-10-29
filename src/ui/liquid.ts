@@ -50,13 +50,35 @@ export function travel(d: number, axis: 'x' | 'y', from: number, size: number): 
 }
 
 /**
+ * A bar's glass following its bubble: where the spring carries the bubble past the bar's edge (the overshoot on the
+ * first or last item), the glass stretches that way by as much, thinning a little, and settles with it; the bubble
+ * never leaves the glass. Keyframes for the glass layer (behind the items, so that it can stretch alone), or null when
+ * the bubble stays inside. `to` = the bubble's place along the axis, `W` × `H` = the bar.
+ */
+export function follow(d: number, from: number, to: { left: number; width: number }, W: number, H: number): Keyframe[] | null {
+  const margin = 1;
+  let over = false;
+  const frames = SPRING.frames.map(({ p, v }) => {
+    const length = (from + (to.width - from) * p) * (1 + stretchAt(d, v));
+    const centre = to.left + to.width / 2 + d * (1 - p);
+    const before = Math.max(0, margin - (centre - length / 2));
+    const after = Math.max(0, centre + length / 2 - (W - margin));
+    if (before || after) over = true;
+    const thin = 1 - Math.min(0.08, ((before + after) / H) * 0.6);
+    return { transform: `translateX(${(after - before) / 2}px) scale(${(W + before + after) / W}, ${thin})` };
+  });
+  return over ? frames : null;
+}
+
+/**
  * The liquid bubble under the active item of a bar (segmented controls, person filter): one absolutely placed element
- * that travels from item to item with the spring above. The bubble's parent must be positioned (`.liquid` is); put
- * `bubble` on the bubble and `item(key)` on each item; `count` = number of items (a bar that appears or changes
- * gets its bubble placed again).
+ * that travels from item to item with the spring above. The bubble's parent must be positioned; put `bubble` on the
+ * bubble, `item(key)` on each item and `shell` on the bar's glass, a layer behind them (it stretches with the bubble's
+ * overshoot, see `follow`); `count` = number of items (a bar that appears or changes gets its bubble placed again).
  */
 export function useLiquidBubble<K>(shown: K, count: number) {
   const bubble = useRef<HTMLSpanElement>(null);
+  const shellEl = useRef<HTMLElement | null>(null);
   const items = useRef(new Map<K, HTMLElement>());
   const placed = useRef(false);
 
@@ -86,7 +108,12 @@ export function useLiquidBubble<K>(shown: K, count: number) {
     placed.current = true;
     if (first || !seen.width || reducedMotion()) return;
     const dx = fromCenter - (to.left + to.width / 2);
-    if (Math.abs(dx) > 0.5) b.animate(travel(dx, 'x', seen.width, to.width), { duration: SPRING.ms, easing: 'linear' });
+    if (Math.abs(dx) <= 0.5) return;
+    b.animate(travel(dx, 'x', seen.width, to.width), { duration: SPRING.ms, easing: 'linear' });
+    const glass = shellEl.current;
+    glass?.getAnimations().forEach((a) => a.cancel());
+    const stretch = glass && follow(dx, seen.width, to, parent.offsetWidth, parent.offsetHeight);
+    if (glass && stretch) glass.animate(stretch, { duration: SPRING.ms, easing: 'linear' });
   }, [place]);
 
   // Resized (fonts loaded, window, label change): the bubble follows its item, without animation.
@@ -105,7 +132,10 @@ export function useLiquidBubble<K>(shown: K, count: number) {
     },
     [],
   );
-  return { bubble, item };
+  const shell = useCallback((el: HTMLElement | null) => {
+    shellEl.current = el;
+  }, []);
+  return { bubble, item, shell };
 }
 
 /**

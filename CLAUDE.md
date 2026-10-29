@@ -64,6 +64,8 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Bulles (barre du téléphone, rail du bureau, SegmentedControl, filtre des personnes, interrupteur) : Web Animations sur des images-clés de ressort
   (`src/ui/liquid.ts`), pas de `layout` / `layoutId` Motion (ils mesuraient la barre à chaque rendu et se figeaient
   pendant le rendu du nouvel écran) ; `useLiquidBubble` + `useDeferredPick` : le changement part deux images après le clic.
+  Le verre de ces barres est un calque derrière la bulle (`shell`), pas le conteneur : son liseré ne barre plus le bleu,
+  et `follow()` l'étire quand le rebond du ressort porterait la bulle hors du verre (première / dernière entrée).
 - Rail du bureau : son verre est un calque plus large que le rail, découpé par un clip-path `path()` animé (le rail +
   la vague qui sort avec le nom) ; ombre (copie floutée, découpée hors du contour) et liseré (anneau entre le contour
   et le contour décalé) sont aussi des clip-paths, avec les mêmes images-clés échantillonnées à 60 i/s : rien ne peut

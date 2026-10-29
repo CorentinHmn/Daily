@@ -12,7 +12,7 @@ import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
 import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
-import { SPRING, currentShift, reducedMotion, travel } from '../../ui/liquid';
+import { SPRING, currentShift, follow, reducedMotion, travel } from '../../ui/liquid';
 
 export function MobileShell<T extends string>({
   items,
@@ -72,8 +72,9 @@ export function MobileShell<T extends string>({
 }
 
 function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; onFab: () => void; fabRef: (el: HTMLButtonElement | null) => void }) {
-  const glass = useLiquidGlass<HTMLElement>({ bezel: 20, strength: 14 });
+  const glass = useLiquidGlass<HTMLSpanElement>({ bezel: 20, strength: 14 });
   const plus = useLiquidGlass<HTMLButtonElement>({ bezel: 20, strength: 14 });
+  const shell = useRef<HTMLSpanElement | null>(null);
   const bubble = useRef<HTMLSpanElement>(null);
   const tabs = useRef(new Map<T, HTMLButtonElement>());
   const icons = useRef(new Map<T, HTMLSpanElement>());
@@ -103,7 +104,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
     const fromCenter = seen.left - base + seen.width / 2;
     const fromWidth = seen.width;
     const shifts = new Map([...icons.current].map(([k, el]) => [k, currentShift(el)]));
-    for (const el of [b, ...icons.current.values()]) el.getAnimations().forEach((x) => x.cancel());
+    for (const el of [b, shell.current, ...icons.current.values()]) el?.getAnimations().forEach((x) => x.cancel());
     const to = place();
     const prev = rest.current;
     const layoutX = new Map([...icons.current].map(([k, el]) => [k, (tabs.current.get(k)?.offsetLeft ?? 0) + el.offsetLeft]));
@@ -111,6 +112,9 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
     if (!to || !prev || !fromWidth || reducedMotion()) return;
     const dx = fromCenter - (to.left + to.width / 2);
     b.animate(travel(dx, 'x', fromWidth, to.width), { duration: SPRING.ms, easing: 'linear' });
+    // On the first or last tab, the overshoot would take the bubble out of the glass: the glass stretches with it.
+    const stretch = shell.current && follow(dx, fromWidth, to, nav.offsetWidth, nav.offsetHeight);
+    if (stretch) shell.current?.animate(stretch, { duration: SPRING.ms, easing: 'linear' });
     for (const [k, el] of icons.current) {
       const from = (prev.icons.get(k) ?? 0) + (shifts.get(k) ?? 0);
       const d = from - (layoutX.get(k) ?? 0);
@@ -137,7 +141,16 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[640px] items-end gap-2.5 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-      <nav ref={glass} aria-label="Navigation principale" className="liquid liquid-bar pointer-events-auto flex h-16 min-w-0 flex-1 items-stretch gap-0.5 rounded-full p-1.5">
+      <nav aria-label="Navigation principale" className="pointer-events-auto relative flex h-16 min-w-0 flex-1 items-stretch gap-0.5 rounded-full p-1.5">
+        {/* The glass, a layer behind the bubble: its rim never crosses the blue, and it stretches with the overshoot. */}
+        <span
+          ref={(el) => {
+            shell.current = el;
+            glass(el);
+          }}
+          aria-hidden
+          className="liquid liquid-bar pointer-events-none absolute inset-0 rounded-full"
+        />
         <span ref={bubble} aria-hidden className="absolute inset-y-1.5 rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-accent)] will-change-transform" />
         {items.map((item) => {
           const on = item.id === shown;

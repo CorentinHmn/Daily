@@ -47,13 +47,22 @@ export function PersonSwitcher({ className }: { className?: string }) {
   const members = useApp((s) => s.data.members);
   const person = useApp((s) => s.person);
   const meId = useApp((s) => s.data.settings.meId);
-  const glass = useLiquidGlass<HTMLDivElement>({ bezel: 12, strength: 8 });
+  const glass = useLiquidGlass<HTMLSpanElement>({ bezel: 12, strength: 8 });
   // The liquid bubble of the bars; every screen re-filters, so the change follows two frames later.
   const { shown, pick: set } = useDeferredPick<string | null>(person, (p) => useApp.getState().set({ person: p }));
-  const { bubble, item } = useLiquidBubble<string | null>(shown, members.length);
+  const { bubble, item, shell } = useLiquidBubble<string | null>(shown, members.length);
   if (members.length < 2) return null;
   return (
-    <div ref={glass} role="radiogroup" aria-label="Personne" className={cn('liquid inline-flex items-center gap-1 rounded-full p-1', className)}>
+    <div role="radiogroup" aria-label="Personne" className={cn('relative inline-flex items-center gap-1 rounded-full p-1', className)}>
+      {/* The glass, a layer behind the bubble: its rim never crosses the blue, and it stretches with the overshoot. */}
+      <span
+        ref={(el) => {
+          shell(el);
+          glass(el);
+        }}
+        aria-hidden
+        className="liquid pointer-events-none absolute inset-0 rounded-full"
+      />
       <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
       <button
         ref={item(null)}

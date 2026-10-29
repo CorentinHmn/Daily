@@ -372,12 +372,21 @@ export function NavRail<T extends string>({
 
 /** View or mode switch (2–4 options, SegmentedControl 66:343), in liquid glass. */
 export function SegmentedControl<T extends string>({ options, value, onChange, label }: { options: readonly { value: T; label: ReactNode; icon?: LucideIcon }[]; value: T; onChange: (v: T) => void; label: string }) {
-  const glass = useLiquidGlass<HTMLDivElement>({ bezel: 12, strength: 8 });
+  const glass = useLiquidGlass<HTMLSpanElement>({ bezel: 12, strength: 8 });
   // Same bubble as the tab bar: it moves at once, the view (often a heavy screen) follows two frames later.
   const { shown, pick } = useDeferredPick(value, onChange);
-  const { bubble, item } = useLiquidBubble(shown, options.length);
+  const { bubble, item, shell } = useLiquidBubble(shown, options.length);
   return (
-    <div ref={glass} role="radiogroup" aria-label={label} className="liquid inline-flex gap-1 rounded-full p-1">
+    <div role="radiogroup" aria-label={label} className="relative inline-flex gap-1 rounded-full p-1">
+      {/* The glass, a layer behind the bubble: its rim never crosses the blue, and it stretches with the overshoot. */}
+      <span
+        ref={(el) => {
+          shell(el);
+          glass(el);
+        }}
+        aria-hidden
+        className="liquid pointer-events-none absolute inset-0 rounded-full"
+      />
       <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
       {options.map((o) => {
         const active = o.value === shown;
