@@ -17,7 +17,7 @@ export function KpiCard({ label, value, suffix, decimals = 0, of, active, onClic
       onClick={onClick}
       className={cn(
         'glass-panel flex min-w-0 flex-col items-start justify-between gap-1 rounded-xl px-4 py-3.5 text-left transition-[border-color,box-shadow]',
-        active && '!border-border-accent !shadow-[0_0_0_1px_var(--color-border-accent),0_0_24px_rgb(90_162_255/0.28)]',
+        active && '!border-border-accent !shadow-[0_0_0_1px_var(--color-border-accent),0_0_24px_rgb(90_162_255/0.28)] max-md:!shadow-[0_0_0_1px_var(--color-border-accent),0_0_12px_rgb(90_162_255/0.3)]',
         onClick && 'hover:border-border-strong',
         className,
       )}

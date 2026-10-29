@@ -40,7 +40,7 @@ export function RunView() {
   const sorted = [...runs].sort((a, b) => b.date.localeCompare(a.date));
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:-my-3 max-md:px-4 max-md:py-3 max-md:[scrollbar-width:none]">
+      <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-4 gap-4 max-md:-mx-4 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:scroll-px-4 max-md:gap-3 max-md:overflow-x-auto max-md:-my-4 max-md:px-4 max-md:py-4 max-md:[scrollbar-width:none]">
         {kpis.map((k, i) => (
           <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col max-md:w-[44%] max-md:shrink-0 max-md:snap-start [&>*]:flex-1">
             {k}
