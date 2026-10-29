@@ -3,14 +3,14 @@
  * the compact title bar (PageHeader, once scrolled) and the floating tab bar at the bottom, with the round + next to it
  * (the rail's FAB). Safe areas of the iPhone (notch, home bar) are kept clear.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { cn } from '../../ui/cn';
 import { ICON_STROKE } from '../../ui/atoms';
 import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
-import { motionTokens, springGesture } from '../../theme/motion';
+import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
 
 export function MobileShell<T extends string>({
@@ -70,35 +70,150 @@ export function MobileShell<T extends string>({
   );
 }
 
+/**
+ * The tab bubble's spring, sampled once into keyframes (60 per second): Web Animations then plays them on the
+ * compositor, so the bubble keeps moving while the new screen renders on the main thread. Slightly underdamped
+ * (ζ ≈ 0.6): a small overshoot, then it settles.
+ */
+const SPRING = (() => {
+  const k = 380;
+  const c = 24;
+  const dt = 1 / 240;
+  const out: { p: number; v: number }[] = [{ p: 0, v: 0 }];
+  let p = 0;
+  let v = 0;
+  for (let i = 1; i < 240 * 1.5; i++) {
+    v += (-k * (p - 1) - c * v) * dt;
+    p += v * dt;
+    if (i % 4 === 0) out.push({ p, v });
+    if (Math.abs(p - 1) < 0.0015 && Math.abs(v) < 0.02 && i % 4 === 0) break;
+  }
+  out.push({ p: 1, v: 0 });
+  return { frames: out, ms: ((out.length - 1) * 1000) / 60 };
+})();
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** translateX in px of a running transform (0 when none). */
+const currentShift = (el: HTMLElement) => {
+  const t = getComputedStyle(el).transform;
+  return t && t !== 'none' ? new DOMMatrixReadOnly(t).m41 : 0;
+};
+
 function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; onFab: () => void; fabRef: (el: HTMLButtonElement | null) => void }) {
-  const bar = useLiquidGlass<HTMLElement>({ bezel: 20, strength: 14 });
+  const glass = useLiquidGlass<HTMLElement>({ bezel: 20, strength: 14 });
   const plus = useLiquidGlass<HTMLButtonElement>({ bezel: 20, strength: 14 });
+  const bubble = useRef<HTMLSpanElement>(null);
+  const tabs = useRef(new Map<T, HTMLButtonElement>());
+  const icons = useRef(new Map<T, HTMLSpanElement>());
+  const label = useRef<HTMLSpanElement>(null);
+  // The tapped tab lights up at once; the screen follows two frames later (see onClick).
+  const [pending, setPending] = useState<{ id: T; from: T } | null>(null);
+  const shown = pending && pending.from === active ? pending.id : active;
+  // Layout positions at rest (no transform), to animate from on the next change.
+  const rest = useRef<{ icons: Map<T, number> } | null>(null);
+
+  const place = useCallback(() => {
+    const b = bubble.current;
+    const tab = tabs.current.get(shown);
+    if (!b || !tab) return null;
+    b.style.left = `${tab.offsetLeft}px`;
+    b.style.width = `${tab.offsetWidth}px`;
+    return { left: tab.offsetLeft, width: tab.offsetWidth };
+  }, [shown]);
+
+  useLayoutEffect(() => {
+    const b = bubble.current;
+    const nav = b?.parentElement;
+    if (!b || !nav) return;
+    // Where the bubble is seen now (mid-flight included), before moving it to the new tab.
+    const seen = b.getBoundingClientRect();
+    const base = nav.getBoundingClientRect().left;
+    const fromCenter = seen.left - base + seen.width / 2;
+    const fromWidth = seen.width;
+    const shifts = new Map([...icons.current].map(([k, el]) => [k, currentShift(el)]));
+    for (const el of [b, ...icons.current.values()]) el.getAnimations().forEach((x) => x.cancel());
+    const to = place();
+    const prev = rest.current;
+    const layoutX = new Map([...icons.current].map(([k, el]) => [k, (tabs.current.get(k)?.offsetLeft ?? 0) + el.offsetLeft]));
+    rest.current = { icons: layoutX };
+    if (!to || !prev || !fromWidth || reducedMotion()) return;
+    const dx = fromCenter - (to.left + to.width / 2);
+    b.animate(
+      SPRING.frames.map(({ p, v }) => {
+        const w = (fromWidth + (to.width - fromWidth) * p) / to.width;
+        // Liquid: the faster it travels, the more it stretches along and thins across.
+        const stretch = Math.min(0.15, Math.abs(dx * v) / 6000);
+        return { transform: `translateX(${dx * (1 - p)}px) scale(${w * (1 + stretch)}, ${1 - stretch * 0.45})` };
+      }),
+      { duration: SPRING.ms, easing: 'linear' },
+    );
+    for (const [k, el] of icons.current) {
+      const from = (prev.icons.get(k) ?? 0) + (shifts.get(k) ?? 0);
+      const d = from - (layoutX.get(k) ?? 0);
+      if (Math.abs(d) < 0.5) continue;
+      el.animate(
+        SPRING.frames.map(({ p }) => ({ transform: `translateX(${d * (1 - p)}px)` })),
+        { duration: SPRING.ms, easing: 'linear' },
+      );
+    }
+    label.current?.animate([{ opacity: 0, transform: 'translateX(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: 110, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+  }, [shown, place]);
+
+  // A rotated phone or a resized window: the bubble follows its tab, without animation.
+  useEffect(() => {
+    const nav = bubble.current?.parentElement;
+    if (!nav) return;
+    const ro = new ResizeObserver(() => {
+      place();
+      rest.current = { icons: new Map([...icons.current].map(([k, el]) => [k, (tabs.current.get(k)?.offsetLeft ?? 0) + el.offsetLeft])) };
+    });
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [place]);
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[640px] items-end gap-2.5 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-      <nav ref={bar} aria-label="Navigation principale" className="liquid liquid-bar pointer-events-auto flex h-16 min-w-0 flex-1 items-stretch gap-0.5 rounded-full p-1.5">
+      <nav ref={glass} aria-label="Navigation principale" className="liquid liquid-bar pointer-events-auto flex h-16 min-w-0 flex-1 items-stretch gap-0.5 rounded-full p-1.5">
+        <span ref={bubble} aria-hidden className="absolute inset-y-1.5 rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-accent)] will-change-transform" />
         {items.map((item) => {
-          const on = item.id === active;
+          const on = item.id === shown;
           const Icon = item.icon;
           // The active tab widens and shows its name; the others are icons only (5 names do not fit on a phone).
           return (
-            <motion.button
+            <button
               key={item.id}
-              layout
-              transition={springGesture()}
+              ref={(el) => {
+                if (el) tabs.current.set(item.id, el);
+                else tabs.current.delete(item.id);
+              }}
               type="button"
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                if (item.id === active) return onNavigate(item.id);
+                setPending({ id: item.id, from: active });
+                requestAnimationFrame(() => requestAnimationFrame(() => onNavigate(item.id)));
+              }}
               aria-label={item.label}
-              aria-current={on ? 'page' : undefined}
-              className={cn('relative flex min-w-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-(--v-duree-courte)', on ? 'flex-[2.4] text-text-on-accent' : 'flex-1 text-text-secondary active:text-text-primary')}
+              aria-current={item.id === active ? 'page' : undefined}
+              className={cn('relative flex min-w-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-200', on ? 'flex-[2.4] text-text-on-accent delay-75' : 'flex-1 text-text-secondary active:text-text-primary')}
             >
-              {on && <motion.span layoutId="tabbar-active" transition={springGesture()} className="absolute inset-0 rounded-full bg-accent-default shadow-hairline-top drop-shadow-glow-accent" />}
-              <span className="relative shrink-0">
+              <span
+                ref={(el) => {
+                  if (el) icons.current.set(item.id, el);
+                  else icons.current.delete(item.id);
+                }}
+                className="relative shrink-0"
+              >
                 <Icon size={21} strokeWidth={ICON_STROKE} aria-hidden />
                 {item.badge && !on && <span className="tnum absolute -top-1.5 -right-3 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-border-default bg-bg-card px-1 text-[9px] font-medium text-text-primary">{item.badge}</span>}
                 {item.live && <span aria-label="Séance en cours" className="live-halo absolute -top-0.5 -right-1 size-2 rounded-full bg-accent-default text-accent-default ring-2 ring-bg-card" />}
               </span>
-              {on && <span className="relative min-w-0 truncate text-label-s">{item.label}</span>}
-            </motion.button>
+              {on && (
+                <span ref={label} className="relative min-w-0 truncate text-label-s">
+                  {item.label}
+                </span>
+              )}
+            </button>
           );
         })}
       </nav>
@@ -110,7 +225,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
         type="button"
         aria-label="Ajouter"
         onClick={onFab}
-        className="liquid liquid-bar pointer-events-auto inline-flex size-16 shrink-0 items-center justify-center rounded-full text-text-accent active:scale-95"
+        className="liquid liquid-bar pointer-events-auto inline-flex size-16 shrink-0 items-center justify-center rounded-full text-text-accent transition-transform duration-200 active:scale-95"
       >
         <Plus size={26} strokeWidth={2} aria-hidden />
       </button>
