@@ -57,8 +57,11 @@ const outside = (W: number, H: number, d: string) => `path(evenodd, 'M -80 -80 H
  */
 function railShape(W: number, H: number, R: number, e: number, cy: number, hh: number, inset = 0): string {
   const i = inset;
-  const f = Math.min(FILLET, e * 0.75);
-  const c = Math.max(0, Math.min(hh, e - f));
+  // Out far enough (the name's bubble has a minimum width), the end is a half circle and the curves are FILLET wide;
+  // while it comes out, both grow in the same proportion, whatever the name's length.
+  const full = hh + FILLET;
+  const c = e >= full ? hh : (e * hh) / full;
+  const f = e >= full ? FILLET : (e * FILLET) / full;
   const top = cy - hh;
   const bottom = cy + hh;
   const fi = f + i;
@@ -252,6 +255,10 @@ export function NavRail<T extends string>({
     const { offsetTop: top, offsetLeft: left, offsetWidth: size } = tab;
     Object.assign(b.style, { top: `${top}px`, left: `${left}px`, width: `${size}px`, height: `${size}px` });
     Object.assign(t.style, { top: `${top}px`, left: `${left}px`, height: `${size}px` });
+    // The same rounding for every name: long enough for the wave's full half-circle end (concentric with the blue one)
+    // and its full curves, short enough to stay in the glass (a longer name ends with « … »).
+    t.style.minWidth = `${nav.offsetWidth + size / 2 + FILLET + OVERSHOOT - left}px`;
+    t.style.maxWidth = `${nav.offsetWidth + ROOM - SLEEVE - 6 - left}px`;
     const first = !placed.current;
     placed.current = true;
     if (first || !seen.height || reducedMotion()) return;
@@ -297,7 +304,7 @@ export function NavRail<T extends string>({
         <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
         {/* The name's bubble: the same blue as the round one, over it (z-1, the items z-2); clipped away at rest. */}
         <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-accent-default pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-accent shadow-hairline-top">
-          <span ref={name} className="opacity-0">
+          <span ref={name} className="min-w-0 truncate opacity-0">
             {label}
           </span>
         </span>
