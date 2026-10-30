@@ -20,13 +20,32 @@ Inventaire fait par script le 24/10/2026 (`figma.root.children`, une page par ap
 
 ⚠ L'utilisateur pensait trouver des versions claires dans « Atelier » : la page n'a qu'un cadre sombre. Les versions claires sont dans la page **transfers** et dans le mode **Day** des variables (53 variables, valeurs identiques à celles relues pour ToW le 22/10). Le HALO.md dit encore « pas de mode clair » : on suit la demande de l'utilisateur (clair), le sombre reste en option dans Paramètres.
 
+## Verre fumé « Glassy Dashboard » (30/10/2026)
+Demande : ressembler le plus possible à la vidéo « Glassy Dashboard V5 » (code.xr) en gardant le fonctionnement et le
+verre liquide. Ce qui en est repris :
+- **Fond** : une photo (vallée au crépuscule, Michael Hull, Unsplash `vuWB5mGu5wE`, licence Unsplash), désaturée et aux
+  tons resserrés (ombres levées, hautes lumières baissées) comme le salon brumeux de la vidéo ; `public/backdrop/`
+  (2560, 1600, portrait), voile plus sombre en haut pour les titres blancs.
+- **Thème sombre par défaut = verre fumé** : panneaux gris neutre translucide (`--glass-panel`, flou 30, saturation
+  1,15), liseré blanc 13 %, texte blanc 100 / 76 / 60 %, tuiles et contrôles = voiles de blanc. Le clair reste au menu
+  (même photo sous un voile blanc).
+- **Barre du haut** : boutons ronds en verre (logo, rail ; +, Paramètres, thème), pastilles des personnes au centre,
+  avatar à droite avec le point de synchro.
+- **Rail** : pilule fine centrée à gauche, chaque icône dans un rond léger, onglet actif = rond blanc à icône sombre ;
+  survol = nom dans une petite étiquette sombre ; la vague garde le nom de l'onglet actif.
+- **Bulles** blanches (rail, segmenté type « Week / Month / Year », filtre, barre du téléphone).
+- **KPI** : carré d'icône teinté (bleu, ambre, vert, violet), pastille d'évolution en haut à droite (vert ↗ / rouge ↘ /
+  gris), libellé, valeur, petite courbe des dernières semaines (ou des 7 derniers jours).
+- **Barres** : voiles de verre en dégradé, la barre du moment en bleu lumineux.
+- **Titres** : nom du menu + une ligne de sous-titre ; Aujourd'hui = « Bonjour, Corentin ».
+
 ## Règles appliquées (HALO.md + Guide)
-- Titre de page = nom du menu, seul, sans sur-titre ni sous-titre en fragments « · ».
-- Carte KPI = un libellé + une valeur (NumberFlow, chiffres tabulaires).
-- Une seule lumière : élément actif du rail, bouton principal, KPI actif (1 à 2 halos par écran).
+- Titre de page = nom du menu (Aujourd'hui : la salutation), avec une ligne de sous-titre depuis le verre fumé.
+- Carte KPI = un libellé + une valeur (NumberFlow, chiffres tabulaires), + icône, évolution et courbe depuis le verre fumé.
+- Une seule lumière : élément actif du rail, bouton principal (1 à 2 halos par écran).
 - Vert (signal) = succès / coché uniquement. Statut = couleur + texte (+ icône).
 - Rayons : panneaux 28, internes 16–20, boutons ronds.
-- Verre seulement au-dessus d'un fond chargé : le fond Aurora + trame de points sert de fond chargé.
+- Verre seulement au-dessus d'un fond chargé : la photo sert de fond chargé (l'Aurora + trame de points avant le 30/10).
 - Une NotchCard par écran maximum, sur un objet (la prochaine séance de salle).
 - Formats français : « 12,4 km », « 72 % », « 1 h 05 », « 24 oct. ».
 - Mouvement : entrée 320 ms (0.2, 0.9, 0.25, 1), sortie 140 ms, décalage 60 ms, version réduite.

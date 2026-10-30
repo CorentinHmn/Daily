@@ -1,22 +1,22 @@
 /**
- * Aujourd'hui: the day at a glance. KPI row (the day's tasks and habits, label + value), the day's tasks and habits, the next gym session
+ * Aujourd'hui: the day at a glance, under a greeting. KPI row (the day's tasks and habits, label + value), the day's tasks and habits, the next gym session
  * (NotchCard, the only one of the screen), the week at a glance with its « grandes tâches », the shopping list and
  * the goals of the moment.
  */
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Check, Dumbbell, ListChecks, Plus, ShoppingCart, Target } from 'lucide-react';
+import { ArrowRight, Check, Dumbbell, ListChecks, Plus, Repeat, ShoppingCart, Target } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, HABIT_ICONS, guessCategory } from '../../domain/catalog';
 import { goalProgress, goalStatus, habitDueOn, nextGymSession } from '../../domain/stats';
 import type { Habit, Task } from '../../domain/types';
 import { AssigneeBadge } from '../../ui/people';
 import { concerns, goalFor, habitChecks, habitEntries } from '../../domain/people';
-import { DAY_SHORT, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
+import { DAY_SHORT, addDays, capitalize, fromIso, longDate, relativeDay, todayIso, weekDays, weekStart } from '../../lib/dates';
 import { kg, num } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, EmptyState, ICON_STROKE, IconBox, Panel, PanelHeader, ProgressBar } from '../../ui/atoms';
-import { KpiCard } from '../../ui/charts';
+import { KpiCard, doneTrend } from '../../ui/charts';
 import { NotchCard } from '../../ui/notch';
 import { TextInput } from '../../ui/forms';
 import { revealVariants } from '../../theme/motion';
@@ -26,6 +26,7 @@ import { TaskRow } from '../common/TaskRow';
 export function TodayScreen() {
   const data = useApp((s) => s.data);
   const person = useApp((s) => s.person);
+  const name = useApp((s) => s.data.settings.name.trim());
   const today = todayIso();
   const monday = weekStart(today);
   const mine = data.tasks.filter((t) => concerns(t.assignee, person));
@@ -38,15 +39,17 @@ export function TodayScreen() {
     person,
   );
   const habitsDone = habits.filter(({ habit, who }) => habitChecks(habit, who).includes(today)).length;
+  // The last 7 days (today last), for the curves of the KPIs.
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
   const reveal = revealVariants();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Aujourd'hui" />
+      <PageHeader title={greeting(new Date().getHours(), name)} subtitle="Voici ce qui t'attend aujourd'hui" />
       <motion.div initial="hidden" animate="show" className="grid shrink-0 grid-cols-2 gap-4 max-md:gap-3">
         {[
-          <KpiCard key="t" label="Tâches du jour" value={tasks.filter((t) => t.done).length} of={tasks.length} active />,
-          <KpiCard key="h" label="Habitudes du jour" value={habitsDone} of={habits.length} />,
+          <KpiCard key="t" label="Tâches du jour" value={tasks.filter((t) => t.done).length} of={tasks.length} icon={ListChecks} tint="accent" trend={doneTrend(tasks.filter((t) => t.done).length, tasks.length)} spark={days.map((d) => mine.filter((t) => t.date === d && t.done).length)} />,
+          <KpiCard key="h" label="Habitudes du jour" value={habitsDone} of={habits.length} icon={Repeat} tint="warn" trend={doneTrend(habitsDone, habits.length)} spark={days.map((d) => habitEntries(data.habits.filter((h) => habitDueOn(h, d)), data.members, person).filter(({ habit, who }) => habitChecks(habit, who).includes(d)).length)} />,
         ].map((card, i) => (
           <motion.div key={i} variants={reveal} custom={i} className="flex min-w-0 flex-col [&>*]:flex-1">
             {card}
@@ -68,6 +71,12 @@ export function TodayScreen() {
       </div>
     </div>
   );
+}
+
+/** The page's title, as the glass dashboard greets: « Bonjour, Corentin » by day, « Bonsoir » from 18 h. */
+function greeting(hour: number, name: string): string {
+  const hello = hour >= 5 && hour < 18 ? 'Bonjour' : 'Bonsoir';
+  return name ? `${hello}, ${name}` : hello;
 }
 
 function DayPanel({ tasks, overdue, habits }: { tasks: Task[]; overdue: Task[]; habits: { habit: Habit; who: string }[] }) {
@@ -254,7 +263,7 @@ function WeekGlance() {
           return (
             <button key={d} type="button" onClick={() => app.set({ view: 'week', weekOffset: 0, weekMode: 'agenda' })} aria-label={`${DAY_SHORT[i]} ${fromIso(d).getDate()} : ${list.filter((t) => t.done).length} sur ${list.length}`} className="group/day flex flex-col items-center gap-1.5">
               <span className={cn('relative flex h-16 w-full max-w-9 items-end overflow-hidden rounded-full border', isToday ? 'border-border-accent bg-accent-soft' : 'border-border-subtle bg-bg-card/60')}>
-                <motion.span className={cn('w-full rounded-full', ratio >= 1 ? 'bg-signal-default' : isToday ? 'bg-accent-default' : 'bg-route-rest/60')} initial={{ height: 0 }} animate={{ height: `${Math.max(list.length ? 8 : 0, ratio * 100)}%` }} transition={{ duration: 0.8, delay: 0.2 + i * 0.04, ease: [0.16, 1, 0.3, 1] }} />
+                <motion.span className={cn('w-full rounded-full', ratio >= 1 ? 'bg-signal-default' : isToday ? 'bg-(image:--bar-lit)' : 'bg-(image:--bar-rest)')} initial={{ height: 0 }} animate={{ height: `${Math.max(list.length ? 8 : 0, ratio * 100)}%` }} transition={{ duration: 0.8, delay: 0.2 + i * 0.04, ease: [0.16, 1, 0.3, 1] }} />
               </span>
               <span className={cn('text-caption', isToday ? 'text-text-accent' : 'text-text-muted')}>{DAY_SHORT[i]}</span>
             </button>

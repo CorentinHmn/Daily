@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Footprints, Gauge, Mountain, Trash2, Trophy } from 'lucide-react';
+import { CalendarDays, Footprints, Gauge, Mountain, Trash2, Trophy } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { goalFor, goalOwners } from '../../domain/people';
 import { NOUS } from '../../domain/types';
@@ -14,7 +14,7 @@ import { addDays, fromIso, monthEnd, monthShort, shortDate, todayIso, weekStart 
 import { duration, durationInput, km, num, pace, parseDuration } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
-import { AreaCurve, KpiCard, KpiText } from '../../ui/charts';
+import { AreaCurve, KpiCard, KpiText, trendOf } from '../../ui/charts';
 import { ChoiceChips, Field, TextInput } from '../../ui/forms';
 import { DateField } from '../../ui/pickers';
 import { AssigneeBadge, PeopleChips } from '../../ui/people';
@@ -36,11 +36,13 @@ export function RunView() {
   const longest = runs.reduce((m, r) => Math.max(m, r.distanceKm), 0);
   const fastest = runs.filter((r) => r.distanceKm >= 3).reduce((m, r) => Math.min(m, r.durationMin / r.distanceKm), Infinity);
   const reveal = revealVariants();
+  // Kilometres of the last 8 weeks (this one last): the curve and the change from last week.
+  const weekly = weeklySeries(8, (from, to) => kmIn(runs, { from, to }), today).map((w) => w.value);
   const kpis = [
-    <KpiCard key="a" label="Distance cette semaine" value={Math.round(kmIn(runs, week) * 10) / 10} decimals={1} suffix="km" active />,
-    <KpiCard key="b" label="Distance ce mois" value={Math.round(kmIn(runs, month) * 10) / 10} decimals={1} suffix="km" />,
-    <KpiText key="c" label="Allure moyenne sur 30 jours" value={last30.length ? pace(avgPace) : '–'} />,
-    <KpiCard key="d" label="Sortie la plus longue" value={Math.round(longest * 10) / 10} decimals={1} suffix="km" />,
+    <KpiCard key="a" label="Distance cette semaine" value={Math.round(kmIn(runs, week) * 10) / 10} decimals={1} suffix="km" icon={Footprints} tint="accent" trend={trendOf(weekly[7] ?? 0, weekly[6] ?? 0)} spark={weekly} />,
+    <KpiCard key="b" label="Distance ce mois" value={Math.round(kmIn(runs, month) * 10) / 10} decimals={1} suffix="km" icon={CalendarDays} tint="violet" />,
+    <KpiText key="c" label="Allure moyenne sur 30 jours" value={last30.length ? pace(avgPace) : '–'} icon={Gauge} tint="signal" />,
+    <KpiCard key="d" label="Sortie la plus longue" value={Math.round(longest * 10) / 10} decimals={1} suffix="km" icon={Trophy} tint="warn" />,
   ];
   const sorted = [...runs].sort((a, b) => b.date.localeCompare(a.date));
   return (

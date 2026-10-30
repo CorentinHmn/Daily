@@ -38,7 +38,7 @@
   }
   body {
     margin: 0;
-    background: var(--aurora-base);
+    background: var(--backdrop-base);
     color: var(--color-text-primary);
     font-family: var(--font-sans);
     font-size: var(--text-body-m);
@@ -107,7 +107,7 @@
 }
 
 /*
- * Frosted panel (Halo Glass/Blur over a busy background: here the aurora of the screen). Opaque fallback without
+ * Frosted panel (Halo Glass/Blur over a busy background: here the photo of the screen). Opaque fallback without
  * backdrop-filter or with reduced transparency.
  */
 @utility glass-panel {
@@ -116,19 +116,19 @@
   box-shadow:
     var(--glass-shadow),
     inset 0 1px 0 var(--glass-rim-light);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   /* Phone: a little more opaque and less blur (text over moving content, smooth scrolling in Safari). */
   @media (max-width: 1199.98px) {
     background: var(--glass-panel-mobile);
-    -webkit-backdrop-filter: blur(16px) saturate(1.7);
-    backdrop-filter: blur(16px) saturate(1.7);
+    -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+    backdrop-filter: blur(16px) saturate(var(--glass-saturate));
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    background: var(--color-bg-card);
+    background: var(--glass-solid);
   }
   @media (prefers-reduced-transparency: reduce) {
-    background: var(--color-bg-card);
+    background: var(--glass-solid);
     backdrop-filter: none;
   }
 }
@@ -149,8 +149,8 @@
   position: relative;
   isolation: isolate;
   background: var(--glass-liquid);
-  -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
-  backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(var(--liquid-saturate)) brightness(1.05);
+  backdrop-filter: blur(10px) saturate(var(--liquid-saturate)) brightness(1.05);
   box-shadow:
     var(--glass-shadow),
     inset 1.5px 1.5px 0 -0.5px var(--glass-rim-light),
@@ -174,8 +174,8 @@
 .rail-glass {
   isolation: isolate;
   background: var(--glass-liquid);
-  -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
-  backdrop-filter: blur(10px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(var(--liquid-saturate)) brightness(1.05);
+  backdrop-filter: blur(10px) saturate(var(--liquid-saturate)) brightness(1.05);
 }
 .rail-sheen {
   background:
@@ -193,6 +193,12 @@
 .rail-rim {
   background: linear-gradient(140deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.12) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.55)) 0 0 / var(--layout-rail) 100% no-repeat;
 }
+/* Folded rail: the name of a hovered item, in a small dark pill beside the rail (the glass dashboard's labels). */
+.rail-tip {
+  background: rgb(24 22 20 / 0.86);
+  color: #ffffff;
+  box-shadow: 0 6px 16px -6px rgb(0 0 0 / 0.4);
+}
 /* The profile chip that grows into its menu (src/ui/chipMenu.tsx): the rim's light over the chip (placed inline),
    and the menu's denser tint (the .liquid-strong level over the clear glass), fading in over the neck. */
 .chip-rim {
@@ -204,10 +210,10 @@
   mask-image: linear-gradient(to bottom, transparent, #000 14px);
 }
 :root[data-theme='night'] .chip-rim {
-  background-image: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(90 162 255 / 0.25));
+  background-image: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.18));
 }
 :root[data-theme='night'] .chip-menu-tint {
-  background: rgb(28 30 35 / 0.6);
+  background: rgb(48 47 50 / 0.66);
 }
 :root[data-theme='night'] .rail-sheen {
   background:
@@ -220,7 +226,7 @@
   transform: translateY(12px);
 }
 :root[data-theme='night'] .rail-rim {
-  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(90 162 255 / 0.25)) 0 0 / var(--layout-rail) 100% no-repeat;
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.18)) 0 0 / var(--layout-rail) 100% no-repeat;
 }
 
 /* Specular sheen: a soft light on the top left of the glass, a faint caustic on the bottom right. */
@@ -252,7 +258,7 @@
   mask-composite: exclude;
 }
 :root[data-theme='night'] .liquid::after {
-  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(90 162 255 / 0.25));
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.18));
 }
 /* iPhone (WebKit): no SVG refraction in backdrop-filter (WebKit bug 245510), so the glass is sold by its frost:
    denser blur, more saturation, a whiter tint. */
@@ -272,107 +278,51 @@
     background: var(--glass-panel-strong);
   }
   :root[data-theme='night'] .liquid {
-    background: rgb(28 30 35 / 0.45);
+    background: rgb(70 69 72 / 0.42);
   }
 }
 :root[data-theme='night'] .liquid::before {
   background:
     radial-gradient(120% 80% at 12% 0%, rgb(255 255 255 / 0.16), transparent 46%),
-    radial-gradient(90% 70% at 100% 100%, rgb(90 162 255 / 0.12), transparent 55%);
+    radial-gradient(90% 70% at 100% 100%, rgb(255 255 255 / 0.07), transparent 55%);
   mix-blend-mode: normal;
 }
 @media (prefers-reduced-transparency: reduce) {
   .liquid {
-    background: var(--color-bg-card);
+    background: var(--glass-solid);
     backdrop-filter: none !important;
   }
 }
 }
 
 /*
- * Aurora (Assets › Background/Aurora + DotGrid): the busy background the glass needs. Four soft light pools drift
- * slowly (smooth loop, Halo « Motion smooth »), a faint dot grid gives the refraction something to bend.
+ * The backdrop: a dusk photo (Michael Hull, Unsplash, free licence; toned down in public/backdrop/) under the theme's
+ * veil, the busy background the glass needs. Its average colour shows until it loads. Outside the layers, like the
+ * glass: to pin it, `style={{ position: 'fixed' }}` (a `fixed` class loses).
  */
-.aurora {
+.photo-backdrop {
   position: absolute;
   inset: 0;
   overflow: clip;
-  background: var(--aurora-base);
   pointer-events: none;
+  background: var(--backdrop-base) url('/backdrop/dusk-2560.webp') 50% 62% / cover no-repeat;
 }
-.aurora > i {
-  position: absolute;
-  border-radius: 9999px;
-  will-change: transform;
+@media (max-width: 1700px) {
+  .photo-backdrop {
+    background-image: url('/backdrop/dusk-1600.webp');
+  }
 }
-.aurora > i:nth-child(1) {
-  width: 62%;
-  height: 70%;
-  left: -12%;
-  top: -18%;
-  background: radial-gradient(closest-side, var(--aurora-2), transparent);
-  animation: aurora-a 46s ease-in-out infinite alternate;
+@media (orientation: portrait) {
+  .photo-backdrop {
+    background-image: url('/backdrop/dusk-portrait.webp');
+    background-position: 50% 70%;
+  }
 }
-.aurora > i:nth-child(2) {
-  width: 55%;
-  height: 62%;
-  right: -10%;
-  top: -14%;
-  background: radial-gradient(closest-side, var(--aurora-1), transparent);
-  animation: aurora-b 54s ease-in-out infinite alternate;
-}
-.aurora > i:nth-child(3) {
-  width: 50%;
-  height: 58%;
-  left: 18%;
-  bottom: -26%;
-  background: radial-gradient(closest-side, var(--aurora-3), transparent);
-  animation: aurora-c 60s ease-in-out infinite alternate;
-}
-.aurora > i:nth-child(4) {
-  width: 42%;
-  height: 50%;
-  right: 4%;
-  bottom: -20%;
-  background: radial-gradient(closest-side, var(--aurora-4), transparent);
-  animation: aurora-a 50s ease-in-out infinite alternate-reverse;
-}
-.aurora > b {
+.photo-backdrop::after {
+  content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(var(--color-border-strong) 1px, transparent 1.4px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(120% 90% at 30% 20%, black, transparent 75%);
-  opacity: 0.7;
-}
-@keyframes aurora-a {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(8%, 6%, 0) scale(1.08);
-  }
-}
-@keyframes aurora-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1.05);
-  }
-  to {
-    transform: translate3d(-10%, 8%, 0) scale(0.95);
-  }
-}
-@keyframes aurora-c {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(14%, -8%, 0) scale(1.1);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .aurora > i {
-    animation: none !important;
-  }
+  background: var(--backdrop-veil);
 }
 
 /* Live halo: breathing ring (duration/pulse, loop), cut when motion is reduced. */

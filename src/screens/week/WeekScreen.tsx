@@ -43,7 +43,7 @@ export function WeekScreen() {
   const t = motionTokens();
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Semaine">
+      <PageHeader title="Semaine" subtitle="L'agenda, rempli chaque lundi par la semaine type">
         {!mobile && (
           <div className={cn('flex items-center gap-1 transition-opacity duration-(--v-duree-courte)', mode === 'type' && 'pointer-events-none opacity-0')} aria-hidden={mode === 'type' || undefined}>
             <IconButton icon={ChevronLeft} label="Semaine précédente" variant="ghost" size="s" onClick={prev} tabIndex={mode === 'type' ? -1 : undefined} />

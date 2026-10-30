@@ -12,6 +12,7 @@ import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
 import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
+import { Backdrop } from '../../ui/backdrop';
 import { SPRING, currentShift, follow, reducedMotion, travel } from '../../ui/liquid';
 
 export function MobileShell<T extends string>({
@@ -41,13 +42,7 @@ export function MobileShell<T extends string>({
   return (
     <PageScrollContext.Provider value={{ scrolled, element: scroller }}>
       <div className="relative h-dvh overflow-clip">
-        <div aria-hidden className="aurora">
-          <i />
-          <i />
-          <i />
-          <i />
-          <b />
-        </div>
+        <Backdrop />
         <main
           ref={setScroller}
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 52)}
@@ -151,7 +146,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
           aria-hidden
           className="liquid liquid-bar pointer-events-none absolute inset-0 rounded-full"
         />
-        <span ref={bubble} aria-hidden className="absolute inset-y-1.5 rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-accent)] will-change-transform" />
+        <span ref={bubble} aria-hidden className="absolute inset-y-1.5 rounded-full bg-nav-active [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
         {items.map((item) => {
           const on = item.id === shown;
           const Icon = item.icon;
@@ -171,7 +166,7 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
               }}
               aria-label={item.label}
               aria-current={item.id === active ? 'page' : undefined}
-              className={cn('relative flex min-w-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-200', on ? 'flex-[2.4] text-text-on-accent delay-75' : 'flex-1 text-text-secondary active:text-text-primary')}
+              className={cn('relative flex min-w-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-200', on ? 'flex-[2.4] text-text-on-nav delay-75' : 'flex-1 text-text-secondary active:text-text-primary')}
             >
               <span
                 ref={(el) => {

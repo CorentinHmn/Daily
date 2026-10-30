@@ -34,7 +34,7 @@ export function GoalsScreen() {
   const mobile = useIsMobile();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Objectifs">
+      <PageHeader title="Objectifs" subtitle="Ce que vous visez, et les habitudes qui vous y mènent">
         <SegmentedControl label="Période" value={period} onChange={(v) => app.set({ goalPeriod: v })} options={(['semaine', 'mois', 'annee'] as const).map((p) => ({ value: p, label: PERIOD_LABEL[p] }))} />
       </PageHeader>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(380px,1fr)_minmax(0,380px)] gap-4 pb-1 max-md:grid-cols-1">

@@ -261,7 +261,7 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
         onClick={() => onChange(!checked)}
         className={cn('relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors duration-(--v-duree-courte)', checked ? 'bg-accent-default' : 'bg-bg-hover')}
       >
-        <span ref={knob} className={cn('size-6 rounded-full bg-bg-card shadow-[0_1px_3px_rgb(14_16_20/0.25)] will-change-transform', checked && 'ml-auto')} />
+        <span ref={knob} className={cn('size-6 rounded-full bg-text-on-accent shadow-[0_1px_3px_rgb(14_16_20/0.25)] will-change-transform', checked && 'ml-auto')} />
       </button>
     </label>
   );

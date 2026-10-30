@@ -3,41 +3,28 @@
  * header).
  */
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { PanelLeftClose, PanelLeftOpen, Plus, Settings, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
-import { ICON_STROKE, Logo } from './atoms';
+import { ICON_STROKE } from './atoms';
 import { useLiquidGlass } from './glass';
 import { SPRING, reducedMotion, stretchAt, travel, useDeferredPick, useLiquidBubble } from './liquid';
 import { cssPx } from '../theme/tokens';
 
 export type NavItem<T extends string> = { id: T; label: string; icon: LucideIcon; badge?: string; live?: boolean };
 
-/** The rail's three dots (Figma: green, grey, grey), decorative. */
-function RailDots() {
-  const dot = 'size-2 rounded-full';
-  return (
-    <div aria-hidden className="flex h-5 items-center gap-1.5">
-      <span className={cn(dot, 'bg-signal-default')} />
-      <span className={cn(dot, 'bg-border-strong')} />
-      <span className={cn(dot, 'bg-border-strong')} />
-    </div>
-  );
-}
-
 /** Room for the glass beyond the open rail: its spring overshoots a little. */
 const ROOM = 24;
-/** Open or folded, kept on this device; open at first on a large screen (it takes room from the page). */
+/** Open or folded, kept on this device; folded at first (the slim pill of the glass dashboard). */
 const KEY = 'cadence.rail';
-function readOpen(): boolean {
-  let saved: string | null = null;
+export function readRailOpen(): boolean {
   try {
-    saved = localStorage.getItem(KEY);
+    return localStorage.getItem(KEY) === 'open';
   } catch {
     // Private window: the default.
+    return false;
   }
-  return saved ? saved === 'open' : window.innerWidth >= 1440;
 }
-function saveOpen(open: boolean) {
+export function saveRailOpen(open: boolean) {
   try {
     localStorage.setItem(KEY, open ? 'open' : 'closed');
   } catch {
@@ -117,9 +104,11 @@ function RailLabel({ open, children, className }: { open: boolean; children: Rea
 }
 
 /**
- * Vertical app rail (NavRail 71:238), liquid glass, open (icons and names) or folded (icons only), kept on this device.
+ * Vertical app rail (NavRail 71:238): a slim pill of liquid glass, centred on the left of the page (the glass
+ * dashboard's), open (icons and names) or folded (icons only) from the top bar, kept on this device.
  * Active item = the only light of the rail: one bubble (a pill under the icon and its name, a circle when folded) that
  * travels between the items like the phone's tab bar, with the same spring (keyframes played by Web Animations).
+ * Folded, hovering another item shows its name in a small label beside the rail.
  * Opening or folding, the rail's width follows that same spring (half its overshoot): the bubble, the rows and the page
  * beside it follow the layout, the names fade in once it is on its way and out at once.
  * Folded, halfway there the bubble starts pouring out of the rail with the item's name, the rail's own glass swelling
@@ -130,26 +119,7 @@ function RailLabel({ open, children, className }: { open: boolean; children: Rea
  * outline, animated with the same keyframes: one piece of glass, no seam, nothing that can drift from the rest. While
  * it moves, its refraction gives way to the same frost in CSS (an SVG filter run again on every frame stuttered).
  */
-export function NavRail<T extends string>({
-  items,
-  active,
-  onNavigate,
-  onFab,
-  fabLabel,
-  fabRef,
-  onLogo,
-  onSettings,
-}: {
-  items: NavItem<T>[];
-  active: T;
-  onNavigate: (id: T) => void;
-  onFab: () => void;
-  fabLabel: string;
-  fabRef?: (el: HTMLButtonElement | null) => void;
-  onLogo?: () => void;
-  onSettings?: () => void;
-}) {
-  const [open, setOpen] = useState(readOpen);
+export function NavRail<T extends string>({ items, active, onNavigate, open }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; open: boolean }) {
   // While it opens or folds, the glass keeps its frost without the bent rim (see `paused`), rebuilt once it rests.
   const [moving, setMoving] = useState(false);
   const railRef = useRef<HTMLElement>(null);
@@ -178,8 +148,8 @@ export function NavRail<T extends string>({
   const glow = useRef<Animation | null>(null);
   const tabs = useRef(new Map<T, HTMLButtonElement>());
   const placed = useRef(false);
-  /** The rail's width as seen when it was toggled (mid-flight included): where the next move starts. */
-  const from = useRef<number | null>(null);
+  /** The state the rail was last laid out in (a change of `open` from the top bar starts a move). */
+  const laid = useRef(open);
   // The clicked item lights up at once; the screen follows two frames later, the bubble already on its way.
   const [pending, setPending] = useState<{ id: T; from: T } | null>(null);
   const shown = pending && pending.from === active ? pending.id : active;
@@ -314,21 +284,14 @@ export function NavRail<T extends string>({
     [geometry, parts, still],
   );
 
-  const toggle = () => {
-    from.current = frame.current?.getBoundingClientRect().width ?? null;
-    setMoving(!reducedMotion());
-    setOpen((o) => {
-      saveOpen(!o);
-      return !o;
-    });
-  };
-
   // Open or fold: the rail's width (the page beside it follows) and every layer of its glass on one spring.
   useLayoutEffect(() => {
     const [f, nav, g, p] = [frame.current, railRef.current, geometry(), parts()];
-    const start = from.current;
-    from.current = null;
-    if (!f || !nav || !g || !p || start === null) return;
+    if (!f || !nav || !g || !p || laid.current === open) return;
+    laid.current = open;
+    // Where the move starts: mid-flight, the width the running spring holds; at rest, the other state's.
+    const start = f.getAnimations().length ? f.getBoundingClientRect().width : cssPx(open ? '--layout-rail' : '--layout-rail-open');
+    setMoving(!reducedMotion());
     still();
     for (const el of [f, ...Object.values(p)]) el.getAnimations().forEach((a) => a.cancel());
     const labels = [...nav.querySelectorAll<HTMLElement>('[data-rail-label]')];
@@ -412,12 +375,11 @@ export function NavRail<T extends string>({
   }, [rest]);
 
   const row = 'relative flex h-12 w-full items-center rounded-full text-label-m';
-  const icon = 'relative inline-flex size-12 shrink-0 items-center justify-center';
+  const icon = 'relative inline-flex size-12 shrink-0 items-center justify-center rounded-full';
   const badge = 'tnum inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full border border-border-default bg-bg-card px-1 text-[10px] font-medium text-text-primary';
-  const ghost = 'text-text-secondary transition-colors duration-(--v-duree-courte) hover:bg-bg-card/70 hover:text-text-primary';
 
   return (
-    <div ref={frame} style={{ width: open ? 'var(--layout-rail-open)' : 'var(--layout-rail)' }} className="relative z-20 flex h-full shrink-0">
+    <div ref={frame} style={{ width: open ? 'var(--layout-rail-open)' : 'var(--layout-rail)' }} className="relative z-20 flex shrink-0">
       {/* The glass's shadow (a blurred copy of its outline, seen only outside it), the glass (as wide as the open
           rail) and its rim: all clipped to the same outline. */}
       <div ref={shadow} aria-hidden style={layerWidth} className="pointer-events-none absolute inset-y-0 left-0">
@@ -434,30 +396,19 @@ export function NavRail<T extends string>({
         style={layerWidth}
         className="rail-glass pointer-events-none absolute inset-y-0 left-0"
       >
-        <div ref={sheen} className="rail-sheen absolute inset-y-0 left-0 w-(--layout-rail) rounded-2xl" />
+        <div ref={sheen} className="rail-sheen absolute inset-y-0 left-0 w-(--layout-rail) rounded-(--radius-rail)" />
       </div>
       <div ref={rimShade} aria-hidden style={layerWidth} className="pointer-events-none absolute inset-y-0 left-0 bg-(--glass-rim-shade)" />
       <div ref={rimLight} aria-hidden style={layerWidth} className="rail-rim pointer-events-none absolute inset-y-0 left-0" />
-      <nav ref={railRef} aria-label="Navigation principale" className="relative z-10 flex h-full w-full flex-col rounded-2xl px-6 pt-[22px] pb-[23px]">
-        <span ref={bubble} aria-hidden className="absolute inset-x-6 rounded-full bg-accent-default [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
-        {/* Folded, the name's bubble: the same blue as the round one, over it (z-1, the items z-2); clipped away at rest. */}
-        <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-accent-default pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-accent shadow-hairline-top">
+      <nav ref={railRef} aria-label="Navigation principale" className="relative z-10 flex w-full flex-col rounded-(--radius-rail) p-2">
+        <span ref={bubble} aria-hidden className="absolute inset-x-2 rounded-full bg-nav-active [box-shadow:var(--shadow-hairline-top),var(--drop-shadow-glow-nav)] will-change-transform" />
+        {/* Folded, the name's bubble: the same colour as the round one, over it (z-1, the items z-2); clipped away at rest. */}
+        <span ref={tongue} aria-hidden style={{ clipPath: 'inset(0 100% 0 0)' }} className="absolute z-[1] flex items-center rounded-full bg-nav-active pr-[calc(18px+14px)] pl-[54px] text-label-m whitespace-nowrap text-text-on-nav shadow-hairline-top">
           <span ref={name} className="min-w-0 truncate opacity-0">
             {label}
           </span>
         </span>
-        <div className="flex w-12 justify-center">
-          <RailDots />
-        </div>
-        <button type="button" onClick={onLogo} aria-label="Cadence, aujourd'hui" className="relative mt-[22px] flex w-full items-center rounded-full">
-          <span className="inline-flex w-12 shrink-0 justify-center">
-            <Logo size={44} />
-          </span>
-          <RailLabel open={open} className="pl-2 text-title-s font-semibold text-text-primary">
-            Cadence
-          </RailLabel>
-        </button>
-        <ul className="mt-7 flex flex-col gap-3.5">
+        <ul className="flex flex-col gap-2">
           {items.map((item) => {
             const on = item.id === shown;
             const Icon = item.icon;
@@ -479,48 +430,28 @@ export function NavRail<T extends string>({
                   }}
                   aria-label={item.label}
                   aria-current={item.id === active ? 'page' : undefined}
-                  className={cn(row, 'z-[2] transition-colors duration-200', on ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:bg-bg-card/70 hover:text-text-primary')}
+                  className={cn(row, 'group/item z-[2] transition-colors duration-200', on ? 'text-text-on-nav delay-75' : 'text-text-secondary hover:text-text-primary')}
                 >
-                  <span className={icon}>
+                  <span className={cn(icon, !on && 'bg-bg-subtle transition-colors group-hover/item:bg-bg-hover')}>
                     <Icon size={20} strokeWidth={ICON_STROKE} aria-hidden />
                     {item.badge && !open && <span className={cn(badge, 'absolute -top-1 -right-1')}>{item.badge}</span>}
                     {item.live && <span aria-label="Séance en cours" className="live-halo absolute top-1 right-1 size-2.5 rounded-full bg-accent-default text-accent-default ring-2 ring-bg-card" />}
                   </span>
-                  <RailLabel open={open}>
+                  <RailLabel open={open} className="pl-1">
                     {item.label}
                     {item.badge && open && <span className={cn(badge, 'mr-3 ml-auto')}>{item.badge}</span>}
                   </RailLabel>
+                  {/* Folded: another item's name, beside the rail on hover (the active one pours out instead). */}
+                  {!open && !on && (
+                    <span aria-hidden className="rail-tip pointer-events-none absolute top-1/2 left-[calc(100%+14px)] -translate-x-1 -translate-y-1/2 rounded-full px-2.5 py-1 text-label-s whitespace-nowrap opacity-0 transition-[opacity,translate] duration-(--v-duree-courte) group-hover/item:translate-x-0 group-hover/item:opacity-100">
+                      {item.label}
+                    </span>
+                  )}
                 </button>
               </li>
             );
           })}
         </ul>
-        <div className="mt-auto flex flex-col gap-3 pt-3">
-          <button type="button" onClick={toggle} aria-expanded={open} aria-label={open ? 'Réduire le menu' : 'Déplier le menu'} className={cn(row, ghost)}>
-            <span className={icon}>{open ? <PanelLeftClose size={20} strokeWidth={ICON_STROKE} aria-hidden /> : <PanelLeftOpen size={20} strokeWidth={ICON_STROKE} aria-hidden />}</span>
-            <RailLabel open={open}>Réduire</RailLabel>
-          </button>
-          {onSettings && (
-            <button type="button" onClick={onSettings} aria-label="Paramètres" className={cn(row, ghost)}>
-              <span className={icon}>
-                <Settings size={20} strokeWidth={ICON_STROKE} aria-hidden />
-              </span>
-              <RailLabel open={open}>Paramètres</RailLabel>
-            </button>
-          )}
-          <button
-            ref={fabRef}
-            type="button"
-            aria-label={fabLabel}
-            onClick={onFab}
-            className={cn(row, 'bg-accent-default text-text-on-accent drop-shadow-glow-accent transition-[background-color,transform] duration-(--v-duree-courte) hover:bg-accent-glow active:scale-95')}
-          >
-            <span className={icon}>
-              <Plus size={24} strokeWidth={ICON_STROKE} aria-hidden />
-            </span>
-            <RailLabel open={open}>{fabLabel}</RailLabel>
-          </button>
-        </div>
       </nav>
     </div>
   );
@@ -543,7 +474,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
         aria-hidden
         className="liquid pointer-events-none absolute inset-0 rounded-full"
       />
-      <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
+      <span ref={bubble} aria-hidden className="absolute rounded-full bg-nav-active shadow-hairline-top will-change-transform" />
       {options.map((o) => {
         const active = o.value === shown;
         const Icon = o.icon;
@@ -555,7 +486,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
             role="radio"
             aria-checked={active}
             onClick={() => pick(o.value)}
-            className={cn('relative inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-label-m transition-colors duration-200', active ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
+            className={cn('relative inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-label-m transition-colors duration-200', active ? 'text-text-on-nav delay-75' : 'text-text-secondary hover:text-text-primary')}
           >
             {Icon && <Icon className="relative" size={16} strokeWidth={ICON_STROKE} aria-hidden />}
             <span className="relative">{o.label}</span>

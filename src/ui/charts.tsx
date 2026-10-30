@@ -6,44 +6,126 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
+import { TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
+import { ICON_STROKE } from './atoms';
+import { percent } from '../lib/format';
 import { motionTokens } from '../theme/motion';
 
-export function KpiCard({ label, value, suffix, decimals = 0, of, active, onClick, className }: { label: string; value: number; suffix?: string; decimals?: number; of?: number; active?: boolean; onClick?: () => void; className?: string }) {
-  const Tag = onClick ? 'button' : 'div';
+export type Tint = 'accent' | 'warn' | 'signal' | 'violet';
+const TINT: Record<Tint, { box: string; stroke: string }> = {
+  accent: { box: 'bg-accent-default/25 text-text-accent', stroke: 'var(--color-accent-default)' },
+  warn: { box: 'bg-warn-default/25 text-text-warn', stroke: 'var(--color-warn-default)' },
+  signal: { box: 'bg-signal-default/25 text-text-signal', stroke: 'var(--color-signal-default)' },
+  violet: { box: 'bg-tint-violet/25 text-text-violet', stroke: 'var(--color-tint-violet)' },
+};
+
+/** A KPI's small status: up (green) or down (red) with an arrow, or flat (grey), always with its text. */
+export type Trend = { text: string; tone: 'up' | 'down' | 'flat' };
+
+/** Change from the previous period, in % (« +12 % »), or nothing when there is no previous value. */
+export function trendOf(current: number, previous: number): Trend | undefined {
+  if (previous <= 0) return undefined;
+  const p = Math.round(((current - previous) / previous) * 100);
+  return { text: `${p > 0 ? '+' : p < 0 ? '−' : ''}${percent(Math.abs(p) / 100)}`, tone: p > 0 ? 'up' : p < 0 ? 'down' : 'flat' };
+}
+
+/** Share done (« 40 % »): green once it is all done. */
+export function doneTrend(done: number, of: number): Trend | undefined {
+  if (!of) return undefined;
+  return { text: percent(done / of), tone: done >= of ? 'up' : 'flat' };
+}
+
+function TrendChip({ trend }: { trend: Trend }) {
+  const Icon = trend.tone === 'up' ? TrendingUp : trend.tone === 'down' ? TrendingDown : null;
   return (
-    <Tag
-      type={onClick ? 'button' : undefined}
-      onClick={onClick}
+    <span
       className={cn(
-        'glass-panel flex min-w-0 flex-col items-start justify-between gap-1 rounded-xl px-4 py-3.5 text-left transition-[border-color,box-shadow]',
-        active && '!border-border-accent !shadow-[0_0_0_1px_var(--color-border-accent),0_0_24px_rgb(90_162_255/0.28)] max-md:!shadow-[0_0_0_1px_var(--color-border-accent),0_0_12px_rgb(90_162_255/0.3)]',
-        onClick && 'hover:border-border-strong',
-        className,
+        'tnum inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-2 text-caption whitespace-nowrap',
+        trend.tone === 'up' ? 'border-signal-default/35 bg-signal-soft text-text-signal' : trend.tone === 'down' ? 'border-danger-default/35 bg-danger-soft text-text-danger' : 'border-border-default bg-bg-raised text-text-secondary',
       )}
     >
+      {Icon && <Icon size={12} strokeWidth={2} aria-hidden />}
+      {trend.text}
+    </span>
+  );
+}
+
+/** Small curve of the last periods (oldest first), in the KPI's colour, fading downwards. */
+export function Sparkline({ values, color, className }: { values: number[]; color: string; className?: string }) {
+  const id = useId().replace(/:/g, '');
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const pts: [number, number][] = values.map((v, i) => [(i * 100) / (values.length - 1), 4 + (1 - (v - min) / span) * 28]);
+  const line = smoothPath(pts);
+  return (
+    <svg viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden className={cn('overflow-visible', className)}>
+      <defs>
+        <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={color} stopOpacity="0.28" />
+          <stop offset="1" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${line} L100,36 L0,36 Z`} fill={`url(#spark-${id})`} />
+      <motion.path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: motionTokens().expo }} />
+    </svg>
+  );
+}
+
+/**
+ * KPI card (the glass dashboard's): a tinted icon and the status chip on top, the label, the value with rolling
+ * numbers (NumberFlow) and, beside it, the curve of the last periods.
+ */
+function KpiShell({ label, icon: Icon, tint = 'accent', trend, spark, onClick, className, children }: { label: string; icon?: LucideIcon; tint?: Tint; trend?: Trend; spark?: number[]; onClick?: () => void; className?: string; children: ReactNode }) {
+  const Tag = onClick ? 'button' : 'div';
+  const t = TINT[tint];
+  return (
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className={cn('glass-panel flex min-w-0 flex-col items-stretch gap-1 rounded-xl p-4 text-left transition-[border-color]', onClick && 'hover:border-border-strong', className)}>
+      {(Icon || trend) && (
+        <span className="mb-2 flex items-start justify-between gap-2">
+          {Icon ? (
+            <span aria-hidden className={cn('inline-flex size-9 shrink-0 items-center justify-center rounded-md', t.box)}>
+              <Icon size={17} strokeWidth={ICON_STROKE} />
+            </span>
+          ) : (
+            <span />
+          )}
+          {trend && <TrendChip trend={trend} />}
+        </span>
+      )}
       <span className="w-full truncate text-label-s text-text-secondary max-md:line-clamp-2 max-md:whitespace-normal">{label}</span>
-      <span className={cn('tnum flex items-baseline gap-1 text-data-l', active ? 'text-text-accent' : 'text-text-primary')}>
-        <NumberFlow value={value} locales="fr-FR" format={{ minimumFractionDigits: decimals, maximumFractionDigits: decimals }} />
-        {of !== undefined && <span className="text-title-m text-text-muted">/&#8239;{of}</span>}
-        {suffix && <span className="text-title-m text-text-secondary">{suffix}</span>}
+      <span className="flex min-w-0 items-end justify-between gap-3">
+        {children}
+        {spark && <Sparkline values={spark} color={t.stroke} className="mb-1.5 h-8 w-[42%] max-w-28 min-w-12 shrink" />}
       </span>
     </Tag>
   );
 }
 
-/** KPI whose value is a text (pace « 5:42 /km »). Labels span the card (w-full): with items-start they took the width
- *  of their text and overflowed the card instead of being cut. */
-export function KpiText({ label, value, className }: { label: string; value: string; className?: string }) {
+export function KpiCard({ label, value, suffix, decimals = 0, of, icon, tint, trend, spark, onClick, className }: { label: string; value: number; suffix?: string; decimals?: number; of?: number; icon?: LucideIcon; tint?: Tint; trend?: Trend; spark?: number[]; onClick?: () => void; className?: string }) {
   return (
-    <div className={cn('glass-panel flex min-w-0 flex-col items-start justify-between gap-1 rounded-xl px-4 py-3.5', className)}>
-      <span className="w-full truncate text-label-s text-text-secondary max-md:line-clamp-2 max-md:whitespace-normal">{label}</span>
-      <span className="tnum w-full truncate text-data-l text-text-primary">{value}</span>
-    </div>
+    <KpiShell label={label} icon={icon} tint={tint} trend={trend} spark={spark} onClick={onClick} className={className}>
+      <span className="tnum flex min-w-0 items-baseline gap-1 text-data-l font-medium text-text-primary">
+        <NumberFlow value={value} locales="fr-FR" format={{ minimumFractionDigits: decimals, maximumFractionDigits: decimals }} />
+        {of !== undefined && <span className="text-title-m text-text-muted">/&#8239;{of}</span>}
+        {suffix && <span className="text-title-m text-text-secondary">{suffix}</span>}
+      </span>
+    </KpiShell>
   );
 }
 
-/** Weekly bars: the last bar (current week) in accent, the others neutral. */
+/** KPI whose value is a text (pace « 5:42 /km »). */
+export function KpiText({ label, value, icon, tint, trend, className }: { label: string; value: string; icon?: LucideIcon; tint?: Tint; trend?: Trend; className?: string }) {
+  return (
+    <KpiShell label={label} icon={icon} tint={tint} trend={trend} className={className}>
+      <span className="tnum min-w-0 truncate text-data-l font-medium text-text-primary">{value}</span>
+    </KpiShell>
+  );
+}
+
+/** Weekly bars: the last bar (current week) lit in blue, the others veils of neutral glass. */
 export function WeekBars({ data, format, height = 150, labels }: { data: { label: string; value: number }[]; format: (v: number) => string; height?: number; labels?: boolean }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   const t = motionTokens();
@@ -57,7 +139,7 @@ export function WeekBars({ data, format, height = 150, labels }: { data: { label
             <div key={d.label + i} className="group/bar relative flex h-full min-w-0 flex-1 flex-col items-center justify-end">
               <span className={cn('tnum mb-1 text-caption whitespace-nowrap transition-opacity', last ? 'text-text-accent opacity-100' : 'text-text-secondary opacity-0 group-hover/bar:opacity-100')}>{format(d.value)}</span>
               <motion.span
-                className={cn('w-full max-w-7 rounded-full', last ? 'bg-accent-default shadow-glow-accent' : 'bg-route-rest/45 group-hover/bar:bg-route-rest/70')}
+                className={cn('w-full max-w-8 rounded-full', last ? 'bg-(image:--bar-lit) shadow-glow-accent' : 'bg-(image:--bar-rest) opacity-80 transition-opacity group-hover/bar:opacity-100')}
                 initial={{ height: 4 }}
                 animate={{ height: h }}
                 transition={{ duration: t.medium * 1.6, ease: t.expo, delay: i * 0.03 }}

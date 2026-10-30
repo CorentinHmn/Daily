@@ -65,7 +65,7 @@ export function emptyData(): AppData {
   return {
     version: 1,
     onboarded: false,
-    settings: { name: '', theme: 'day' },
+    settings: { name: '', theme: 'night' },
     members: [],
     tasks: [],
     routines: [],
@@ -98,7 +98,7 @@ export function modelData(name: string): AppData {
   return normalizeData({
     ...emptyData(),
     onboarded: true,
-    settings: { name, theme: 'day' },
+    settings: { name, theme: 'night' },
     routines: templateRoutines(),
     programs: templatePrograms(),
     lists: [{ id: listId, name: 'Supermarché', items: [] }],
@@ -109,7 +109,7 @@ export function modelData(name: string): AppData {
 
 /** Empty start: no semaine type, no programme, no list — everything is added by hand. */
 export function blankData(name: string): AppData {
-  return normalizeData({ ...emptyData(), onboarded: true, settings: { name, theme: 'day' } });
+  return normalizeData({ ...emptyData(), onboarded: true, settings: { name, theme: 'night' } });
 }
 
 /** Deterministic pseudo-random numbers (same example every time for a given day). */

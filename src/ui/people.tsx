@@ -42,7 +42,7 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
   );
 }
 
-/** Person filter of the screens (header): Tous + one avatar per person. */
+/** Person filter of the screens (top bar on a computer, header on a phone): Tous + one avatar per person. */
 export function PersonSwitcher({ className }: { className?: string }) {
   const members = useApp((s) => s.data.members);
   const person = useApp((s) => s.person);
@@ -63,14 +63,14 @@ export function PersonSwitcher({ className }: { className?: string }) {
         aria-hidden
         className="liquid pointer-events-none absolute inset-0 rounded-full"
       />
-      <span ref={bubble} aria-hidden className="absolute rounded-full bg-accent-default shadow-hairline-top will-change-transform" />
+      <span ref={bubble} aria-hidden className="absolute rounded-full bg-nav-active shadow-hairline-top will-change-transform" />
       <button
         ref={item(null)}
         type="button"
         role="radio"
         aria-checked={shown === null}
         onClick={() => set(null)}
-        className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-label-s transition-colors duration-200', shown === null ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
+        className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-label-s transition-colors duration-200', shown === null ? 'text-text-on-nav delay-75' : 'text-text-secondary hover:text-text-primary')}
       >
         <Users size={15} strokeWidth={ICON_STROKE} aria-hidden />
         Tous
@@ -84,7 +84,7 @@ export function PersonSwitcher({ className }: { className?: string }) {
           aria-checked={shown === m.id}
           aria-label={m.id === meId ? `${m.name} (moi)` : m.name}
           onClick={() => set(m.id)}
-          className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors duration-200', shown === m.id ? 'text-text-on-accent delay-75' : 'text-text-secondary hover:text-text-primary')}
+          className={cn('relative inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-label-s transition-colors duration-200', shown === m.id ? 'text-text-on-nav delay-75' : 'text-text-secondary hover:text-text-primary')}
         >
           <Avatar name={m.name} hue={m.hue} photo={m.photo} size="xs" className="size-7 text-[10px]" />
           <span className="max-w-[90px] truncate">{m.name}</span>

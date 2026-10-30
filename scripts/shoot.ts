@@ -1,10 +1,10 @@
 /**
- * Visual review: screenshots of every screen, view and dialog on several screen sizes (light and dark), plus automatic
+ * Visual review: screenshots of every screen, view and dialog on several screen sizes (smoked glass and light), plus automatic
  * checks — page wider than the screen, text cut without « … », small touch targets on phones, console errors.
  * Uses a throwaway account (cadence-e2e-shoot-…@example.com, household « Un exemple »): delete it afterwards (same
  * request as scripts/e2e.ts).
  * Run: npm run build && npx vite preview --port 4320 &  then  npx tsx scripts/shoot.ts [base-url] [out-dir] [only]
- * `only` = comma-separated size names (pc-xl,pc,laptop,laptop-s,tablet-l,tablet,phone,phone-s,dark,dialogs,auth).
+ * `only` = comma-separated size names (pc-xl,pc,laptop,laptop-s,tablet-l,tablet,phone,phone-s,light,dialogs,auth).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
@@ -122,12 +122,14 @@ async function shot(page: Page, file: string, label: string, phone: boolean) {
   if (total > 0) await main.evaluate((m) => m.scrollTo({ top: 0 }));
 }
 
-const HEADING: Record<string, string> = { "Aujourd'hui": "Aujourd'hui", Semaine: 'Semaine', Sport: 'Sport', Objectifs: 'Objectifs', Courses: 'Courses' };
+/** Aujourd'hui's title is a greeting (« Bonjour, Corentin »), the others the menu's name. */
+const HEADING: Record<string, string | RegExp> = { "Aujourd'hui": /^Bon(jour|soir), /, Semaine: 'Semaine', Sport: 'Sport', Objectifs: 'Objectifs', Courses: 'Courses' };
 /** A menu of the rail / tab bar, once the previous screen has left (its header, chip included, fades out). */
 const nav = (page: Page, name: string) => ({
   click: async () => {
     await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: new RegExp(`^${name}`) }).click();
-    await page.getByRole('heading', { name: HEADING[name], exact: true }).waitFor();
+    const heading = HEADING[name]!;
+    await page.getByRole('heading', typeof heading === 'string' ? { name: heading, exact: true } : { name: heading }).waitFor();
     await page.waitForTimeout(400);
   },
 });
@@ -271,7 +273,7 @@ try {
   }
   await page.getByRole('radio', { name: /^Un exemple/ }).click();
   await page.getByRole('button', { name: 'Créer le foyer' }).click();
-  await page.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+  await page.getByRole('heading', { name: HEADING["Aujourd'hui"]! }).waitFor({ timeout: 20_000 });
   await page.waitForTimeout(3000); // first upload
   const state = await ctx.storageState();
   await ctx.close();
@@ -281,13 +283,13 @@ try {
     const p = await c.newPage();
     watch(p, s.name);
     await p.goto(base);
-    await p.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
-    await screens(p, s, `${s.name}-day`);
+    await p.getByRole('heading', { name: HEADING["Aujourd'hui"]! }).waitFor({ timeout: 20_000 });
+    await screens(p, s, `${s.name}-verre`);
     if (want('dialogs') && (s.name === 'pc' || s.name === 'phone' || s.name === 'laptop')) await dialogs(p, s);
-    if (want('dark') && (s.name === 'pc' || s.name === 'phone')) {
-      await userMenu(p, 'Passer en sombre');
-      await screens(p, s, `${s.name}-night`);
+    if (want('light') && (s.name === 'pc' || s.name === 'phone')) {
       await userMenu(p, 'Passer en clair');
+      await screens(p, s, `${s.name}-clair`);
+      await userMenu(p, 'Passer en sombre');
     }
     await c.close();
   }

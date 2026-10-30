@@ -3,7 +3,9 @@
 Appli web (Vercel + Supabase) pour standardiser sa semaine, à deux : agenda alimenté par une semaine type, salle de
 sport (programmes, séance en direct, historique), running, objectifs et habitudes, listes de courses. Connexion
 obligatoire (e-mail + mot de passe), puis un foyer partagé (créé, ou rejoint avec son code d'invitation). Design system
-imposé : **Halo** en mode **clair** (voir `docs/design-system.md`). Interface en français.
+**Halo**, habillé en « Glassy Dashboard » depuis le 30/10/2026 : verre fumé sur une photo de crépuscule, texte blanc,
+barre du haut à pastilles, rail fin centré (thème sombre par défaut, clair en option ; voir `docs/design-system.md`).
+Interface en français.
 
 Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bureau (Electron), gardée pour référence.
 
@@ -39,8 +41,14 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   Après modification de `supabase/functions/signup/index.ts`, la redéployer (MCP `deploy_edge_function`).
 
 ## Pièges connus
-- Classes `.liquid*` dans `@layer components` : hors couche, elles écrasaient `absolute` des utilitaires. `.aurora` est
-  hors couche : pour la fixer, `style={{ position: 'fixed' }}` (une classe `fixed` perd).
+- Classes `.liquid*` dans `@layer components` : hors couche, elles écrasaient `absolute` des utilitaires. Le fond photo
+  (`.photo-backdrop`, composant `Backdrop`) est hors couche : pour le fixer, `<Backdrop fixed />` (une classe `fixed`
+  perd). Photo dans `public/backdrop/` (3 tailles WebP, tons resserrés), voile par thème (`--backdrop-veil`).
+- Thème : `night` = verre fumé (défaut), `day` = clair. Chaque appareil passe une fois en `night` (`cadence.look` =
+  `verre` dans `load()`, store/app.ts) ; ensuite le choix du menu est gardé. Toute surface du thème sombre est un voile
+  (blanc ou gris translucide), jamais une couleur opaque : un fond opaque passe par `--glass-solid`.
+- Bulle de navigation (rail, barre du téléphone, SegmentedControl, filtre des personnes) : `bg-nav-active` +
+  `text-text-on-nav` (blanc / encre sombre en verre fumé, bleu / blanc en clair), pas `bg-accent-default`.
 - Les popovers doivent passer au-dessus des dialogues (`z-[1350]` > `z-[1300]`). Échap ne ferme pas un dialogue tant
   qu'un popover est encore dans la page (y compris pendant ses 140 ms de sortie).
 - Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : ne pas mettre de flou
@@ -68,9 +76,13 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   pendant le rendu du nouvel écran) ; `useLiquidBubble` + `useDeferredPick` : le changement part deux images après le clic.
   Le verre de ces barres est un calque derrière la bulle (`shell`), pas le conteneur : son liseré ne barre plus le bleu,
   et `follow()` l'étire quand le rebond du ressort porterait la bulle hors du verre (première / dernière entrée).
-- Rail du bureau : ouvert (icônes + noms, `--layout-rail-open`) ou replié (`--layout-rail`), choix gardé sur
-  l'appareil (`cadence.rail`, ouvert d'office à partir de 1440 px). Sa largeur suit le ressort des bulles (moitié du
-  rebond) et la page suit ; la bulle est une pilule (`inset-x-6`) qui suit la largeur des lignes. Son verre est un
+- Bureau : barre du haut (`TopBar.tsx` : logo, ouvrir / replier le rail, filtre des personnes au centre, +, Paramètres,
+  thème, pastille du profil) puis rail + page. Titre de page + sous-titre (`PageHeader`) ; Aujourd'hui salue
+  (« Bonjour, Corentin », « Bonsoir » dès 18 h) : les scripts attendent `/^Bon(jour|soir), /`, pas « Aujourd'hui ».
+- Rail du bureau : pilule fine centrée verticalement, les 5 onglets seulement ; ouvert (icônes + noms,
+  `--layout-rail-open`) ou replié (`--layout-rail`, défaut), état tenu par App (bouton de la barre du haut), gardé sur
+  l'appareil (`cadence.rail`). Sa largeur suit le ressort des bulles (moitié du rebond) et la page suit ; la bulle est
+  une pilule (`inset-x-2`) qui suit la largeur des lignes ; replié, survoler un autre onglet montre son nom (`.rail-tip`). Son verre est un
   calque aussi large que le rail ouvert, découpé par un clip-path `path()` animé ; ombre (copie floutée, découpée hors
   du contour) et liseré (anneau entre le contour et le contour décalé) sont aussi des clip-paths, avec les mêmes
   images-clés échantillonnées à 60 i/s : rien ne peut se décaler (un `d` SVG animé à part laissait voir une tache

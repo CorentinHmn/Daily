@@ -60,7 +60,7 @@ export function ShoppingScreen() {
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Courses" people={false}>
+      <PageHeader title="Courses" subtitle="Les listes du foyer, rangées par rayon">
         <Button variant="secondary" icon={Copy} onClick={() => void copy()} disabled={!list || list.items.every((i) => i.checked)}>
           <span className="max-md:hidden">Copier la liste</span>
           <span className="md:hidden">Copier</span>

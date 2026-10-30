@@ -18,6 +18,8 @@ import { NOUS, type AppData, type CategoryId, type Goal, type GoalPeriod, type H
 import type { ToastItem } from '../ui/overlays';
 
 export type View = 'today' | 'week' | 'sport' | 'goals' | 'shopping';
+/** Screens shared by the whole household: no person filter there. */
+export const SHARED_VIEWS: readonly View[] = ['shopping'];
 export type StartMode = 'modele' | 'exemple' | 'vide';
 
 export type DialogState =
@@ -34,16 +36,26 @@ export type DialogState =
 
 const STORAGE_KEY = 'cadence.data.v1';
 
+/** Set once the smoked-glass look became the default (30/10/2026): until then every device was on « day ». */
+const LOOK_KEY = 'cadence.look';
+
 function load(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AppData;
       if (parsed && parsed.version === 1) {
-        const d = { ...emptyData(), ...parsed };
+        let d = { ...emptyData(), ...parsed };
+        // Once per device: the new look, whatever the theme was (« day » was everyone's default, rarely a choice).
+        if (localStorage.getItem(LOOK_KEY) !== 'verre') {
+          d = { ...d, settings: { ...d.settings, theme: 'night' } };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+          localStorage.setItem(LOOK_KEY, 'verre');
+        }
         return d.onboarded ? normalizeData(d) : d;
       }
     }
+    localStorage.setItem(LOOK_KEY, 'verre');
   } catch {
     // corrupted or blocked storage: start fresh (the household's data comes back from the server)
   }

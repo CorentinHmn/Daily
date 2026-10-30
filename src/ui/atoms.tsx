@@ -196,7 +196,7 @@ export function ProgressBar({ value, tone = 'accent', className, label }: { valu
   );
 }
 
-/** Panel (radius 2xl) in frosted glass over the aurora. */
+/** Panel (radius 2xl) in frosted glass over the photo. */
 export function Panel({ className, children, ref, ...rest }: HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement> }) {
   return (
     <section ref={ref} className={cn('glass-panel flex min-h-0 flex-col rounded-2xl', className)} {...rest}>

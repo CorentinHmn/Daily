@@ -3,7 +3,7 @@
  */
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronDown, Dumbbell, EllipsisVertical, History, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { CalendarCheck, CalendarDays, ChevronDown, Dumbbell, EllipsisVertical, History, Pencil, Play, Plus, Timer, Trash2 } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { goalFor, ownedBy } from '../../domain/people';
 import type { ExerciseTemplate, Program } from '../../domain/types';
@@ -12,7 +12,7 @@ import { fromIso, shortDate, todayIso } from '../../lib/dates';
 import { clock, duration, kg, tonnes, uid } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, EmptyState, ICON_STROKE, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
-import { KpiCard, WeekBars } from '../../ui/charts';
+import { KpiCard, WeekBars, doneTrend, trendOf } from '../../ui/charts';
 import { NumberStepper, TextInput } from '../../ui/forms';
 import { MenuButton } from '../../ui/overlays';
 import { revealVariants } from '../../theme/motion';
@@ -33,11 +33,15 @@ export function GymView() {
   const avg = recent.slice(0, 10).reduce((s, x) => s + sessionMinutes(x), 0) / Math.max(1, Math.min(10, recent.length));
   const program = data.programs.find((p) => p.id === selected) ?? data.programs[0];
   const reveal = revealVariants();
+  // The last 8 weeks (this one last): sessions and volume, for the curves and the change from last week.
+  const counts = weeklySeries(8, (from, to) => sessionsIn(data.sessions, { from, to }).length, today).map((w) => w.value);
+  const volumes = weeklySeries(8, (from, to) => sessionsIn(data.sessions, { from, to }).reduce((s, x) => s + sessionVolume(x), 0), today);
+  const volume = volumes.map((w) => w.value);
   const kpis = [
-    <KpiCard key="a" label="Séances cette semaine" value={thisWeek.length} of={goal} active />,
-    <KpiCard key="b" label="Séances ce mois" value={sessionsIn(data.sessions, month).length} />,
-    <KpiCard key="c" label="Volume cette semaine" value={Math.round(thisWeek.reduce((s, x) => s + sessionVolume(x), 0))} suffix="kg" />,
-    <KpiCard key="d" label="Durée moyenne" value={Math.round(avg)} suffix="min" />,
+    <KpiCard key="a" label="Séances cette semaine" value={thisWeek.length} of={goal} icon={CalendarCheck} tint="accent" trend={goal ? doneTrend(thisWeek.length, goal) : undefined} spark={counts} />,
+    <KpiCard key="b" label="Séances ce mois" value={sessionsIn(data.sessions, month).length} icon={CalendarDays} tint="violet" />,
+    <KpiCard key="c" label="Volume cette semaine" value={Math.round(volume[7] ?? 0)} suffix="kg" icon={Dumbbell} tint="warn" trend={trendOf(volume[7] ?? 0, volume[6] ?? 0)} spark={volume} />,
+    <KpiCard key="d" label="Durée moyenne" value={Math.round(avg)} suffix="min" icon={Timer} tint="signal" />,
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -90,7 +94,7 @@ export function GymView() {
                 height={130}
                 labels
                 format={tonnes}
-                data={weeklySeries(8, (from, to) => sessionsIn(data.sessions, { from, to }).reduce((s, x) => s + sessionVolume(x), 0), today).map((w) => ({ label: `${fromIso(w.week).getDate()}`, value: w.value }))}
+                data={volumes.map((w) => ({ label: `${fromIso(w.week).getDate()}`, value: w.value }))}
               />
             </div>
           </Panel>

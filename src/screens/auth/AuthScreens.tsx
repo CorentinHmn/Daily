@@ -1,6 +1,6 @@
 /**
  * Before the app: sign in (or create an account, or reset the password), then the household (create it or join it with
- * its code). Same Halo look as the app: the aurora behind one liquid-glass card, the logo on top.
+ * its code). Same Halo look as the app: the photo behind one liquid-glass card, the logo on top.
  */
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -13,6 +13,7 @@ import { Field, TextInput } from '../../ui/forms';
 import { Liquid } from '../../ui/glass';
 import { SegmentedControl } from '../../ui/navigation';
 import { motionTokens } from '../../theme/motion';
+import { Backdrop } from '../../ui/backdrop';
 
 // ── Layout ──────────────────────────────────────────────────────────────────
 
@@ -20,13 +21,7 @@ function AuthLayout({ children, wide }: { children: ReactNode; wide?: boolean })
   const t = motionTokens();
   return (
     <div className="relative h-dvh overflow-y-auto overscroll-y-contain">
-      <div aria-hidden className="aurora" style={{ position: 'fixed' }}>
-        <i />
-        <i />
-        <i />
-        <i />
-        <b />
-      </div>
+      <Backdrop fixed />
       {/* Anchored at the top, not centred: when the form grows (Créer un compte), the card extends downwards. */}
       <div className="relative z-10 flex min-h-full items-start justify-center px-4 pt-[max(calc(env(safe-area-inset-top)+24px),10vh)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }} className={cn('w-full', wide ? 'max-w-[560px]' : 'max-w-[440px]')}>
@@ -53,13 +48,7 @@ function Brand({ title, text }: { title: string; text?: ReactNode }) {
 export function Splash() {
   return (
     <div className="relative grid h-dvh place-items-center">
-      <div aria-hidden className="aurora">
-        <i />
-        <i />
-        <i />
-        <i />
-        <b />
-      </div>
+      <Backdrop />
       <div role="status" aria-label="Chargement de Cadence" className="relative z-10 animate-pulse">
         <Logo size={72} />
       </div>

@@ -57,6 +57,9 @@ async function createAccount(page: Page, who: { name: string; email: string }) {
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
 }
 
+/** Aujourd'hui's title: a greeting with the person's name (« Bonjour, Alex »; the household setup says « Bonjour Alex »). */
+const TODAY = /^Bon(jour|soir), /;
+
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: new RegExp(`^${name}`) });
 
 async function openShopping(page: Page) {
@@ -86,7 +89,7 @@ try {
 
   await step('Alex : création du foyer « Ma semaine »', async () => {
     await a.getByRole('button', { name: 'Créer le foyer' }).click();
-    await a.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await a.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
   });
 
   await step("Alex : code d'invitation dans Foyer et compte", async () => {
@@ -113,7 +116,7 @@ try {
     const filled = (await b.getByLabel('Code du foyer').inputValue()).replace(/\W/g, '');
     if (filled !== code) throw new Error(`code prérempli : « ${filled} »`);
     await b.getByRole('button', { name: 'Rejoindre le foyer' }).click();
-    await b.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await b.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
   });
 
   await step('Sam : la semaine type du foyer est là', async () => {
@@ -138,14 +141,14 @@ try {
 
   await step('Sam : après rechargement, toujours connectée avec les données', async () => {
     await b.reload();
-    await b.getByRole('heading', { name: 'Courses' }).or(b.getByRole('heading', { name: "Aujourd'hui" })).first().waitFor({ timeout: 15_000 });
+    await b.getByRole('heading', { name: 'Courses' }).or(b.getByRole('heading', { name: TODAY })).first().waitFor({ timeout: 15_000 });
     await openShopping(b);
     await b.getByText(item).first().waitFor({ timeout: 10_000 });
   });
 
   await step("Alex : supprimer une tâche depuis son menu n'ouvre aucune fenêtre", async () => {
     await nav(a, "Aujourd'hui").click();
-    await a.getByRole('heading', { name: "Aujourd'hui" }).waitFor();
+    await a.getByRole('heading', { name: TODAY }).waitFor();
     const actions = a.getByRole('button', { name: /^Actions de « / }).first();
     const title = (await actions.getAttribute('aria-label'))!.replace(/^Actions de « (.*) »$/, '$1');
     await actions.click();
@@ -164,7 +167,7 @@ try {
     await a.getByLabel('Adresse e-mail').fill(alex.email);
     await a.getByLabel('Mot de passe', { exact: true }).fill(password);
     await a.getByRole('button', { name: 'Se connecter' }).click();
-    await a.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await a.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
     await openShopping(a);
     await a.getByText(item).first().waitFor({ timeout: 10_000 });
   });
@@ -185,7 +188,7 @@ try {
     const device = c.getByRole('radio', { name: /Cet appareil/ });
     if ((await device.getAttribute('aria-checked')) !== 'true') throw new Error('« Cet appareil » non proposé par défaut');
     await c.getByRole('button', { name: 'Créer le foyer' }).click();
-    await c.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await c.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
     await openShopping(c);
     await c.getByText('Épinards frais').first().waitFor({ timeout: 10_000 });
     // The copy set aside goes once the household holds the data (after the first upload).
@@ -200,7 +203,7 @@ try {
     await d.getByRole('heading', { name: `Bonjour ${max.name}` }).waitFor({ timeout: 20_000 });
     await d.getByRole('radio', { name: /^Vide/ }).click();
     await d.getByRole('button', { name: 'Créer le foyer' }).click();
-    await d.getByRole('heading', { name: "Aujourd'hui" }).waitFor({ timeout: 20_000 });
+    await d.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
     await d.getByText("Rien de prévu aujourd'hui").waitFor({ timeout: 5_000 });
     if (process.env.SHOTS) await d.screenshot({ path: `${process.env.SHOTS}/vide-aujourdhui.png` });
     await nav(d, 'Sport').click();

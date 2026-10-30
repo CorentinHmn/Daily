@@ -1,8 +1,8 @@
 /**
  * Shell. Signed out: the sign-in screen; signed in without a household: its setup (AuthScreens.tsx). Then the app:
- * on a computer, .app-window with the aurora behind the frosted panels, the rail on the left (Aujourd'hui, Semaine,
- * Sport, Objectifs, Courses; + = quick add); on a phone or a tablet (below 1200 px), MobileShell, the same menus in a floating tab
- * bar.
+ * on a computer, .app-window with the photo behind the glass, the top bar (+ = quick add, Paramètres, theme, user chip),
+ * the slim rail on the left (Aujourd'hui, Semaine, Sport, Objectifs, Courses); on a phone or a tablet (below 1200 px),
+ * MobileShell, the same menus in a floating tab bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -10,7 +10,7 @@ import { CalendarDays, Footprints, ListPlus, Target, Repeat } from 'lucide-react
 import { tabIcon } from './domain/catalog';
 import { useApp, type View } from './store/app';
 import { todayIso, weekStart } from './lib/dates';
-import { NavRail, type NavItem } from './ui/navigation';
+import { NavRail, readRailOpen, saveRailOpen, type NavItem } from './ui/navigation';
 import { Menu, ToastStack } from './ui/overlays';
 import { motionTokens } from './theme/motion';
 import { TodayScreen } from './screens/today/TodayScreen';
@@ -20,8 +20,10 @@ import { GoalsScreen } from './screens/goals/GoalsScreen';
 import { ShoppingScreen } from './screens/shopping/ShoppingScreen';
 import { Dialogs } from './screens/dialogs/Dialogs';
 import { MobileShell } from './screens/shell/MobileShell';
+import { TopBar } from './screens/shell/TopBar';
 import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
+import { Backdrop } from './ui/backdrop';
 import { initSync, useSync, type SyncStatus } from './sync/sync';
 import { HouseholdSetup, RecoveryScreen, SignInScreen, Splash, Unreachable } from './screens/auth/AuthScreens';
 
@@ -43,7 +45,7 @@ export function App() {
     document.documentElement.dataset.theme = theme;
     // Status bar / browser chrome colour of the phone follows the app's theme, not the system's.
     for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
-      meta.content = theme === 'night' ? '#0e1014' : '#eef1f5';
+      meta.content = theme === 'night' ? '#5f605b' : '#d3d4d1';
       meta.removeAttribute('media');
     }
   }, [theme]);
@@ -76,6 +78,7 @@ function Workspace() {
   const today = useToday();
   const mobile = useIsMobile();
   const [quickAdd, setQuickAdd] = useState(false);
+  const [railOpen, setRailOpen] = useState(readRailOpen);
   const fab = useRef<HTMLButtonElement | null>(null);
   useShortcuts(useCallback(() => setQuickAdd(true), []));
 
@@ -105,7 +108,7 @@ function Workspace() {
         open={quickAdd}
         anchor={fab}
         onClose={() => setQuickAdd(false)}
-        align={mobile ? 'end' : 'start'}
+        align="end"
         width={250}
         items={[
           { label: 'Tâche', icon: CalendarDays, hint: mobile ? undefined : 'Ctrl N', onSelect: () => open({ kind: 'task', date: todayIso() }) },
@@ -137,28 +140,35 @@ function Workspace() {
 
   return (
     <div className="h-full">
-      <div className="app-window relative flex h-full gap-5 p-(--layout-margin)">
-        <div aria-hidden className="aurora">
-          <i />
-          <i />
-          <i />
-          <i />
-          <b />
+      <div className="app-window relative flex h-full flex-col gap-3 p-(--layout-margin) pt-3.5">
+        <Backdrop />
+        <TopBar
+          railOpen={railOpen}
+          onRail={() => {
+            saveRailOpen(!railOpen);
+            setRailOpen(!railOpen);
+          }}
+          onFab={() => setQuickAdd((o) => !o)}
+          fabRef={setFab}
+        />
+        <div className="flex min-h-0 flex-1 gap-5">
+          <div className="flex shrink-0 flex-col justify-center pb-(--layout-topbar)">
+            <NavRail items={nav} active={view} onNavigate={navigate} open={railOpen} />
+          </div>
+          <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${view}-${today}`}
+                className="flex min-h-0 flex-1 flex-col"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }}
+                exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+              >
+                <Screen />
+              </motion.div>
+            </AnimatePresence>
+          </main>
         </div>
-        <NavRail items={nav} active={view} onNavigate={navigate} onLogo={() => navigate('today')} onFab={() => setQuickAdd((o) => !o)} fabLabel="Ajouter" fabRef={setFab} onSettings={() => useApp.getState().openDialog({ kind: 'settings' })} />
-        <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={`${view}-${today}`}
-              className="flex min-h-0 flex-1 flex-col"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }}
-              exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
-            >
-              <Screen />
-            </motion.div>
-          </AnimatePresence>
-        </main>
       </div>
       {overlays}
     </div>

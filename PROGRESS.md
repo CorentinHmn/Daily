@@ -105,6 +105,19 @@
   avatars dans la liste avec le filtre « Tous ». Vérifié : test unitaire, parcours navigateur (1440, 1280, téléphone),
   e2e 15/15.
 
+## Session 7 (30/10/2026) — habillage « Glassy Dashboard »
+- Demande : ressembler le plus possible à la vidéo « Glassy Dashboard V5 » (4 captures), en gardant le fonctionnement
+  et le verre liquide.
+- Fait : fond photo (vallée au crépuscule, Unsplash, 3 tailles WebP de 30 à 70 Ko, en cache hors ligne) à la place de
+  l'aurora ; thème sombre = verre fumé gris neutre, texte blanc, et thème par défaut (chaque appareil y passe une fois,
+  le clair reste au menu et dans Paramètres) ; barre du haut sur ordinateur (logo, rail, filtre des personnes au
+  centre, +, Paramètres, thème, avatar) ; rail = pilule fine centrée avec les 5 onglets, bulle blanche, étiquette au
+  survol, toujours dépliable ; titres + sous-titres, « Bonjour / Bonsoir, Corentin » sur Aujourd'hui ; KPI à icône
+  teintée, pastille d'évolution et petite courbe (Aujourd'hui : 7 jours ; Salle, Running : 8 semaines) ; barres en verre
+  avec la barre du moment en bleu ; bulles blanches partout (segmentés, filtre, barre du téléphone).
+- Scripts : `shoot.ts` et `e2e.ts` attendent la salutation au lieu de « Aujourd'hui » ; `shoot.ts` capture le verre fumé
+  puis le clair (`light`).
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur
