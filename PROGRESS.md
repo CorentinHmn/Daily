@@ -117,6 +117,9 @@
   avec la barre du moment en bleu ; bulles blanches partout (segmentés, filtre, barre du téléphone).
 - Scripts : `shoot.ts` et `e2e.ts` attendent la salutation au lieu de « Aujourd'hui » ; `shoot.ts` capture le verre fumé
   puis le clair (`light`).
+- Vérifié : `tsc`, `eslint`, vitest 20/20, e2e 15/15, `shoot.ts` sur les 8 tailles (aucun débordement, aucune erreur
+  console ; sous-titres raccourcis pour le téléphone ; les autres remarques du rapport existaient avant). Comptes de
+  test supprimés. Poussé sur la branche `glassy-dashboard` (pas encore sur `main`).
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

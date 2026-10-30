@@ -12,7 +12,7 @@ export function SportScreen() {
   const active = useApp((s) => !!s.data.active);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Sport" subtitle="Programmes de salle, séances en direct et sorties running">
+      <PageHeader title="Sport" subtitle="Programmes, séances et sorties running">
         <SegmentedControl
           label="Activité"
           value={view}

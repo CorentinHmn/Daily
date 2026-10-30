@@ -26,7 +26,7 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
           <div className="flex min-h-14 items-center gap-3">
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-heading-page text-text-primary [text-shadow:var(--title-shadow)]">{title}</h1>
-              {subtitle && <p className="truncate text-body-s text-text-secondary [text-shadow:var(--title-shadow)]">{subtitle}</p>}
+              {subtitle && <p className="line-clamp-2 text-body-s text-text-secondary [text-shadow:var(--title-shadow)]">{subtitle}</p>}
             </div>
             <UserChip compact />
           </div>
