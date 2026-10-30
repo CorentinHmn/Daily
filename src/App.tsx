@@ -5,7 +5,7 @@
  * MobileShell, the same menus in a floating tab bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { CalendarDays, Footprints, ListPlus, Target, Repeat } from 'lucide-react';
 import { tabIcon } from './domain/catalog';
 import { useApp, type View } from './store/app';
@@ -13,7 +13,6 @@ import { todayIso, weekStart } from './lib/dates';
 import { NavRail, readRailOpen, saveRailOpen, type NavItem } from './ui/navigation';
 import { ToastStack, type MenuItem } from './ui/overlays';
 import type { ChipMenuHandle } from './ui/chipMenu';
-import { motionTokens } from './theme/motion';
 import { TodayScreen } from './screens/today/TodayScreen';
 import { WeekScreen } from './screens/week/WeekScreen';
 import { SportScreen } from './screens/sport/SportScreen';
@@ -22,6 +21,7 @@ import { ShoppingScreen } from './screens/shopping/ShoppingScreen';
 import { Dialogs } from './screens/dialogs/Dialogs';
 import { MobileShell } from './screens/shell/MobileShell';
 import { TopBar } from './screens/shell/TopBar';
+import { ScreenFrame } from './screens/shell/ScreenFrame';
 import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
 import { Backdrop, GLASS_DEFAULT, applyBackdrop, applyGlass } from './ui/backdrop';
@@ -111,7 +111,6 @@ function Workspace() {
   ];
 
   const Screen = SCREENS[view];
-  const t = motionTokens();
   const open = useApp.getState().openDialog;
 
   const adds: MenuItem[] = [
@@ -160,15 +159,9 @@ function Workspace() {
           </div>
           <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={`${view}-${today}`}
-                className="flex min-h-0 flex-1 flex-col"
-                initial={{ y: 8 }}
-                animate={{ y: 0, transition: { duration: t.medium, ease: t.entry } }}
-                exit={{ y: 0, transition: { duration: 0 } }}
-              >
+              <ScreenFrame key={`${view}-${today}`} className="flex min-h-0 flex-1 flex-col">
                 <Screen />
-              </motion.div>
+              </ScreenFrame>
             </AnimatePresence>
           </main>
         </div>

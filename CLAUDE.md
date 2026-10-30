@@ -70,9 +70,11 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : pas de fondu ni de flou
   sur un élément de verre ou un de ses parents (il paraissait clair puis givré une fois opaque). Entrées et changements
   d'écran = glissements (`revealVariants`, écrans, semaine, fenêtres, menus, notifications) ; le voile des fenêtres fond
-  sur son propre calque, à côté du panneau. Le fondu d'un nouvel écran se fait sur chaque surface de verre elle-même
-  (animation CSS `glass-in` à l'insertion : `.glass-panel`, `.glass-in`, `.liquid`, titres dans `<main>`), jamais
-  sur un conteneur.
+  sur son propre calque, à côté du panneau. Changement d'écran (`ScreenFrame.tsx`, dans AnimatePresence) : l'ancien
+  glisse un peu vers le haut et ses pièces fondent (`[data-leaving]` → `glass-out`, 140 ms), puis les pièces du
+  nouveau fondent en cascade (`glass-in`, retard `--ri` posé par `revealVariants`) : surfaces de verre, titres et
+  boutons d'en-tête dans `<main>`, chacun lui-même, jamais un conteneur. Le filtre des personnes de la barre du haut
+  reste en place sur Courses et fond (`hidden`, `.fade-pieces`).
 - Mise en page téléphone **sous 1200 px** (`--breakpoint-md: 75rem` dans tokens.css, `MOBILE_QUERY` dans
   useMedia.ts, et les deux `@media` d'app.css : les trois ensemble) : téléphones, tablettes portrait et paysage. La
   mise en page bureau (rail, 3 colonnes, semaine sur 7 colonnes) a besoin d'environ 1200 px ; sur tablette la colonne

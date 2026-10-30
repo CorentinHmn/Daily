@@ -42,8 +42,12 @@ export function AssigneeBadge({ assignee, people, className }: { assignee?: stri
   );
 }
 
-/** Person filter of the screens (top bar on a computer, header on a phone): Tous + one avatar per person. */
-export function PersonSwitcher({ className }: { className?: string }) {
+/**
+ * Person filter of the screens (top bar on a computer, header on a phone): Tous + one avatar per person. `hidden`: on a
+ * shared screen (Courses) it stays in place but fades out (each piece itself: the glass keeps its frost) and ignores the
+ * pointer, rather than vanishing at once.
+ */
+export function PersonSwitcher({ className, hidden }: { className?: string; hidden?: boolean }) {
   const members = useApp((s) => s.data.members);
   const person = useApp((s) => s.person);
   const meId = useApp((s) => s.data.settings.meId);
@@ -53,7 +57,7 @@ export function PersonSwitcher({ className }: { className?: string }) {
   const { bubble, item, shell } = useLiquidBubble<string | null>(shown, members.length);
   if (members.length < 2) return null;
   return (
-    <div role="radiogroup" aria-label="Personne" className={cn('relative inline-flex items-center gap-1 rounded-full p-1', className)}>
+    <div role="radiogroup" aria-label="Personne" aria-hidden={hidden || undefined} inert={hidden} data-hidden={hidden ? '' : undefined} className={cn('fade-pieces relative inline-flex items-center gap-1 rounded-full p-1', className)}>
       {/* The glass, a layer behind the bubble: its rim never crosses the blue, and it stretches with the overshoot. */}
       <span
         ref={(el) => {

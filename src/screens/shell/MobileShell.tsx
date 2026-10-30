@@ -5,7 +5,7 @@
  * kept clear.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { cn } from '../../ui/cn';
 import { ICON_STROKE } from '../../ui/atoms';
@@ -13,9 +13,9 @@ import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
 import { ChipMenu, type ChipMenuHandle } from '../../ui/chipMenu';
 import type { MenuItem } from '../../ui/overlays';
-import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
 import { Backdrop } from '../../ui/backdrop';
+import { ScreenFrame } from './ScreenFrame';
 import { SPRING, currentShift, follow, reducedMotion, travel } from '../../ui/liquid';
 
 export function MobileShell<T extends string>({
@@ -37,7 +37,6 @@ export function MobileShell<T extends string>({
 }) {
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const t = motionTokens();
   // A new screen starts at the top (the scroll event then hides the compact bar).
   useEffect(() => {
     scroller?.scrollTo({ top: 0 });
@@ -52,15 +51,9 @@ export function MobileShell<T extends string>({
           className="relative z-10 h-full overflow-y-auto overscroll-y-contain px-4 pt-[calc(env(safe-area-inset-top)+6px)] pb-[calc(env(safe-area-inset-bottom)+112px)]"
         >
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={screenKey}
-              className="mx-auto flex w-full max-w-[720px] flex-col"
-              initial={{ y: 8 }}
-              animate={{ y: 0, transition: { duration: t.medium, ease: t.entry } }}
-              exit={{ y: 0, transition: { duration: 0 } }}
-            >
+            <ScreenFrame key={screenKey} className="mx-auto flex w-full max-w-[720px] flex-col">
               {children}
-            </motion.div>
+            </ScreenFrame>
           </AnimatePresence>
         </main>
         {/* Under the status bar (the app draws beneath it): a shade, so the clock stays legible over the page. */}

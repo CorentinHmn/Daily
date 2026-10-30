@@ -400,26 +400,52 @@
 }
 
 /*
- * A new screen (or view) fades in piece by piece: each glass surface fades itself, never a wrapper around it — a
- * wrapper with opacity < 1 is a backdrop root, its glass would lose its frost until the end (clear, then frosted at
- * once). CSS animations run when an element is inserted: the cards of a new screen, its title and its controls.
+ * Changing screens (src/screens/shell/ScreenFrame.tsx): the old screen's pieces fade out as it slides up a little, then
+ * the new one's fade in as it slides into place, its cards one after the other (--ri, the card's place, set by
+ * revealVariants). Each piece fades itself — glass surfaces, titles, the header's controls — never a wrapper around
+ * them: a wrapper with opacity < 1 is a backdrop root, its glass would turn clear until the end. The fade-in is a CSS
+ * animation, so it also plays for the pieces of a view that appears (Salle / Running).
  */
 @keyframes glass-in {
   from {
     opacity: 0;
   }
 }
-main :is(.glass-panel, .glass-in, .liquid, h1, header p) {
-  animation: glass-in var(--v-duree-moyenne) var(--v-courbe-entree) backwards;
+@keyframes glass-out {
+  to {
+    opacity: 0;
+  }
+}
+main :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+  animation: glass-in calc(var(--v-duree-moyenne) * 1.3) var(--v-courbe-entree) backwards;
+  animation-delay: calc(var(--ri, 0) * var(--v-decalage-carte));
 }
 /* Nested glass fades with its card (fading it too would double the fade and drop its frost meanwhile). */
-main :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid) {
+main :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+  animation: none;
+}
+main [data-leaving] :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+  animation: glass-out var(--v-duree-courte) var(--v-courbe-sortie) forwards;
+}
+main [data-leaving] :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  main :is(.glass-panel, .glass-in, .liquid, h1, header p) {
-    animation: none;
+  main :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+    animation: none !important;
   }
+}
+
+/* A control that comes and goes in place (the top bar's person filter on Courses): each piece fades itself. */
+.fade-pieces > * {
+  transition:
+    opacity var(--v-duree-moyenne) var(--v-courbe-entree),
+    scale var(--v-duree-moyenne) var(--v-courbe-entree);
+}
+.fade-pieces[data-hidden] > * {
+  opacity: 0;
+  scale: 0.94;
+  transition-duration: var(--v-duree-courte);
 }
 
 /* Live halo: breathing ring (duration/pulse, loop), cut when motion is reduced. */

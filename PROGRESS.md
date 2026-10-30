@@ -163,6 +163,10 @@
   réseau (service worker en réseau d'abord) ; vague du rail : au premier / dernier onglet elle rejoint le haut / bas du
   rail au lieu de déborder, arrondis réduits près des coins ; badge des Courses opaque, qui suit la fin du nom sorti.
 
+- Audit des changements d'onglet : l'ancien écran disparaissait d'un coup, les boutons d'en-tête surgissaient, toutes
+  les cartes fondaient ensemble, le filtre des personnes disparaissait net sur Courses. Maintenant : fondu de sortie
+  (140 ms), entrée en cascade, en-têtes compris, filtre qui fond en place. Mesuré image par image (opacités) ; e2e 15/15.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

@@ -24,16 +24,19 @@ export function motionTokens() {
 }
 
 /**
- * Cards / panels: y 18 → 0, 320 ms easing/entry, stagger/card. No fade nor blur: a wrapper with opacity < 1 or a filter
- * is a backdrop root, the glass inside stops seeing the page behind (it showed clear, then frosted once opaque).
+ * Cards / panels: y 18 → 0, easing/entry, stagger/card. No fade nor blur here: a wrapper with opacity < 1 or a filter
+ * is a backdrop root, the glass inside stops seeing the page behind (it showed clear, then frosted once opaque). The
+ * fade is on the card's pieces (app.css), delayed by --ri as the slide.
  */
 export function revealVariants(): Variants {
   const t = motionTokens();
   return {
-    hidden: { y: t.translation },
+    // --ri: the card's place, which delays the fade of its pieces (app.css) as much as its slide.
+    hidden: (i: number = 0) => ({ y: t.translation, '--ri': i * t.delayScale }),
     show: (i: number = 0) => ({
       y: 0,
-      transition: { duration: t.medium, ease: t.entry, delay: i * t.staggerCard * t.delayScale },
+      '--ri': i * t.delayScale,
+      transition: { duration: t.medium * 1.3, ease: t.entry, delay: i * t.staggerCard * t.delayScale },
     }),
     exit: { y: 0, transition: { duration: 0 } },
   };

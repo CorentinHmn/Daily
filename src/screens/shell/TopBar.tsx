@@ -25,7 +25,9 @@ export function TopBar({ railOpen, onRail, adds, addRef }: { railOpen: boolean; 
         </button>
         <IconButton icon={railOpen ? PanelLeftClose : PanelLeftOpen} label={railOpen ? 'Réduire le menu' : 'Déplier le menu'} aria-expanded={railOpen} variant="glass" onClick={onRail} />
       </div>
-      <div className="flex justify-center">{people && <PersonSwitcher />}</div>
+      <div className="flex justify-center">
+        <PersonSwitcher hidden={!people} />
+      </div>
       <div className="flex items-center justify-end gap-2.5">
         <ChipMenu ref={addRef} items={adds} label="Ajouter" width={250} className="inline-flex size-11 items-center justify-center rounded-full text-text-primary transition-transform duration-(--v-duree-courte) active:scale-95">
           {/* The + turns into a × while the menu is open. */}
