@@ -66,16 +66,16 @@ export function Dialog({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="dialog"
-          className="app-scrim fixed inset-0 z-[1300] flex items-center justify-center bg-overlay-scrim p-8 max-md:items-end max-md:p-2 max-md:pb-[calc(env(safe-area-inset-bottom)+8px)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: t.short } }}
-          exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
-        >
+        <motion.div key="dialog" className="fixed inset-0 z-[1300] flex items-center justify-center p-8 max-md:items-end max-md:p-2 max-md:pb-[calc(env(safe-area-inset-bottom)+8px)]">
+          {/* The scrim fades on its own layer: around the dialog, a fade would make its glass clear until opaque. */}
+          <motion.div
+            aria-hidden
+            className="app-scrim absolute inset-0 bg-overlay-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: t.short } }}
+            exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+            onMouseDown={() => onClose()}
+          />
           <motion.div
             ref={(el) => {
               panel.current = el;
@@ -86,14 +86,14 @@ export function Dialog({
             aria-label={title}
             tabIndex={-1}
             className={cn(
-              'liquid liquid-dialog flex max-h-full w-full flex-col overflow-hidden rounded-2xl outline-none focus-visible:shadow-none max-md:max-h-[88dvh]',
+              'liquid liquid-dialog relative flex max-h-full w-full flex-col overflow-hidden rounded-2xl outline-none focus-visible:shadow-none max-md:max-h-[88dvh]',
               width === 's' && 'max-w-[440px]',
               width === 'm' && 'max-w-[560px]',
               width === 'l' && 'max-w-[760px]',
             )}
             initial={{ y: t.translation, scale: 0.97 }}
             animate={{ y: 0, scale: 1, transition: { duration: t.medium, ease: t.entry } }}
-            exit={{ scale: 0.98, transition: { duration: t.short, ease: t.exit } }}
+            exit={{ y: t.translation, scale: 0.97, transition: { duration: t.short, ease: t.exit } }}
           >
             <div className="flex items-center gap-3 px-6 pt-5 pb-3">
               {Icon && (
@@ -146,9 +146,10 @@ function Toast({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: string)
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: m.translation }}
-      animate={{ opacity: 1, y: 0, transition: { duration: m.medium, ease: m.entry } }}
-      exit={{ opacity: 0, transition: { duration: m.short, ease: m.exit } }}
+      // Slides in and out without a fade (a fading glass turns clear before it is opaque).
+      initial={{ y: m.translation * 2, scale: 0.96 }}
+      animate={{ y: 0, scale: 1, transition: { duration: m.medium, ease: m.entry } }}
+      exit={{ x: '115%', transition: { duration: 0.2, ease: m.exit } }}
       className="pointer-events-auto"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}

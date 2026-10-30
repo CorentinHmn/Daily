@@ -64,15 +64,15 @@ export function WeekScreen() {
         />
       </PageHeader>
       {mobile && <WeekStrip mode={mode} monday={monday} onPrev={prev} onNext={next} />}
-      {/* popLayout: the new view slides in while the old one slides out (no blank between the two). */}
+      {/* popLayout: the new view slides in as the old one leaves (at once: no fade, its glass would turn clear). */}
       <AnimatePresence mode="popLayout" initial={false} custom={dir}>
         <motion.div
           key={mode === 'agenda' ? monday : 'type'}
           custom={dir}
           variants={{
-            enter: (d: number) => ({ opacity: 0, x: d * 24 }),
-            center: { opacity: 1, x: 0, transition: { duration: t.medium, ease: t.entry } },
-            leave: (d: number) => ({ opacity: 0, x: d * -24, transition: { duration: t.short, ease: t.exit } }),
+            enter: (d: number) => ({ x: d * 24 }),
+            center: { x: 0, transition: { duration: t.medium, ease: t.entry } },
+            leave: { x: 0, transition: { duration: 0 } },
           }}
           initial="enter"
           animate="center"

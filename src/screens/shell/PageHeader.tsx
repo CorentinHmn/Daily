@@ -61,9 +61,10 @@ function CompactBar({ title }: { title: string }) {
     <AnimatePresence>
       {scrolled && (
         <motion.div
-          initial={{ y: -12, opacity: 0 }}
-          animate={{ y: 0, opacity: 1, transition: { duration: t.short * 1.5, ease: t.entry } }}
-          exit={{ y: -12, opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+          // Slides down from above the screen, without a fade (its glass would show clear until opaque).
+          initial={{ y: -80 }}
+          animate={{ y: 0, transition: { duration: t.short * 1.5, ease: t.entry } }}
+          exit={{ y: -80, transition: { duration: t.short, ease: t.exit } }}
           className="pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto max-w-[744px] px-3 pt-[calc(env(safe-area-inset-top)+6px)]"
         >
           <div ref={glass} className="liquid liquid-bar pointer-events-auto flex h-11 items-center justify-center rounded-full px-5">

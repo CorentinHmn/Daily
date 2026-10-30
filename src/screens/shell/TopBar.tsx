@@ -7,6 +7,7 @@ import type { Ref } from 'react';
 import { Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun } from 'lucide-react';
 import { SHARED_VIEWS, useApp } from '../../store/app';
 import { ICON_STROKE, IconButton, Logo } from '../../ui/atoms';
+import { cn } from '../../ui/cn';
 import { ChipMenu, type ChipMenuHandle } from '../../ui/chipMenu';
 import type { MenuItem } from '../../ui/overlays';
 import { PersonSwitcher } from '../../ui/people';
@@ -27,7 +28,8 @@ export function TopBar({ railOpen, onRail, adds, addRef }: { railOpen: boolean; 
       <div className="flex justify-center">{people && <PersonSwitcher />}</div>
       <div className="flex items-center justify-end gap-2.5">
         <ChipMenu ref={addRef} items={adds} label="Ajouter" width={250} className="inline-flex size-11 items-center justify-center rounded-full text-text-primary transition-transform duration-(--v-duree-courte) active:scale-95">
-          {() => <Plus size={20} strokeWidth={ICON_STROKE} aria-hidden />}
+          {/* The + turns into a × while the menu is open. */}
+          {(open) => <Plus size={20} strokeWidth={ICON_STROKE} aria-hidden className={cn('transition-[rotate] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]', open && 'rotate-[135deg]')} />}
         </ChipMenu>
         <IconButton icon={Settings} label="Paramètres" variant="glass" onClick={() => app.openDialog({ kind: 'settings' })} />
         <IconButton icon={theme === 'day' ? Moon : Sun} label={theme === 'day' ? 'Passer en sombre' : 'Passer en clair'} variant="glass" onClick={() => app.setTheme(theme === 'day' ? 'night' : 'day')} />

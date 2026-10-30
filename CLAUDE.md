@@ -51,8 +51,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   `text-text-on-nav` (blanc / encre sombre en verre fumé, bleu / blanc en clair), pas `bg-accent-default`.
 - Les popovers doivent passer au-dessus des dialogues (`z-[1350]` > `z-[1300]`). Échap ne ferme pas un dialogue tant
   qu'un popover est encore dans la page (y compris pendant ses 140 ms de sortie).
-- Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : ne pas mettre de flou
-  d'entrée sur un conteneur de verre.
+- Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : pas de fondu ni de flou
+  sur un élément de verre ou un de ses parents (il paraissait clair puis givré une fois opaque). Entrées et changements
+  d'écran = glissements (`revealVariants`, écrans, semaine, fenêtres, menus, notifications) ; le voile des fenêtres fond
+  sur son propre calque, à côté du panneau.
 - Mise en page téléphone **sous 1200 px** (`--breakpoint-md: 75rem` dans tokens.css, `MOBILE_QUERY` dans
   useMedia.ts, et les deux `@media` d'app.css : les trois ensemble) : téléphones, tablettes portrait et paysage. La
   mise en page bureau (rail, 3 colonnes, semaine sur 7 colonnes) a besoin d'environ 1200 px ; sur tablette la colonne

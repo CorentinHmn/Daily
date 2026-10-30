@@ -294,8 +294,8 @@
    under a veil: light in the light theme, a darker top in the smoked one (white titles stand straight on it). */
 :root {
   --backdrop-veil: linear-gradient(180deg, rgb(238 241 245 / 0.62), rgb(238 241 245 / 0.42) 55%, rgb(238 241 245 / 0.5));
-  --glass-panel: rgb(255 255 255 / 0.62);
-  --glass-panel-mobile: rgb(255 255 255 / 0.74);
+  --glass-panel: rgb(255 255 255 / 0.55);
+  --glass-panel-mobile: rgb(255 255 255 / 0.66);
   --glass-bar: rgb(246 248 251 / 0.82);
   --glass-panel-strong: rgb(255 255 255 / 0.88);
   --glass-liquid: rgb(255 255 255 / 0.22);
@@ -318,11 +318,11 @@
   --status-scrim: linear-gradient(180deg, rgb(40 42 46 / 0.32), rgb(40 42 46 / 0));
 }
 :root[data-theme='night'] {
-  --glass-panel: rgb(74 74 78 / 0.4);
-  --glass-panel-mobile: rgb(70 70 74 / 0.5);
-  --glass-bar: rgb(52 51 54 / 0.62);
+  --glass-panel: rgb(74 74 78 / 0.33);
+  --glass-panel-mobile: rgb(70 70 74 / 0.42);
+  --glass-bar: rgb(52 51 54 / 0.56);
   --glass-panel-strong: rgb(48 47 50 / 0.76);
-  --glass-liquid: rgb(80 79 82 / 0.3);
+  --glass-liquid: rgb(80 79 82 / 0.26);
   --glass-liquid-strong: rgb(48 47 50 / 0.7);
   --glass-rim-light: rgb(255 255 255 / 0.24);
   --glass-rim-soft: rgb(255 255 255 / 0.13);

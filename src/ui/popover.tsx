@@ -138,8 +138,9 @@ export function Popover({
           id={id}
           role={role}
           aria-label={label}
-          initial={frames ? { transform: frames[0], opacity: 0 } : { opacity: 0 }}
-          animate={frames ? { transform: frames, opacity: 1, transition: { transform: { duration: SPRING.ms / 1000, ease: 'linear' }, opacity: { duration: 0.08 } } } : { opacity: 1, transition: { duration: t.short } }}
+          // No fade on the glass itself (it would show clear until opaque): it grows out of the trigger.
+          initial={frames ? { transform: frames[0] } : { opacity: 0 }}
+          animate={frames ? { transform: frames, transition: { transform: { duration: SPRING.ms / 1000, ease: 'linear' } } } : { opacity: 1, transition: { duration: t.short } }}
           exit={frames ? { transform: frames[0], opacity: 0, transition: { transform: { duration: 0.2, ease: [0.5, 0, 0.9, 0.6] }, opacity: { duration: 0.08, delay: 0.12 } } } : { opacity: 0, transition: { duration: t.short } }}
           style={{
             position: 'fixed',

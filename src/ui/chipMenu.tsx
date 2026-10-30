@@ -96,6 +96,17 @@ function layers(g: Box, W: number, H: number, q: number, up: boolean) {
   };
 }
 
+/** The outline's bounds at `q`, in the layer: the sheen and the rim's light spread over the glass as it grows. */
+function bounds(g: Box, H: number, q: number, up: boolean) {
+  const { bottom, left } = reach(g, q);
+  const px = (v: number) => `${Math.round(v * 100) / 100}px`;
+  const x = left;
+  const y = up ? H - bottom : g.top;
+  const w = g.cx1 - left;
+  const h = bottom - g.top;
+  return { box: { left: px(x), top: px(y), width: px(w), height: px(h) }, light: { backgroundPosition: `${px(x)} ${px(y)}`, backgroundSize: `${px(w)} ${px(h)}` } };
+}
+
 /**
  * WebKit: the frost under the outline at `q`, as two rounded boxes: the chip's column (down to the menu's top) and the
  * menu (its corner beside the column square, where they meet). Only the hollow curve has no frost.
@@ -152,6 +163,7 @@ export function ChipMenu({
   const shade = useRef<HTMLDivElement>(null);
   const light = useRef<HTMLDivElement>(null);
   const tint = useRef<HTMLDivElement>(null);
+  const sheen = useRef<HTMLDivElement>(null);
   const column = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -193,19 +205,22 @@ export function ChipMenu({
     return () => ro.disconnect();
   }, [sized]);
 
-  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current];
+  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current, sheen.current];
 
   /** Every layer at rest at `q` (0: the chip alone, 1: open). */
   const settle = useCallback(
     (q: number) => {
       if (!box) return;
       const l = layers(box, W, H, q, up);
-      const [sl, sh, ss, rs, rl, tn, li, co, pa] = els();
+      const b = bounds(box, H, q, up);
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn] = els();
       if (!sl || !sh || !ss || !rs || !rl) return;
       sl.style.clipPath = ss.style.clipPath = l.glass;
       sh.style.clipPath = l.shadow;
       rs.style.clipPath = l.shade;
       rl.style.clipPath = l.light;
+      Object.assign(rl.style, b.light);
+      if (sn) Object.assign(sn.style, b.box);
       if (tn) tn.style.opacity = String(q);
       if (li) {
         li.style.opacity = String(q);
@@ -241,15 +256,18 @@ export function ChipMenu({
       const qs = opening ? SPRING.frames.map(({ p }) => (p > 1 ? 1 + (p - 1) * 0.5 : p)) : Array.from({ length: Math.ceil(CLOSE_MS / FRAME) + 1 }, (_, i) => 1 - ease(Math.min(1, (i * FRAME) / CLOSE_MS)));
       const duration = opening ? SPRING.ms : CLOSE_MS;
       const opts = { duration, easing: 'linear', fill: 'forwards' as const };
-      const [sl, sh, ss, rs, rl, tn, li, co, pa] = all;
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn] = all;
       const outlines = qs.map((q) => layers(box, W, H, q, up));
+      const spans = qs.map((q) => bounds(box, H, q, up));
       const pieces = co && pa ? qs.map((q) => frost(box, H, q, up)) : [];
       const anims = [
         sl?.animate(outlines.map((o) => ({ clipPath: o.glass })), opts),
         ss?.animate(outlines.map((o) => ({ clipPath: o.glass })), opts),
         sh?.animate(outlines.map((o) => ({ clipPath: o.shadow })), opts),
         rs?.animate(outlines.map((o) => ({ clipPath: o.shade })), opts),
-        rl?.animate(outlines.map((o) => ({ clipPath: o.light })), opts),
+        // The rim's light and the sheen spread over the whole glass: one piece, no ring left around the chip.
+        rl?.animate(outlines.map((o, i) => ({ clipPath: o.light, ...spans[i]!.light })), opts),
+        sn?.animate(spans.map((b) => b.box), opts),
         co?.animate(pieces.map((f) => f[0]!), opts),
         pa?.animate(pieces.map((f) => f[1]!), opts),
         // The menu's tint comes with the glass; its items once the glass is mostly out, and they leave first.
@@ -348,13 +366,9 @@ export function ChipMenu({
             style={{ ...place, ...(bar && { background: 'var(--glass-bar)' }), ...(WEBKIT && { backdropFilter: 'none', WebkitBackdropFilter: 'none' }) }}
             className="rail-glass pointer-events-none absolute"
           >
-            <div className="rail-sheen absolute rounded-full" style={{ left: box!.cx0, top: chipTop, width: box!.cx1 - box!.cx0, height: box!.ch }} />
-            {/* The menu's denser tint (legible over the page), fading in over the neck. */}
-            <div
-              ref={tint}
-              className={cn('chip-menu-tint absolute', up && 'chip-menu-tint-up')}
-              style={up ? { left: box!.mx0, right: ROOM, top: ROOM, bottom: box!.top + box!.ch, opacity: 0 } : { left: box!.mx0, right: ROOM, top: box!.top + box!.ch, bottom: ROOM, opacity: 0 }}
-            />
+            <div ref={sheen} className="rail-sheen absolute" style={{ left: box!.cx0, top: chipTop, width: box!.cx1 - box!.cx0, height: box!.ch }} />
+            {/* The menu's denser tint (legible over the page), over the whole glass, chip included: one even piece. */}
+            <div ref={tint} className="chip-menu-tint absolute inset-0" style={{ opacity: 0 }} />
           </div>
           <div ref={shade} aria-hidden style={place} className="pointer-events-none absolute bg-(--glass-rim-shade)" />
           <div ref={light} aria-hidden style={{ ...place, backgroundPosition: `${box!.cx0}px ${chipTop}px`, backgroundSize: `${box!.cx1 - box!.cx0}px ${box!.ch}px` }} className="chip-rim pointer-events-none absolute" />

@@ -23,20 +23,19 @@ export function motionTokens() {
   };
 }
 
-/** Cards / panels: y 18 → 0, opacity 0 → 1, blur 10 → 0, 320 ms easing/entry, stagger/card. */
+/**
+ * Cards / panels: y 18 → 0, 320 ms easing/entry, stagger/card. No fade nor blur: a wrapper with opacity < 1 or a filter
+ * is a backdrop root, the glass inside stops seeing the page behind (it showed clear, then frosted once opaque).
+ */
 export function revealVariants(): Variants {
   const t = motionTokens();
   return {
-    hidden: { opacity: 0, y: t.translation, filter: `blur(${t.blur}px)` },
+    hidden: { y: t.translation },
     show: (i: number = 0) => ({
-      opacity: 1,
       y: 0,
-      filter: 'blur(0px)',
       transition: { duration: t.medium, ease: t.entry, delay: i * t.staggerCard * t.delayScale },
-      // A leftover `filter` makes the wrapper a backdrop root: the glass inside would stop seeing the page behind.
-      transitionEnd: { filter: 'none' },
     }),
-    exit: { opacity: 0, transition: { duration: t.short, ease: t.exit } },
+    exit: { y: 0, transition: { duration: 0 } },
   };
 }
 

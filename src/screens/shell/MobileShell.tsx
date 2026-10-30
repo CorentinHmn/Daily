@@ -55,9 +55,9 @@ export function MobileShell<T extends string>({
             <motion.div
               key={screenKey}
               className="mx-auto flex w-full max-w-[720px] flex-col"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }}
-              exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+              initial={{ y: 8 }}
+              animate={{ y: 0, transition: { duration: t.medium, ease: t.entry } }}
+              exit={{ y: 0, transition: { duration: 0 } }}
             >
               {children}
             </motion.div>
@@ -193,7 +193,8 @@ function TabBar<T extends string>({ items, active, onNavigate, adds, addRef }: {
         })}
       </nav>
       <ChipMenu ref={addRef} items={adds} label="Ajouter" width={250} up bar className="pointer-events-auto inline-flex size-16 items-center justify-center rounded-full text-text-accent transition-transform duration-200 active:scale-95">
-        {() => <Plus size={26} strokeWidth={2} aria-hidden />}
+        {/* The + turns into a × while the menu is open. */}
+        {(open) => <Plus size={26} strokeWidth={2} aria-hidden className={cn('transition-[rotate] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]', open && 'rotate-[135deg]')} />}
       </ChipMenu>
     </div>
   );

@@ -137,6 +137,10 @@
   par le nom ratait WebKit. Détection par le moteur (vendor Apple / touch callout) ; même correctif pour la carte à
   encoche (séance) ; la réfraction SVG n'est plus tentée sur iPad. Ligne vide sous « Aucun programme » au téléphone
   retirée.
+- Retour : en changeant d'écran, le verre passait très transparent puis opaque (fondu d'opacité sur un parent : plus de
+  flou le temps du fondu). Plus aucun fondu sur le verre : écrans, cartes, semaine, fenêtres, menus, notifications,
+  barre compacte, connexion glissent. Verre un peu plus transparent (panneaux 0,33, téléphone 0,42). Le + ouvert ne
+  montre plus son rond : reflet, liseré et teinte couvrent toute la forme ; la croix pivote en × à l'ouverture.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

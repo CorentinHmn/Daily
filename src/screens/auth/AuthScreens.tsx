@@ -24,7 +24,7 @@ function AuthLayout({ children, wide }: { children: ReactNode; wide?: boolean })
       <Backdrop fixed />
       {/* Anchored at the top, not centred: when the form grows (Créer un compte), the card extends downwards. */}
       <div className="relative z-10 flex min-h-full items-start justify-center px-4 pt-[max(calc(env(safe-area-inset-top)+24px),10vh)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }} className={cn('w-full', wide ? 'max-w-[560px]' : 'max-w-[440px]')}>
+        <motion.div initial={{ y: 12 }} animate={{ y: 0, transition: { duration: t.medium, ease: t.entry } }} className={cn('w-full', wide ? 'max-w-[560px]' : 'max-w-[440px]')}>
           <Liquid strong glass={{ bezel: 28, strength: 14 }} className="rounded-2xl p-8 max-md:p-6">
             {children}
           </Liquid>

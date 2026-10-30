@@ -93,9 +93,10 @@ function CheerCard({ cheer, onDone }: { cheer: Cheer; onDone: () => void }) {
       role="status"
       aria-live="polite"
       onClick={onDone}
-      initial={still ? { opacity: 0 } : { opacity: 0, transform: IN[0] }}
-      animate={still ? { opacity: 1 } : { opacity: 1, transform: IN, transition: { transform: { duration: SPRING.ms / 1000, ease: 'linear' }, opacity: { duration: 0.12 } } }}
-      exit={{ opacity: 0, transform: 'translateY(-10px) scale(0.94)', transition: { duration: 0.22, ease: [0.5, 0, 0.9, 0.6] } }}
+      // No fade on its glass (clear until opaque): it springs out of the top, and goes back up out of the screen.
+      initial={still ? { opacity: 0 } : { transform: IN[0] }}
+      animate={still ? { opacity: 1 } : { transform: IN, transition: { transform: { duration: SPRING.ms / 1000, ease: 'linear' } } }}
+      exit={still ? { opacity: 0 } : { transform: 'translateY(-160px) scale(0.94)', transition: { duration: 0.26, ease: [0.5, 0, 0.9, 0.6] } }}
       className="liquid liquid-strong pointer-events-auto flex w-[min(100%,380px)] cursor-pointer items-center gap-4 rounded-2xl py-3.5 pr-5 pl-3.5"
     >
       <span ref={badge} className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-signal-default text-text-on-accent shadow-hairline-top">

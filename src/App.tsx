@@ -152,9 +152,9 @@ function Workspace() {
               <motion.div
                 key={`${view}-${today}`}
                 className="flex min-h-0 flex-1 flex-col"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0, transition: { duration: t.medium, ease: t.entry } }}
-                exit={{ opacity: 0, transition: { duration: t.short, ease: t.exit } }}
+                initial={{ y: 8 }}
+                animate={{ y: 0, transition: { duration: t.medium, ease: t.entry } }}
+                exit={{ y: 0, transition: { duration: 0 } }}
               >
                 <Screen />
               </motion.div>
