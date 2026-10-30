@@ -30,6 +30,7 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - `src/screens/auth/AuthScreens.tsx` : connexion, création de compte, mot de passe oublié, création / accès au foyer.
 - `src/ui/` : composants Halo ; `glass.tsx` = liquid glass (réfraction SVG en `backdrop-filter: url()`, Chromium).
 - `src/screens/` : today, week, sport (GymView, SessionView, RunView), goals, shopping, dialogs, shell.
+- `docs/style-guide/` : le style de l'appli expliqué pour le réutiliser (GUIDE.md, captures, séquences d'animation).
 - `supabase/` : migrations (schéma appliqué au projet `dyqqvtpdttwzwkxtpzfp`) et fonction Edge `signup`.
 
 ## Supabase (projet `dyqqvtpdttwzwkxtpzfp`, outils MCP Supabase)

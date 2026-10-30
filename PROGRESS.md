@@ -167,6 +167,9 @@
   les cartes fondaient ensemble, le filtre des personnes disparaissait net sur Courses. Maintenant : fondu de sortie
   (140 ms), entrée en cascade, en-têtes compris, filtre qui fond en place. Mesuré image par image (opacités) ; e2e 15/15.
 
+- Guide pour réutiliser le style : `docs/style-guide/GUIDE.md` + `captures/` (écrans, détails, séquences d'animation
+  ralenties ×10) : valeurs, vitesses, fichiers à reprendre, pièges et corrections.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur
