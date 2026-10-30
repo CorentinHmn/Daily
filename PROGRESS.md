@@ -119,7 +119,7 @@
   puis le clair (`light`).
 - Vérifié : `tsc`, `eslint`, vitest 20/20, e2e 15/15, `shoot.ts` sur les 8 tailles (aucun débordement, aucune erreur
   console ; sous-titres raccourcis pour le téléphone ; les autres remarques du rapport existaient avant). Comptes de
-  test supprimés. Poussé sur la branche `glassy-dashboard` (pas encore sur `main`).
+  test supprimés. Passé par la branche `glassy-dashboard`, puis mis sur `main` à la demande de l'utilisateur.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
