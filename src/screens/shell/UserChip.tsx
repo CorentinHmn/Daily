@@ -19,6 +19,7 @@ export function UserChip({ compact }: { compact?: boolean }) {
   const photo = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.photo);
   return (
     <ChipMenu
+      bare
       label={compact ? `${name || 'Moi'}, menu` : undefined}
       className={compact ? 'inline-flex size-11 items-center justify-center rounded-full' : 'flex h-[52px] items-center gap-3 rounded-full py-1 pr-1.5 pl-4 text-left'}
       width={240}

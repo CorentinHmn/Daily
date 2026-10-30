@@ -58,8 +58,9 @@ const POUR_AT = SPRING.frames.findIndex((f) => f.p >= 0.5);
 /**
  * Outline of the rail's glass: the rail (W × H, corners R) and, on its right side around height `cy`, the wave: a
  * pill out by `e` px, `hh` high on each side of `cy`, joined to the rail by two hollow curves. `inset` = the same
- * outline moved inwards (for the rim's ring). Always the same commands, so that the path can be interpolated (e = 0:
- * the bare rail).
+ * outline moved inwards (for the rim's ring). e = 0: the bare rail.
+ * Near the rail's ends the hollow curves shrink to stay on its straight side; on the first and last items the wave runs
+ * flush with the rail's top or bottom (its corner moves out with it) instead of spilling past the rail's end.
  */
 function railShape(W: number, H: number, R: number, e: number, cy: number, hh: number, inset = 0): string {
   const i = inset;
@@ -70,17 +71,31 @@ function railShape(W: number, H: number, R: number, e: number, cy: number, hh: n
   const f = e >= full ? FILLET : (e * FILLET) / full;
   const top = cy - hh;
   const bottom = cy + hh;
-  const fi = f + i;
+  const flushTop = e > 0 && top < R;
+  const flushBottom = e > 0 && bottom > H - R;
+  const fT = flushTop ? 0 : Math.max(0, Math.min(f, top - R));
+  const fB = flushBottom ? 0 : Math.max(0, Math.min(f, H - R - bottom));
   const ci = Math.max(0, c - i);
   const hi = Math.max(0, hh - i);
   const n = (v: number) => Math.round(v * 100) / 100;
-  return [
-    `M ${R} ${i} H ${n(W - R)} A ${R - i} ${R - i} 0 0 1 ${n(W - i)} ${R}`,
-    `V ${n(top - f)} A ${n(fi)} ${n(fi)} 0 0 0 ${n(W + f)} ${n(top + i)}`,
-    `H ${n(W + e - c)} A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c + ci)} ${n(cy)} A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c)} ${n(bottom - i)}`,
-    `H ${n(W + f)} A ${n(fi)} ${n(fi)} 0 0 0 ${n(W - i)} ${n(bottom + f)}`,
-    `V ${H - R} A ${R - i} ${R - i} 0 0 1 ${n(W - R)} ${H - i} H ${R} A ${R - i} ${R - i} 0 0 1 ${i} ${H - R} V ${R} A ${R - i} ${R - i} 0 0 1 ${R} ${i} Z`,
-  ].join(' ');
+  // The end's corner on a flush side: the rail's own radius, smaller only if the bubble overshoots past the end.
+  const rt = Math.max(4, Math.min(R, cy));
+  const rb = Math.max(4, Math.min(R, H - cy));
+  const head = flushTop
+    ? `M ${R} ${i} H ${n(W + e - rt)} A ${n(rt - i)} ${n(rt - i)} 0 0 1 ${n(W + e - i)} ${n(rt)} V ${n(Math.max(cy, rt))}`
+    : [
+        `M ${R} ${i} H ${n(W - R)} A ${R - i} ${R - i} 0 0 1 ${n(W - i)} ${R}`,
+        `V ${n(top - fT)} A ${n(fT + i)} ${n(fT + i)} 0 0 0 ${n(W + fT)} ${n(top + i)}`,
+        `H ${n(W + e - c)} A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c + ci)} ${n(cy)}`,
+      ].join(' ');
+  const tail = flushBottom
+    ? `V ${n(H - rb)} A ${n(rb - i)} ${n(rb - i)} 0 0 1 ${n(W + e - rb)} ${n(H - i)}`
+    : [
+        `A ${n(ci)} ${n(hi)} 0 0 1 ${n(W + e - c)} ${n(bottom - i)}`,
+        `H ${n(W + fB)} A ${n(fB + i)} ${n(fB + i)} 0 0 0 ${n(W - i)} ${n(bottom + fB)}`,
+        `V ${H - R} A ${R - i} ${R - i} 0 0 1 ${n(W - R)} ${H - i}`,
+      ].join(' ');
+  return `${head} ${tail} H ${R} A ${R - i} ${R - i} 0 0 1 ${i} ${H - R} V ${R} A ${R - i} ${R - i} 0 0 1 ${R} ${i} Z`;
 }
 
 /** The clip-paths of every layer for one outline: the glass, its shadow (only outside it), its rim (a ring). */
@@ -186,7 +201,8 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
 
   /** Stops the wave (it flows back at once): the rail opens or folds, or a new pour starts. */
   const still = useCallback(() => {
-    for (const el of [tongue.current, name.current]) el?.getAnimations().forEach((a) => a.cancel());
+    const badges = railRef.current?.querySelectorAll<HTMLElement>('[data-rail-badge]') ?? [];
+    for (const el of [tongue.current, name.current, ...badges]) el?.getAnimations().forEach((a) => a.cancel());
     glow.current?.cancel();
   }, []);
 
@@ -259,6 +275,17 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
       play(p.sh, (_, i) => ({ clipPath: outline[i]!.shadow }));
       play(p.rs, (_, i) => ({ clipPath: outline[i]!.shade }));
       play(p.rl, (_, i) => ({ clipPath: outline[i]!.light }));
+      // The item's badge (Courses: the items to buy) rides at the poured bubble's end, as it sits on the round one.
+      const bd = railRef.current?.querySelector<HTMLElement>('[data-rail-badge="active"]');
+      const nav = railRef.current;
+      if (bd && nav) {
+        const iconRight = bd.getBoundingClientRect().right - nav.getBoundingClientRect().left - 4;
+        play(bd, (s) => {
+          const end = s.right >= width ? 0 : t.offsetLeft + width - s.right;
+          const dx = Math.max(0, end - iconRight);
+          return { transform: dx > 0 ? `translate(${dx}px, ${s.off}px)` : 'none' };
+        });
+      }
       // The name fades in once the bubble is well out, and out as it flows back.
       play(n, (s) => {
         const shownPart = s.right >= width ? 0 : Math.max(0, Math.min(1, (hidden - s.right) / Math.max(1, hidden - OVERSHOOT)));
@@ -376,7 +403,8 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
 
   const row = 'relative flex h-12 w-full items-center rounded-full text-label-m';
   const icon = 'relative inline-flex size-12 shrink-0 items-center justify-center rounded-full';
-  const badge = 'tnum inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full border border-border-default bg-bg-card px-1 text-[10px] font-medium text-text-primary';
+  // Opaque (a translucent badge vanished on the white bubble), with a fine ring off the glass.
+  const badge = 'tnum inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-(--badge-bg) px-1 text-[10px] font-medium text-(--badge-ink) shadow-[0_0_0_1px_var(--color-border-default),0_2px_6px_-2px_rgb(0_0_0/0.35)]';
 
   return (
     <div ref={frame} style={{ width: open ? 'var(--layout-rail-open)' : 'var(--layout-rail)' }} className="relative z-20 flex shrink-0">
@@ -438,7 +466,11 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
                 >
                   <span className={cn(icon, !on && 'bg-bg-subtle transition-colors group-hover/item:bg-bg-hover')}>
                     <Icon size={20} strokeWidth={ICON_STROKE} aria-hidden />
-                    {item.badge && !open && <span className={cn(badge, 'absolute -top-1 -right-1')}>{item.badge}</span>}
+                    {item.badge && !open && (
+                      <span data-rail-badge={on ? 'active' : undefined} className={cn(badge, 'absolute -top-1 -right-1 z-[3] will-change-transform')}>
+                        {item.badge}
+                      </span>
+                    )}
                     {item.live && <span aria-label="Séance en cours" className="live-halo absolute top-1 right-1 size-2.5 rounded-full bg-accent-default text-accent-default ring-2 ring-bg-card" />}
                   </span>
                   <RailLabel open={open} className="pl-1">

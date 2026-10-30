@@ -54,6 +54,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   doit suivre ce modèle.
 - Un commentaire CSS fermé trop tôt casse toute la feuille sans bruit côté serveur de dev (il sert l'ancienne) :
   après une modif de CSS, vérifier `npm run build` (erreur « Invalid declaration »).
+- Service worker : la page (navigation) en réseau d'abord (`NetworkFirst`, copie `pages` pour le hors-ligne), jamais
+  pré-cachée : sinon une ouverture montrait l'ancienne version jusqu'au rechargement suivant.
+- Avatars : bord = anneau `box-shadow` (`--avatar-edge`), jamais une bordure translucide (cercle flou) ; la pastille du
+  profil (`ChipMenu bare`) n'a pas de verre au repos. Badges opaques (`--badge-bg` / `--badge-ink`).
 - Icônes : `/icons/cadence-*.png` (index.html, manifeste) ; les anciennes adresses (`/favicon.ico`, `/logo.svg`,
   `/apple-touch-icon.png`) servent aussi le nouveau logo, car favoris et onglets gardent une icône par adresse.
 - Thème : `night` = verre fumé (défaut), `day` = clair. Chaque appareil passe une fois en `night` (`cadence.look` =
@@ -66,7 +70,9 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : pas de fondu ni de flou
   sur un élément de verre ou un de ses parents (il paraissait clair puis givré une fois opaque). Entrées et changements
   d'écran = glissements (`revealVariants`, écrans, semaine, fenêtres, menus, notifications) ; le voile des fenêtres fond
-  sur son propre calque, à côté du panneau.
+  sur son propre calque, à côté du panneau. Le fondu d'un nouvel écran se fait sur chaque surface de verre elle-même
+  (animation CSS `glass-in` à l'insertion : `.glass-panel`, `.glass-in`, `.liquid`, titres dans `<main>`), jamais
+  sur un conteneur.
 - Mise en page téléphone **sous 1200 px** (`--breakpoint-md: 75rem` dans tokens.css, `MOBILE_QUERY` dans
   useMedia.ts, et les deux `@media` d'app.css : les trois ensemble) : téléphones, tablettes portrait et paysage. La
   mise en page bureau (rail, 3 colonnes, semaine sur 7 colonnes) a besoin d'environ 1200 px ; sur tablette la colonne

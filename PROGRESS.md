@@ -158,6 +158,11 @@
 - Favori toujours avec l'ancien logo : l'ancienne icône vivait à `/logo.svg`, supprimée (l'adresse renvoyait la page).
   `/logo.svg` sert maintenant le nouveau logo, et les icônes ont de nouvelles adresses (`/icons/`).
 
+- Retours : changement d'onglet de nouveau en fondu (sur chaque carte de verre, sans perdre le flou) ; avatars nets
+  (anneau extérieur, plus de verre derrière la photo du profil) ; « Visit » sur Vercel : la page vient toujours du
+  réseau (service worker en réseau d'abord) ; vague du rail : au premier / dernier onglet elle rejoint le haut / bas du
+  rail au lieu de déborder, arrondis réduits près des coins ; badge des Courses opaque, qui suit la fin du nom sorti.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

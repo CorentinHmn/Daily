@@ -144,6 +144,7 @@ export function ChipMenu({
   width = 240,
   up = false,
   bar = false,
+  bare = false,
   ref,
 }: {
   items: MenuItem[];
@@ -155,6 +156,8 @@ export function ChipMenu({
   up?: boolean;
   /** The denser tint of the bars (the phone's tab bar, beside it). */
   bar?: boolean;
+  /** No glass at rest (the chip is opaque, the avatar): it grows out of the chip when the menu opens. */
+  bare?: boolean;
   /** `open()`: from a keyboard shortcut. */
   ref?: Ref<ChipMenuHandle>;
 }) {
@@ -356,7 +359,7 @@ export function ChipMenu({
 
   // The glass layer, from the chip: the chip sits at the layer's top right (box.cx1 = ROOM + menuW), bottom right when
   // the menu opens upwards.
-  const place = box && size ? { left: size.w - box.cx1, top: -chipTop, width: W, height: H } : undefined;
+  const place = box && size ? { left: size.w - box.cx1, top: -chipTop, width: W, height: H, ...(bare && phase === 'closed' && { visibility: 'hidden' as const }) } : undefined;
   return (
     <div ref={wrap} className="relative z-40 shrink-0">
       {place && (

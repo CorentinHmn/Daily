@@ -399,6 +399,29 @@
   background: var(--backdrop-veil);
 }
 
+/*
+ * A new screen (or view) fades in piece by piece: each glass surface fades itself, never a wrapper around it — a
+ * wrapper with opacity < 1 is a backdrop root, its glass would lose its frost until the end (clear, then frosted at
+ * once). CSS animations run when an element is inserted: the cards of a new screen, its title and its controls.
+ */
+@keyframes glass-in {
+  from {
+    opacity: 0;
+  }
+}
+main :is(.glass-panel, .glass-in, .liquid, h1, header p) {
+  animation: glass-in var(--v-duree-moyenne) var(--v-courbe-entree) backwards;
+}
+/* Nested glass fades with its card (fading it too would double the fade and drop its frost meanwhile). */
+main :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  main :is(.glass-panel, .glass-in, .liquid, h1, header p) {
+    animation: none;
+  }
+}
+
 /* Live halo: breathing ring (duration/pulse, loop), cut when motion is reduced. */
 @utility live-halo {
   position: relative;

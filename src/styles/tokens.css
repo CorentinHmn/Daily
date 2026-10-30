@@ -318,6 +318,10 @@
   --bar-rest: linear-gradient(180deg, rgb(154 163 175 / 0.7), rgb(154 163 175 / 0.4));
   /* The user chip's avatar ring; under the iPhone's status bar, a shade that keeps the clock legible over the page. */
   --avatar-ring: rgb(255 255 255 / 0.9);
+  /* Between stacked avatars and around them (opaque: a translucent edge blurred the circle); the badges' fill. */
+  --avatar-edge: #ffffff;
+  --badge-bg: #ffffff;
+  --badge-ink: #14171c;
   --status-scrim: linear-gradient(180deg, rgb(40 42 46 / 0.32), rgb(40 42 46 / 0));
 }
 :root[data-theme='night'] {
@@ -337,6 +341,9 @@
   --glass-solid: #3d3c3f;
   --backdrop-base: #4f4c49;
   --avatar-ring: rgb(255 255 255 / 0.3);
+  --avatar-edge: #3d3c40;
+  --badge-bg: #4a494d;
+  --badge-ink: #ffffff;
   --status-scrim: linear-gradient(180deg, rgb(26 24 22 / 0.5), rgb(26 24 22 / 0));
   --bar-lit: linear-gradient(180deg, #7fb1ff, #4b88f0);
   --bar-rest: linear-gradient(180deg, rgb(255 255 255 / 0.34), rgb(255 255 255 / 0.1));

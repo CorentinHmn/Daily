@@ -180,7 +180,7 @@ function TabBar<T extends string>({ items, active, onNavigate, adds, addRef }: {
                 className="relative shrink-0"
               >
                 <Icon size={21} strokeWidth={ICON_STROKE} aria-hidden />
-                {item.badge && !on && <span className="tnum absolute -top-1.5 -right-3 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-border-default bg-bg-card px-1 text-[9px] font-medium text-text-primary">{item.badge}</span>}
+                {item.badge && !on && <span className="tnum absolute -top-1.5 -right-3 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-(--badge-bg) px-1 text-[9px] font-medium text-(--badge-ink) shadow-[0_0_0_1px_var(--color-border-default)]">{item.badge}</span>}
                 {item.live && <span aria-label="Séance en cours" className="live-halo absolute -top-0.5 -right-1 size-2 rounded-full bg-accent-default text-accent-default ring-2 ring-bg-card" />}
               </span>
               {on && (

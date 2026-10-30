@@ -54,7 +54,7 @@ export function NotchCard({ children, onAction, actionLabel, className }: { chil
   return (
     <div ref={box} className={cn('relative', className)}>
       {d && size && (
-        <svg aria-hidden className="pointer-events-none absolute inset-0 overflow-visible" width={size.w} height={size.h}>
+        <svg aria-hidden className="glass-in pointer-events-none absolute inset-0 overflow-visible" width={size.w} height={size.h}>
           <defs>
             <mask id={`out-${id}`} maskUnits="userSpaceOnUse" x={-60} y={-60} width={size.w + 120} height={size.h + 120}>
               <rect x={-60} y={-60} width={size.w + 120} height={size.h + 120} fill="white" />
@@ -71,18 +71,18 @@ export function NotchCard({ children, onAction, actionLabel, className }: { chil
       )}
       {d && webkitBackdrop && (
         <>
-          <span aria-hidden className="chip-frost pointer-events-none absolute inset-y-0 left-0" style={{ right: S, borderRadius: `${R}px ${R}px 0 ${R}px` }} />
-          <span aria-hidden className="chip-frost pointer-events-none absolute right-0 bottom-0" style={{ top: S, width: S, borderRadius: `0 ${R}px ${R}px 0` }} />
+          <span aria-hidden className="glass-in chip-frost pointer-events-none absolute inset-y-0 left-0" style={{ right: S, borderRadius: `${R}px ${R}px 0 ${R}px` }} />
+          <span aria-hidden className="glass-in chip-frost pointer-events-none absolute right-0 bottom-0" style={{ top: S, width: S, borderRadius: `0 ${R}px ${R}px 0` }} />
         </>
       )}
       <div
-        className={cn('relative h-full overflow-hidden', d ? cn('bg-(--glass-panel)', !webkitBackdrop && 'backdrop-blur-[24px] backdrop-saturate-[1.7]') : 'glass-panel rounded-2xl')}
+        className={cn('relative h-full overflow-hidden', d ? cn('glass-in bg-(--glass-panel)', !webkitBackdrop && 'backdrop-blur-[24px] backdrop-saturate-[1.7]') : 'glass-panel rounded-2xl')}
         style={d ? { clipPath: `path('${d}')` } : undefined}
       >
         {children}
       </div>
       {d && size && (
-        <svg aria-hidden className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
+        <svg aria-hidden className="glass-in pointer-events-none absolute inset-0" width={size.w} height={size.h}>
           <defs>
             <clipPath id={`in-${id}`}>
               <path d={d} />

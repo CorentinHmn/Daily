@@ -26,17 +26,24 @@ export default defineConfig({
       injectRegister: false, // registered in main.tsx (update checks, reload)
       manifest: false, // public/manifest.webmanifest, linked from index.html
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2,png,svg,webp,ico,webmanifest}'],
+        // The page itself is not precached (a precached page opened first in its old version, the new one only after a
+        // reload): online it always comes from the network, the copy kept below only serves offline.
+        globPatterns: ['**/*.{js,css,woff2,png,svg,webp,ico,webmanifest}'],
         // The ten background photos (2 MB together) are not all fetched up front: each one is kept once shown.
         globIgnores: ['backdrop/**'],
+        navigateFallback: null,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'pages', networkTimeoutSeconds: 4, expiration: { maxEntries: 8 } },
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/backdrop/'),
             handler: 'CacheFirst',
             options: { cacheName: 'backdrops', expiration: { maxEntries: 48 } },
           },
         ],
-        navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },
     }),

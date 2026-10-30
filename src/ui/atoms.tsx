@@ -127,7 +127,8 @@ export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { n
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full bg-cover bg-center font-medium text-text-on-accent',
         !photo && avatarGradient[hue],
-        size === 'xs' ? 'size-5 border border-bg-card text-[8px]' : size === 's' ? 'size-8 border-2 border-bg-card text-caption' : size === 'chip' ? 'size-11 border-[1.5px] border-(--avatar-ring) text-label-m shadow-[0_6px_16px_-6px_rgb(0_0_0/0.45)]' : 'size-11 border-2 border-bg-card text-label-m',
+        // The edge is a ring outside the picture (box-shadow), never a translucent border over it: a clean circle.
+        size === 'xs' ? 'size-5 text-[8px] shadow-[0_0_0_1px_var(--avatar-edge)]' : size === 's' ? 'size-8 text-caption shadow-[0_0_0_2px_var(--avatar-edge)]' : size === 'chip' ? 'size-11 text-label-m shadow-[0_0_0_1.5px_var(--avatar-ring),0_6px_16px_-6px_rgb(0_0_0/0.45)]' : 'size-11 text-label-m shadow-[0_0_0_2px_var(--avatar-edge)]',
         className,
       )}
     >
