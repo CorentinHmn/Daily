@@ -400,12 +400,24 @@
 }
 
 /*
- * Changing screens (src/screens/shell/ScreenFrame.tsx): the old screen's pieces fade out as it slides up a little, then
- * the new one's fade in as it slides into place, its cards one after the other (--ri, the card's place, set by
- * revealVariants). Each piece fades itself — glass surfaces, titles, the header's controls — never a wrapper around
- * them: a wrapper with opacity < 1 is a backdrop root, its glass would turn clear until the end. The fade-in is a CSS
- * animation, so it also plays for the pieces of a view that appears (Salle / Running).
+ * Changing screens (src/screens/shell/ScreenFrame.tsx): the old screen slides up a little as its pieces fade out, then
+ * the new one slides into place as its pieces fade in, its cards one after the other (--ri, the card's place, set by
+ * revealVariants). Only transform and opacity, as CSS animations: the compositor plays them, even while the new screen
+ * is being rendered (a slide driven from JS stuttered then). Each piece fades itself — glass surfaces, titles, the
+ * header's controls, the pieces of a segmented control — never a wrapper around them: a wrapper with opacity < 1 is a
+ * backdrop root, its glass would turn clear until the end. The fade-in is a CSS animation, so it also plays for the
+ * pieces of a view that appears (Salle / Running).
  */
+@keyframes screen-in {
+  from {
+    transform: translateY(10px);
+  }
+}
+@keyframes screen-out {
+  to {
+    transform: translateY(-6px);
+  }
+}
 @keyframes glass-in {
   from {
     opacity: 0;
@@ -416,27 +428,66 @@
     opacity: 0;
   }
 }
-main :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+[data-screen] {
+  animation: screen-in calc(var(--v-duree-moyenne) * 1.25) var(--v-courbe-entree) backwards;
+}
+/* As long as its pieces' fade: ScreenFrame removes the screen at the end of this one. */
+[data-screen][data-leaving] {
+  animation: screen-out var(--v-duree-courte) var(--v-courbe-sortie) forwards;
+}
+main :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
   animation: glass-in calc(var(--v-duree-moyenne) * 1.3) var(--v-courbe-entree) backwards;
   animation-delay: calc(var(--ri, 0) * var(--v-decalage-carte));
 }
 /* Nested glass fades with its card (fading it too would double the fade and drop its frost meanwhile). */
-main :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+main :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
   animation: none;
 }
-main [data-leaving] :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+main [data-leaving] :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
   animation: glass-out var(--v-duree-courte) var(--v-courbe-sortie) forwards;
 }
-main [data-leaving] :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+main [data-leaving] :is(.glass-panel, .glass-in) :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
   animation: none;
 }
+/* A view switched inside a screen (Semaine: Agenda | Semaine type, another week) slides in from the side it comes from. */
+@keyframes view-from-right {
+  from {
+    transform: translateX(24px);
+  }
+}
+@keyframes view-from-left {
+  from {
+    transform: translateX(-24px);
+  }
+}
+.view-from-right {
+  animation: view-from-right var(--v-duree-moyenne) var(--v-courbe-entree) backwards;
+}
+.view-from-left {
+  animation: view-from-left var(--v-duree-moyenne) var(--v-courbe-entree) backwards;
+}
+/*
+ * Held at their start until the new screen (or view) has been painted once (`releaseEntrance` removes `data-entering`
+ * two frames after its insertion): started during that long first frame, they would show already halfway.
+ */
+[data-entering]:not([data-leaving]),
+main [data-entering]:not([data-leaving]) :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
+  animation-play-state: paused;
+}
 @media (prefers-reduced-motion: reduce) {
-  main :is(.glass-panel, .glass-in, .liquid, h1, header p, header button) {
+  [data-screen],
+  .view-from-right,
+  .view-from-left,
+  main :is(.glass-panel, .glass-in, .liquid, .fade-pieces > *, h1, header p, header button) {
     animation: none !important;
   }
 }
 
-/* A control that comes and goes in place (the top bar's person filter on Courses): each piece fades itself. */
+/*
+ * A control made of pieces side by side (glass layer, bubble, buttons: the person filter, a segmented control): each
+ * piece fades itself, on a change of screen (above) and when it comes and goes in place (the top bar's person filter
+ * on Courses).
+ */
 .fade-pieces > * {
   transition:
     opacity var(--v-duree-moyenne) var(--v-courbe-entree),

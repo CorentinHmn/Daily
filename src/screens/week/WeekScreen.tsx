@@ -4,7 +4,7 @@
  * of the week (ticked / planned per category).
  */
 import { useEffect, useState, type DragEvent } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Clock, Plus, Repeat } from 'lucide-react';
 import { useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER } from '../../domain/catalog';
@@ -14,7 +14,7 @@ import { duration, percent } from '../../lib/format';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, ICON_STROKE, IconButton, ProgressBar } from '../../ui/atoms';
 import { SegmentedControl } from '../../ui/navigation';
-import { motionTokens, revealVariants } from '../../theme/motion';
+import { releaseEntrance, revealVariants } from '../../theme/motion';
 import { useIsMobile } from '../../ui/useMedia';
 import { AssigneeBadge } from '../../ui/people';
 import { concerns } from '../../domain/people';
@@ -40,7 +40,6 @@ export function WeekScreen() {
   const prev = () => go({ weekOffset: offset - 1 }, -1);
   const next = () => go({ weekOffset: offset + 1 }, 1);
   const now = () => go({ weekOffset: 0 }, offset > 0 ? -1 : 1);
-  const t = motionTokens();
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <PageHeader title="Semaine" subtitle="L'agenda, rempli par la semaine type">
@@ -64,24 +63,18 @@ export function WeekScreen() {
         />
       </PageHeader>
       {mobile && <WeekStrip mode={mode} monday={monday} onPrev={prev} onNext={next} />}
-      {/* popLayout: the new view slides in as the old one leaves (at once: no fade, its glass would turn clear). */}
-      <AnimatePresence mode="popLayout" initial={false} custom={dir}>
-        <motion.div
-          key={mode === 'agenda' ? monday : 'type'}
-          custom={dir}
-          variants={{
-            enter: (d: number) => ({ x: d * 24 }),
-            center: { x: 0, transition: { duration: t.medium, ease: t.entry } },
-            leave: { x: 0, transition: { duration: 0 } },
-          }}
-          initial="enter"
-          animate="center"
-          exit="leave"
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          {mode === 'agenda' ? <Agenda monday={monday} offset={offset} onNow={now} entrance={!switched} /> : <TemplateWeek entrance={!switched} />}
-        </motion.div>
-      </AnimatePresence>
+      {/*
+        A switch: the old view leaves at once (no fade, its glass would turn clear), the new one slides in from the side
+        it comes from — a CSS animation (app.css, « view-from-* »), played by the compositor, held until painted once.
+      */}
+      <div
+        key={mode === 'agenda' ? monday : 'type'}
+        ref={releaseEntrance}
+        data-entering=""
+        className={cn('flex min-h-0 flex-1 flex-col', switched && (dir > 0 ? 'view-from-right' : 'view-from-left'))}
+      >
+        {mode === 'agenda' ? <Agenda monday={monday} offset={offset} onNow={now} entrance={!switched} /> : <TemplateWeek entrance={!switched} />}
+      </div>
     </div>
   );
 }

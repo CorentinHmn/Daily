@@ -500,7 +500,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
   const { shown, pick } = useDeferredPick(value, onChange);
   const { bubble, item, shell } = useLiquidBubble(shown, options.length);
   return (
-    <div role="radiogroup" aria-label={label} className="relative inline-flex gap-1 rounded-full p-1">
+    <div role="radiogroup" aria-label={label} className="fade-pieces relative inline-flex gap-1 rounded-full p-1">
       {/* The glass, a layer behind the bubble: its rim never crosses the blue, and it stretches with the overshoot. */}
       <span
         ref={(el) => {

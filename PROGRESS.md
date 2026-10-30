@@ -170,6 +170,17 @@
 - Guide pour réutiliser le style : `docs/style-guide/GUIDE.md` + `captures/` (écrans, détails, séquences d'animation
   ralenties ×10) : valeurs, vitesses, fichiers à reprendre, pièges et corrections.
 
+- Retour : changements d'onglet toujours pas fluides, surtout au téléphone. Mesuré (téléphone simulé, processeur ×4) :
+  les glissements de l'écran et de chaque carte étaient calculés en JavaScript (`y` de Motion) pendant que le nouvel
+  écran se dessinait (150 à 260 ms bloqués) ; ses fondus démarraient pendant cette première image et apparaissaient à
+  moitié ; l'ancien écran remontait d'un coup en haut en partant quand on avait défilé ; la bulle des contrôles
+  segmentés (Salle / Running…) apparaissait avant le reste (son fondu annulé). Maintenant : tout en animations CSS
+  jouées par le compositeur, tenues à leur début jusqu'à la première image peinte ; l'ancien écran part où il était,
+  la barre de titre compacte part avec lui ; la bulle fond avec son contrôle. Même chose pour le changement de vue de
+  Semaine (Agenda / Semaine type, semaine précédente / suivante) et la barre compacte. Vérifié : tsc, eslint, vitest
+  20/20, e2e 15/15, séquences ralenties ×10 téléphone et bureau, chronologie dans le vrai WebKit. Comptes de test à
+  supprimer (`cadence-e2e-mvvf0oeh-%`, `cadence-e2e-tabs-mvvehugc`) : la suppression attendait une confirmation.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

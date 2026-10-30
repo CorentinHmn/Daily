@@ -71,6 +71,16 @@ export function follow(d: number, from: number, to: { left: number; width: numbe
 }
 
 /**
+ * Stops the moves started from script on an element (el.animate), not its CSS animations: a bar's bubble and glass
+ * fade in with their screen (app.css, « glass-in »), cancelling that fade showed the white bubble before the rest.
+ */
+export function stopMoves(el: Element | null | undefined) {
+  el?.getAnimations().forEach((a) => {
+    if (!('animationName' in a) && !('transitionProperty' in a)) a.cancel();
+  });
+}
+
+/**
  * The liquid bubble under the active item of a bar (segmented controls, person filter): one absolutely placed element
  * that travels from item to item with the spring above. The bubble's parent must be positioned; put `bubble` on the
  * bubble, `item(key)` on each item and `shell` on the bar's glass, a layer behind them (it stretches with the bubble's
@@ -101,7 +111,7 @@ export function useLiquidBubble<K>(shown: K, count: number) {
     // Where the bubble is seen now (mid-flight included), before moving it.
     const seen = b.getBoundingClientRect();
     const fromCenter = seen.left - parent.getBoundingClientRect().left + seen.width / 2;
-    b.getAnimations().forEach((a) => a.cancel());
+    stopMoves(b);
     const to = place();
     if (!to) return;
     const first = !placed.current;
@@ -111,7 +121,7 @@ export function useLiquidBubble<K>(shown: K, count: number) {
     if (Math.abs(dx) <= 0.5) return;
     b.animate(travel(dx, 'x', seen.width, to.width), { duration: SPRING.ms, easing: 'linear' });
     const glass = shellEl.current;
-    glass?.getAnimations().forEach((a) => a.cancel());
+    stopMoves(glass);
     const stretch = glass && follow(dx, seen.width, to, parent.offsetWidth, parent.offsetHeight);
     if (glass && stretch) glass.animate(stretch, { duration: SPRING.ms, easing: 'linear' });
   }, [place]);

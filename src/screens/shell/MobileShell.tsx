@@ -37,17 +37,20 @@ export function MobileShell<T extends string>({
 }) {
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  // A new screen starts at the top (the scroll event then hides the compact bar).
-  useEffect(() => {
-    scroller?.scrollTo({ top: 0 });
-  }, [screenKey, scroller]);
+  // Changing screens: the old one leaves where it was scrolled to (the new one starts at the top, ScreenFrame), and
+  // the compact bar leaves with it, not when it is gone.
+  const [shownKey, setShownKey] = useState(screenKey);
+  if (shownKey !== screenKey) {
+    setShownKey(screenKey);
+    setScrolled(false);
+  }
   return (
     <PageScrollContext.Provider value={{ scrolled, element: scroller }}>
       <div className="relative h-dvh overflow-clip">
         <Backdrop />
         <main
           ref={setScroller}
-          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 52)}
+          onScroll={(e) => !e.currentTarget.querySelector('[data-leaving]') && setScrolled(e.currentTarget.scrollTop > 52)}
           className="relative z-10 h-full overflow-y-auto overscroll-y-contain px-4 pt-[calc(env(safe-area-inset-top)+6px)] pb-[calc(env(safe-area-inset-bottom)+112px)]"
         >
           <AnimatePresence mode="wait" initial={false}>

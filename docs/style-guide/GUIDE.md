@@ -256,9 +256,15 @@ Pas de réfraction SVG ici : refiltrer le fond à chaque image saccadait le cale
 - **Sortie** : l'ancien écran glisse de 6 px vers le haut, ses pièces fondent en 140 ms.
 - **Entrée** : le nouveau glisse de 10 px vers le bas jusqu'à sa place (400 ms), ses pièces fondent en 416 ms,
   **en cascade** (60 ms par carte, retard posé en variable CSS `--ri` par `revealVariants`).
-- **Ce qui fond** : chaque surface de verre, les titres, les boutons d'en-tête. Chacun fond lui-même, jamais un
-  conteneur (voir le piège 1). Une animation CSS joue à l'insertion de l'élément, donc aussi pour une vue qui apparaît
-  (Salle / Running).
+- **Ce qui fond** : chaque surface de verre, les titres, les boutons d'en-tête, et chaque pièce d'un contrôle en
+  plusieurs couches (verre, bulle, boutons d'un contrôle segmenté). Chacun fond lui-même, jamais un conteneur (voir le
+  piège 1). Une animation CSS joue à l'insertion de l'élément, donc aussi pour une vue qui apparaît (Salle / Running).
+- **Rien en JavaScript** : glissements et fondus sont des animations CSS de `transform` et `opacity`, que le
+  compositeur joue même pendant que le nouvel écran se dessine. L'écran et la vue qui arrivent restent à leur première
+  image (`data-entering`, `animation-play-state: paused`) jusqu'à ce qu'ils aient été peints une fois, deux images
+  après leur insertion.
+- **Au téléphone** (toute la page défile) : l'ancien écran part là où il était défilé, le nouveau commence en haut,
+  et la barre de titre compacte s'en va avec l'ancien.
 - Le filtre des personnes de la barre du haut **reste en place** sur Courses et s'efface (chaque pièce fond et se
   réduit à 94 %), au lieu de disparaître d'un coup.
 
@@ -369,6 +375,17 @@ Toutes les durées se réduisent avec « réduire les animations » (pas de glis
     tomber au bon moment.
 19. Une forme qui sort d'un bord (vague, menu) doit prévoir **les extrémités** : premier et dernier élément, bord de
     l'écran, rebond du ressort au-delà de la cible.
+20. **Un glissement piloté en JavaScript saccade pendant un rendu lourd** : `x` / `y` de Motion sont recalculés image
+    par image sur le fil principal, justement occupé à dessiner le nouvel écran (au téléphone, la transition
+    accrochait à chaque changement d'onglet). Pour une transition d'écran : animations CSS de `transform` et
+    `opacity` ; si Motion reste, une valeur `transform: 'translateY(…)'`, qu'il confie à Web Animations.
+21. **La première image d'un nouvel écran est longue** (style, mise en page, peinture de tout l'écran) : une
+    animation lancée avant elle apparaît déjà à moitié. Tenez-la en pause jusqu'à ce que l'écran ait été peint une
+    fois (deux `requestAnimationFrame`), puis relâchez-la.
+22. **`el.getAnimations()` rend aussi les animations CSS** : les annuler toutes avant de lancer un mouvement coupait
+    le fondu d'entrée (la bulle blanche apparaissait avant le reste). N'annulez que celles lancées par `el.animate`.
+23. **Au téléphone, ne remontez pas la page avant que l'ancien écran soit parti** : il sautait en haut en fondant.
+    Remettez le défilement à zéro à l'insertion du nouvel écran, avant sa première image.
 
 ---
 

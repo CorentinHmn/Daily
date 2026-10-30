@@ -72,10 +72,20 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   sur un élément de verre ou un de ses parents (il paraissait clair puis givré une fois opaque). Entrées et changements
   d'écran = glissements (`revealVariants`, écrans, semaine, fenêtres, menus, notifications) ; le voile des fenêtres fond
   sur son propre calque, à côté du panneau. Changement d'écran (`ScreenFrame.tsx`, dans AnimatePresence) : l'ancien
-  glisse un peu vers le haut et ses pièces fondent (`[data-leaving]` → `glass-out`, 140 ms), puis les pièces du
-  nouveau fondent en cascade (`glass-in`, retard `--ri` posé par `revealVariants`) : surfaces de verre, titres et
-  boutons d'en-tête dans `<main>`, chacun lui-même, jamais un conteneur. Le filtre des personnes de la barre du haut
-  reste en place sur Courses et fond (`hidden`, `.fade-pieces`).
+  glisse un peu vers le haut et ses pièces fondent (`[data-leaving]` → `screen-out` + `glass-out`, 140 ms), puis le
+  nouveau glisse à sa place et ses pièces fondent en cascade (`screen-in` + `glass-in`, retard `--ri` posé par
+  `revealVariants`) : surfaces de verre, titres et boutons d'en-tête dans `<main>`, pièces d'un `.fade-pieces`
+  (verre, bulle et boutons d'un SegmentedControl ou du filtre), chacun lui-même, jamais un conteneur. Le filtre des
+  personnes de la barre du haut reste en place sur Courses et fond (`hidden`, `.fade-pieces`).
+- Transitions d'écran et de vue : **animations CSS de `transform` / `opacity` seulement** (jouées par le compositeur),
+  jamais `y` / `x` de Motion (calculés en JavaScript image par image : ils saccadaient pendant le rendu du nouvel
+  écran, surtout au téléphone). Si Motion reste, `transform: 'translateY(…)'` (Web Animations, ex. la barre compacte).
+  Un écran ou une vue qui arrive porte `data-entering=""` + `ref={releaseEntrance}` (motion.ts) : ses animations
+  restent à leur début jusqu'à sa première image peinte (sinon elles apparaissaient déjà à moitié). Au téléphone,
+  l'ancien écran part là où il était défilé ; le nouveau remonte en haut en arrivant (`ScreenFrame`).
+- `el.getAnimations().forEach(a => a.cancel())` annule aussi les animations CSS (fondu d'entrée de l'écran) : pour ne
+  stopper que les mouvements lancés par `el.animate`, `stopMoves(el)` (liquid.ts). La bulle d'un SegmentedControl
+  apparaissait blanche avant tout le reste.
 - Mise en page téléphone **sous 1200 px** (`--breakpoint-md: 75rem` dans tokens.css, `MOBILE_QUERY` dans
   useMedia.ts, et les deux `@media` d'app.css : les trois ensemble) : téléphones, tablettes portrait et paysage. La
   mise en page bureau (rail, 3 colonnes, semaine sur 7 colonnes) a besoin d'environ 1200 px ; sur tablette la colonne
