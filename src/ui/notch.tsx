@@ -3,13 +3,14 @@
  * carved out (radius 28, concave fillet, gap 10 around the button) with a round button sitting in the notch. One per
  * screen at most, only for an object (here: the next gym session).
  * The shape is a path computed for the measured size (Benchmark › « clip-path avec le tracé SVG »); clip-path cuts
- * box-shadow and border, so the rim and the soft shadow are drawn in SVG around it.
+ * box-shadow and border, so the rim and the soft shadow are drawn in SVG around it. WebKit does not cut a backdrop-filter
+ * by a clip-path (the notch showed frosted): there the frost lies in two rounded boxes beside and under the notch.
  */
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from './cn';
 import { ICON_STROKE } from './atoms';
-import { useLiquidGlass } from './glass';
+import { useLiquidGlass, webkitBackdrop } from './glass';
 
 const R = 28; // radius/2xl
 const BUTTON = 52;
@@ -68,8 +69,14 @@ export function NotchCard({ children, onAction, actionLabel, className }: { chil
           </g>
         </svg>
       )}
+      {d && webkitBackdrop && (
+        <>
+          <span aria-hidden className="chip-frost pointer-events-none absolute inset-y-0 left-0" style={{ right: S, borderRadius: `${R}px ${R}px 0 ${R}px` }} />
+          <span aria-hidden className="chip-frost pointer-events-none absolute right-0 bottom-0" style={{ top: S, width: S, borderRadius: `0 ${R}px ${R}px 0` }} />
+        </>
+      )}
       <div
-        className={cn('h-full overflow-hidden', d ? 'bg-(--glass-panel) backdrop-blur-[24px] backdrop-saturate-[1.7]' : 'glass-panel rounded-2xl')}
+        className={cn('relative h-full overflow-hidden', d ? cn('bg-(--glass-panel)', !webkitBackdrop && 'backdrop-blur-[24px] backdrop-saturate-[1.7]') : 'glass-panel rounded-2xl')}
         style={d ? { clipPath: `path('${d}')` } : undefined}
       >
         {children}

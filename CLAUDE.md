@@ -92,8 +92,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - WebKit (Safari sur Mac, tous les navigateurs de l'iPhone) ne découpe pas un `backdrop-filter` par un `clip-path` :
   un calque de verre découpé montrait toute sa boîte givrée (un « carré discret » autour du menu du profil). Là
   (`webkitBackdrop`, glass.tsx), le givre vient de boîtes arrondies (`.chip-frost` : colonne de la pastille + panneau du
-  menu ; la boîte du rail), la teinte, le liseré et l'ombre gardent le clip-path. Tester ce chemin dans Chromium en
-  donnant au contexte Playwright un `userAgent` d'iPhone ou de Safari.
+  menu ; la boîte du rail ; deux boîtes autour de l'encoche de la NotchCard), la teinte, le liseré et l'ombre gardent
+  le clip-path. Détecter le **moteur**, pas le nom du navigateur : Chrome sur iPad se présente en « Chrome/… » de Mac
+  (sites pour ordinateur) mais c'est WebKit (`navigator.vendor` Apple, `-webkit-touch-callout`). Tester ce chemin dans
+  Chromium avec un `userAgent` d'iPhone, ou en forçant `navigator.vendor` à « Apple Computer, Inc. ».
 - Barre d'état de l'iPhone : `black-translucent`, l'appli dessine dessous (fond photo, `--status-scrim` pour l'heure) ;
   l'ancien bandeau uni flou venait du style `default`. Changer ce réglage peut demander de réinstaller l'appli sur
   l'écran d'accueil.

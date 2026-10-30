@@ -4,7 +4,8 @@
  * How: a displacement map (R = x shift, G = y shift, 128 = none) is drawn for the element's rounded rectangle: zero in
  * the middle, growing towards the edge along the inward normal. An SVG filter blurs the backdrop slightly, displaces
  * it with that map, then saturates it; the element uses it as `backdrop-filter: url(#…)`. This only renders in
- * Chromium (Benchmark › « Le Liquid Glass avec réfraction ne marche qu'en Chromium »): Chrome and Edge on the PC.
+ * Chromium (Benchmark › « Le Liquid Glass avec réfraction ne marche qu'en Chromium »): Chrome and Edge on the PC (not
+ * Chrome on the iPad, WebKit under a Chrome name: see webkitBackdrop).
  * Elsewhere (Safari on the iPhone, Firefox), and with reduced transparency, `.liquid` keeps a frosted blur.
  *
  * Maps are drawn at half resolution (smooth gradients, the filter scales them up), cached by size, and the filters
@@ -15,18 +16,26 @@ import { cn } from './cn';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/**
+ * WebKit (Safari on the Mac, every browser of the iPhone and the iPad) does not clip a backdrop-filter by a clip-path: a
+ * layer of glass shaped by a clip-path (rail, chips that grow into their menu, the notch card) showed its whole box
+ * frosted, a square around the shape. There the frost comes from rounded boxes instead (`.chip-frost`), the tint and
+ * rims keep the clip-path.
+ * Told by the engine, not the browser's name: Chrome on the iPad asks for desktop sites with the Mac Chrome's name
+ * (« Chrome/… »), but it is WebKit, as everything on iOS (its vendor is Apple, it has the iOS-only touch callout).
+ */
+export const webkitBackdrop: boolean =
+  typeof navigator !== 'undefined' &&
+  (/^Apple/.test(navigator.vendor ?? '') ||
+    (typeof CSS !== 'undefined' && CSS.supports('-webkit-touch-callout', 'none')) ||
+    (/AppleWebKit/.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent)));
+
 export const refractionSupported: boolean =
   typeof navigator !== 'undefined' &&
   /Chrome\//.test(navigator.userAgent) &&
+  !webkitBackdrop &&
   typeof matchMedia === 'function' &&
   !matchMedia('(prefers-reduced-transparency: reduce)').matches;
-
-/**
- * WebKit (Safari on the Mac, every iPhone browser) does not clip a backdrop-filter by a clip-path: a layer of glass
- * shaped by a clip-path (rail, chips that grow into their menu) showed its whole box frosted, a square around the shape.
- * There the frost comes from rounded boxes instead (`.chip-frost`), the tint and rims keep the clip-path.
- */
-export const webkitBackdrop: boolean = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent);
 
 let defs: SVGDefsElement | null = null;
 function filterDefs(): SVGDefsElement {

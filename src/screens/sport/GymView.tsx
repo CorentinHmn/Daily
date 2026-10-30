@@ -84,7 +84,7 @@ export function GymView() {
           </Panel>
         </motion.div>
         <motion.div initial="hidden" animate="show" variants={reveal} custom={3} className="flex min-h-0 flex-col">
-          {program ? <ProgramPanel program={program} /> : <Panel className="flex-1" />}
+          {program ? <ProgramPanel program={program} /> : <Panel className="flex-1 max-md:hidden" />}
         </motion.div>
         <motion.div initial="hidden" animate="show" variants={reveal} custom={4} className="flex min-h-0 flex-col gap-4">
           <Panel className="shrink-0">

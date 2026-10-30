@@ -133,6 +133,10 @@
   verre et l'encre du thème (`:-webkit-autofill` / `:autofill`, app.css).
 - Vérifié : tsc, eslint, vitest 20/20, e2e 15/15, captures pc + téléphone + fenêtres sans erreur console ; comptes de
   test supprimés.
+- Retour : le carré givré restait sur l'iPad (Chrome) : Chrome iPad se présente comme un Chrome de Mac, la détection
+  par le nom ratait WebKit. Détection par le moteur (vendor Apple / touch callout) ; même correctif pour la carte à
+  encoche (séance) ; la réfraction SVG n'est plus tentée sur iPad. Ligne vide sous « Aucun programme » au téléphone
+  retirée.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
