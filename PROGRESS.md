@@ -129,6 +129,10 @@
 - Haut de l'écran au téléphone : plus d'ombre floue sous les titres ; l'appli passe sous la barre d'état (plus de
   bandeau flou), avec une ombre douce pour l'heure ; avatar du profil net (anneau fin, point de synchro cerclé).
 - Nouveau logo (planche de l'utilisateur) : C détouré, tuile recomposée, icônes de l'écran d'accueil, favicon.
+- Champ rempli automatiquement par le navigateur (e-mail enregistré) : plus de rectangle bleu pâle, le champ garde le
+  verre et l'encre du thème (`:-webkit-autofill` / `:autofill`, app.css).
+- Vérifié : tsc, eslint, vitest 20/20, e2e 15/15, captures pc + téléphone + fenêtres sans erreur console ; comptes de
+  test supprimés.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

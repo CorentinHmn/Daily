@@ -88,6 +88,23 @@
       -webkit-touch-callout: default;
     }
   }
+  /* A field filled in by the browser (saved e-mail, password) keeps the glass and the theme's ink: browsers paint it a
+     pale blue or yellow box with !important, so its background change is delayed for good instead. */
+  input:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-text-primary);
+    caret-color: var(--color-text-primary);
+    transition:
+      background-color 600000s 0s,
+      color 600000s 0s;
+  }
+  /* (A rule of its own: a browser that does not know one of the two selectors would drop the whole list.) */
+  input:autofill {
+    -webkit-text-fill-color: var(--color-text-primary);
+    caret-color: var(--color-text-primary);
+    transition:
+      background-color 600000s 0s,
+      color 600000s 0s;
+  }
   /* iOS zooms into any field under 16 px when it gets the focus. */
   @media (max-width: 1199.98px) {
     input,
