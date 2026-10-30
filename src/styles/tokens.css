@@ -208,7 +208,8 @@
   --color-chart-4: #f2b84b;
   --color-chart-5: rgb(255 255 255 / 0.5);
   --color-chart-6: #ef6b6b;
-  --color-nav-active: rgb(255 255 255 / 0.96);
+  /* Opaque: the rail's round bubble and the name poured out of it overlap; a translucent white showed the seam. */
+  --color-nav-active: #f6f6f5;
   --color-text-on-nav: #24211e;
   --color-tint-violet: #a497ff;
   --color-tint-violet-soft: rgb(164 151 255 / 0.22);
