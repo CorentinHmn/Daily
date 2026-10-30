@@ -382,13 +382,15 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
     <div ref={frame} style={{ width: open ? 'var(--layout-rail-open)' : 'var(--layout-rail)' }} className="relative z-20 flex shrink-0">
       {/* The glass's shadow (a blurred copy of its outline, seen only outside it), the glass (as wide as the open
           rail) and its rim: all clipped to the same outline. */}
-      <div ref={shadow} aria-hidden style={layerWidth} className="pointer-events-none absolute inset-y-0 left-0">
+      {/* (WebKit blurs a clip-path inside a filter as a square: there the shadow is the frost box's own, below.) */}
+      <div ref={shadow} aria-hidden style={webkitBackdrop ? { ...layerWidth, display: 'none' } : layerWidth} className="pointer-events-none absolute inset-y-0 left-0">
         <div className="rail-shadow absolute inset-0">
           <div ref={shadowShape} className="absolute inset-0 bg-current" />
         </div>
       </div>
-      {/* WebKit: the frost in the rail's own rounded box (it ignores the clip-path); the wave keeps the tint only. */}
-      {webkitBackdrop && <div aria-hidden className="chip-frost pointer-events-none absolute inset-0 rounded-(--radius-rail)" />}
+      {/* WebKit: the frost and the shadow in the rail's own rounded box (it ignores the clip-paths); the wave keeps the
+          tint only. */}
+      {webkitBackdrop && <div aria-hidden className="chip-frost chip-shadow pointer-events-none absolute inset-0 rounded-(--radius-rail)" />}
       <div
         ref={(el) => {
           shell.current = el;

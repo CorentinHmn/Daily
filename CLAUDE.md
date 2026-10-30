@@ -43,7 +43,11 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 ## Pièges connus
 - Classes `.liquid*` dans `@layer components` : hors couche, elles écrasaient `absolute` des utilitaires. Le fond photo
   (`.photo-backdrop`, composant `Backdrop`) est hors couche : pour le fixer, `<Backdrop fixed />` (une classe `fixed`
-  perd). Photo dans `public/backdrop/` (3 tailles WebP, tons resserrés), voile par thème (`--backdrop-veil`).
+  perd). Voile par thème (`--backdrop-veil`).
+- Fond d'écran : 10 photos (`BACKDROPS`, src/ui/backdrop.tsx ; `public/backdrop/<id>-wide|mid|tall|thumb.webp`), choix
+  de chacun sur sa personne (`Member.backdrop`, synchronisé : le même sur ses appareils), Paramètres › Fond d'écran.
+  `applyBackdrop()` pose des variables CSS sur `<html>` et garde le dernier sur l'appareil (`cadence.backdrop`, écrans
+  de connexion). Pas de pré-cache (2 Mo) : le service worker garde chaque photo une fois affichée.
 - Thème : `night` = verre fumé (défaut), `day` = clair. Chaque appareil passe une fois en `night` (`cadence.look` =
   `verre` dans `load()`, store/app.ts) ; ensuite le choix du menu est gardé. Toute surface du thème sombre est un voile
   (blanc ou gris translucide), jamais une couleur opaque : un fond opaque passe par `--glass-solid`.
@@ -95,7 +99,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   un calque de verre découpé montrait toute sa boîte givrée (un « carré discret » autour du menu du profil). Là
   (`webkitBackdrop`, glass.tsx), le givre vient de boîtes arrondies (`.chip-frost` : colonne de la pastille + panneau du
   menu ; la boîte du rail ; deux boîtes autour de l'encoche de la NotchCard), la teinte, le liseré et l'ombre gardent
-  le clip-path. Détecter le **moteur**, pas le nom du navigateur : Chrome sur iPad se présente en « Chrome/… » de Mac
+  le clip-path ; et l'ombre floutée (calque `filter` + clip-path dedans, que WebKit floute comme une boîte : ombre
+  carrée) y devient la `box-shadow` d'une boîte arrondie qui suit les bornes de la forme (`.chip-shadow`). Chromium ne
+  montre aucun de ces défauts, même avec un user-agent d'iPhone : ne pas conclure « corrigé » sur une capture Chromium.
+  Détecter le **moteur**, pas le nom du navigateur : Chrome sur iPad se présente en « Chrome/… » de Mac
   (sites pour ordinateur) mais c'est WebKit (`navigator.vendor` Apple, `-webkit-touch-callout`). Tester ce chemin dans
   Chromium avec un `userAgent` d'iPhone, ou en forçant `navigator.vendor` à « Apple Computer, Inc. ».
 - Barre d'état de l'iPhone : `black-translucent`, l'appli dessine dessous (fond photo, `--status-scrim` pour l'heure) ;

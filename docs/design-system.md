@@ -42,6 +42,13 @@ verre liquide. Ce qui en est repris :
 - **Ajout rapide** : le + (barre du haut ; au téléphone, à côté de la barre d'onglets) devient son menu en une pièce
   de verre, comme la pastille du profil (vers le haut au téléphone).
 
+## Fonds d'écran (30/10/2026)
+Chacun choisit le sien (Paramètres › Fond d'écran), parmi 10 photos libres d'Unsplash, désaturées un peu et aux tons
+resserrés pour le verre : Crépuscule (Michael Hull, `vuWB5mGu5wE`, par défaut), Montagne (Sven Scheuermeier,
+`VNseEaTt9w4`), Océan (Tim Marshall, `yEOCA6oiVqg`), Forêt (Vadim Sherbakov, `NQSWvyVRIJk`), Ville (Hide Obara,
+`2p1HOcpi14U`), Désert (Tim de Groot, `yNGQ830uFB4`), Aurore boréale (Marcelo Quinan, `R3pUGn5YiTg`), Lac (Ales Krivec,
+`HkTMcmlMOUQ`), Étoiles (Greg Rakozy, `oMpAz-DN-9I`), Campagne (Kenneth Thewissen, `D76DklsG-5U`).
+
 ## Logo (30/10/2026)
 Planche fournie par l'utilisateur : un « C » en ruban bleu translucide et une pastille menthe, sur une tuile de verre
 clair (version principale), plus des variantes claire, sombre et monochrome. Le C est détouré (fond clair estimé puis

@@ -14,7 +14,7 @@ import { normalize, uid } from '../lib/format';
 import { guessRayon } from '../domain/catalog';
 import { blankData, emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
 import { keepPeople, newMember, normalizeData, withHabitCheck, withHabitPeople } from '../domain/people';
-import { NOUS, type AppData, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
+import { NOUS, type AppData, type BackdropId, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
 import type { ToastItem } from '../ui/overlays';
 
 export type View = 'today' | 'week' | 'sport' | 'goals' | 'shopping';
@@ -92,6 +92,8 @@ interface Actions {
   reset: () => void;
   ensureWeek: (monday: ISODate) => void;
   setTheme: (theme: ThemeName) => void;
+  /** This person's background photo (kept on their member: their other devices follow). */
+  setBackdrop: (id: BackdropId) => void;
   /** the household's icon for a tab (null = the default one) */
   setTabIcon: (tab: View, icon: string | null) => void;
   setName: (name: string) => void;
@@ -232,6 +234,7 @@ export const useApp = create<AppState>()((set, get) => {
     },
 
     setTheme: (theme) => mutate((d) => ({ ...d, settings: { ...d.settings, theme } })),
+    setBackdrop: (id) => mutate((d) => ({ ...d, members: d.members.map((m) => (m.id === d.settings.meId ? { ...m, backdrop: id } : m)) })),
     setTabIcon: (tab, icon) =>
       mutate((d) => {
         const tabIcons = { ...d.prefs?.tabIcons };

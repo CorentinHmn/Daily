@@ -8,7 +8,11 @@ export interface Member {
   hue: MemberHue;
   /** profile photo: a small square JPEG as a data URL (synced with the member, no file storage) */
   photo?: string;
+  /** the background photo this person chose (Paramètres), on all their devices; none = the default */
+  backdrop?: BackdropId;
 }
+/** The background photos (src/ui/backdrop.tsx, public/backdrop/). */
+export type BackdropId = 'dusk' | 'mountain' | 'ocean' | 'forest' | 'city' | 'desert' | 'aurora' | 'lake' | 'stars' | 'fields';
 /** Assignee meaning « the whole household ». */
 export const NOUS = 'nous';
 

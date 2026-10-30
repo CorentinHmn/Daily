@@ -26,7 +26,16 @@ export default defineConfig({
       injectRegister: false, // registered in main.tsx (update checks, reload)
       manifest: false, // public/manifest.webmanifest, linked from index.html
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2,png,svg,webp,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,woff2,png,svg,webp,ico,webmanifest}'],
+        // The ten background photos (2 MB together) are not all fetched up front: each one is kept once shown.
+        globIgnores: ['backdrop/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/backdrop/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'backdrops', expiration: { maxEntries: 48 } },
+          },
+        ],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },

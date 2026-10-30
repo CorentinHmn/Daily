@@ -4,6 +4,10 @@ import { MotionConfig } from 'motion/react';
 import './styles/app.css';
 import { App } from './App';
 import { registerSW } from 'virtual:pwa-register';
+import { applyBackdrop, savedBackdrop } from './ui/backdrop';
+
+// This device's last background photo from the first frame (the person's choice is applied again once known).
+applyBackdrop(savedBackdrop());
 
 // Installed app (iPhone home screen): looks for a new version at start, on every return to the app and every hour;
 // autoUpdate then reloads the page once the new version has taken over (otherwise the old one stayed until the app

@@ -24,7 +24,7 @@ import { MobileShell } from './screens/shell/MobileShell';
 import { TopBar } from './screens/shell/TopBar';
 import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
-import { Backdrop } from './ui/backdrop';
+import { Backdrop, applyBackdrop } from './ui/backdrop';
 import { initSync, useSync, type SyncStatus } from './sync/sync';
 import { HouseholdSetup, RecoveryScreen, SignInScreen, Splash, Unreachable } from './screens/auth/AuthScreens';
 
@@ -41,6 +41,13 @@ const IN_APP: SyncStatus[] = ['connecting', 'synced', 'syncing', 'offline', 'err
 export function App() {
   const status = useSync((s) => s.status);
   const theme = useApp((s) => s.data.settings.theme);
+  // The background photo this person chose (on their member: the same on all their devices; none yet = the default).
+  // Signed out, this device's last one stays (main.tsx).
+  const me = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId));
+  const backdrop = me ? (me.backdrop ?? 'dusk') : undefined;
+  useEffect(() => {
+    if (backdrop) applyBackdrop(backdrop);
+  }, [backdrop]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

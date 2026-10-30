@@ -142,6 +142,12 @@
   barre compacte, connexion glissent. Verre un peu plus transparent (panneaux 0,33, téléphone 0,42). Le + ouvert ne
   montre plus son rond : reflet, liseré et teinte couvrent toute la forme ; la croix pivote en × à l'ouverture.
 
+- Retour : ombre carrée autour des menus sur l'iPhone et l'iPad. C'était l'ombre (calque flouté découpé par
+  clip-path : WebKit floute toute la boîte), invisible dans Chromium même avec le chemin WebKit forcé. WebKit : ombre
+  = box-shadow d'une boîte arrondie qui suit la forme (menus, rail).
+- Fond d'écran au choix de chacun : 10 photos à thèmes (Paramètres › Fond d'écran), synchronisé sur la personne.
+- Icônes : favicon.ico (Vercel et navigateurs le demandent), liens d'icônes versionnés `?v=2` (caches).
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

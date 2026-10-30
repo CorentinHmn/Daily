@@ -1,12 +1,13 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
 import { useRef, useState } from 'react';
-import { Camera, Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users, X } from 'lucide-react';
+import { Camera, Check, Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users, X } from 'lucide-react';
 import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
 import type { Member, MemberHue } from '../../domain/types';
 import { squarePhoto } from '../../lib/image';
 import { Avatar, ICON_STROKE, IconButton } from '../../ui/atoms';
 import { Popover } from '../../ui/popover';
+import { BACKDROPS, backdropThumb } from '../../ui/backdrop';
 import { DEFAULT_TAB_ICONS, TAB_ICONS } from '../../domain/catalog';
 import { cn } from '../../ui/cn';
 import { useApp, type StartMode, type View } from '../../store/app';
@@ -65,6 +66,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               ]}
             />
           </Field>
+          <BackdropPicker />
           <TabIcons />
           <div className="flex flex-col gap-2">
             <p className="text-label-s text-text-secondary">Partage en ligne</p>
@@ -167,6 +169,45 @@ const TABS: { id: View; label: string }[] = [
   { id: 'goals', label: 'Objectifs' },
   { id: 'shopping', label: 'Courses' },
 ];
+
+/** This person's background photo, among ten themes: kept on their member, so it follows them on their devices. */
+function BackdropPicker() {
+  const current = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.backdrop ?? 'dusk');
+  return (
+    <div className="flex flex-col gap-2">
+      <p id="backdrop-label" className="text-label-s text-text-secondary">
+        Fond d'écran
+      </p>
+      <div role="radiogroup" aria-labelledby="backdrop-label" className="grid grid-cols-5 gap-2 max-md:grid-cols-3">
+        {BACKDROPS.map((b) => {
+          const on = b.id === current;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={b.label}
+              onClick={() => useApp.getState().setBackdrop(b.id)}
+              className={cn('group/bg relative aspect-[16/10] overflow-hidden rounded-md bg-cover bg-center ring-offset-0 transition-[box-shadow,transform] duration-(--v-duree-courte) active:scale-[0.97]', on ? 'ring-2 ring-accent-default' : 'ring-1 ring-border-default hover:ring-border-strong')}
+              style={{ backgroundImage: `url(${backdropThumb(b.id)})`, backgroundColor: b.color }}
+            >
+              <span aria-hidden className="absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-[rgb(0_0_0/0.6)] to-transparent px-1.5 pt-3 pb-1 text-left text-[11px] font-medium text-[#fff]">
+                {b.label}
+              </span>
+              {on && (
+                <span aria-hidden className="absolute top-1 right-1 inline-flex size-5 items-center justify-center rounded-full bg-accent-default text-text-on-accent shadow-hairline-top">
+                  <Check size={12} strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-caption text-text-muted">Propre à chacun, et le même sur tous tes appareils.</p>
+    </div>
+  );
+}
 
 /** The household's icons for the tabs (rail and tab bar): one chip per tab, which opens the icon grid. */
 function TabIcons() {

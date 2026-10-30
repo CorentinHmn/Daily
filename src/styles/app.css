@@ -225,7 +225,11 @@
 .chip-menu-tint {
   background: rgb(255 255 255 / 0.68);
 }
-/* WebKit: the frost under a chip's outline, in rounded boxes (src/ui/chipMenu.tsx). */
+/* WebKit: the shadow and the frost under a chip's outline, in rounded boxes (src/ui/chipMenu.tsx). An outer box-shadow
+   is never drawn under its own box: only around the glass. */
+.chip-shadow {
+  box-shadow: var(--glass-shadow);
+}
 .chip-frost {
   -webkit-backdrop-filter: blur(18px) saturate(var(--liquid-saturate)) brightness(1.04);
   backdrop-filter: blur(18px) saturate(var(--liquid-saturate)) brightness(1.04);
@@ -317,25 +321,32 @@
 }
 
 /*
- * The backdrop: a dusk photo (Michael Hull, Unsplash, free licence; toned down in public/backdrop/) under the theme's
- * veil, the busy background the glass needs. Its average colour shows until it loads. Outside the layers, like the
- * glass: to pin it, `style={{ position: 'fixed' }}` (a `fixed` class loses).
+ * The backdrop: the person's photo (src/ui/backdrop.tsx: 10 themes, Unsplash, free licence; toned down in
+ * public/backdrop/) under the theme's veil, the busy background the glass needs. Its average colour shows until it
+ * loads. Outside the layers, like the glass: to pin it, `style={{ position: 'fixed' }}` (a `fixed` class loses).
+ * The photo's files and place are variables set on <html> by applyBackdrop(); these are the default's (Crépuscule).
  */
+:root {
+  --backdrop-wide: url('/backdrop/dusk-wide.webp');
+  --backdrop-mid: url('/backdrop/dusk-mid.webp');
+  --backdrop-tall: url('/backdrop/dusk-tall.webp');
+  --backdrop-position: 50% 62%;
+}
 .photo-backdrop {
   position: absolute;
   inset: 0;
   overflow: clip;
   pointer-events: none;
-  background: var(--backdrop-base) url('/backdrop/dusk-2560.webp') 50% 62% / cover no-repeat;
+  background: var(--backdrop-base) var(--backdrop-wide) var(--backdrop-position) / cover no-repeat;
 }
-@media (max-width: 1700px) {
+@media (max-width: 1500px) {
   .photo-backdrop {
-    background-image: url('/backdrop/dusk-1600.webp');
+    background-image: var(--backdrop-mid);
   }
 }
 @media (orientation: portrait) {
   .photo-backdrop {
-    background-image: url('/backdrop/dusk-portrait.webp');
+    background-image: var(--backdrop-tall);
     background-position: 50% 70%;
   }
 }

@@ -4,10 +4,11 @@
  * the bubbles' spring (open) and a flow back (close). Like the rail's glass: the glass is a layer larger than the chip,
  * shaped by an animated clip-path; its shadow (outside the outline), rim (a ring between the outline and the outline
  * moved inwards) and the menu's denser tint follow the same keyframes.
- * WebKit (Safari, every iPhone browser) does not clip a backdrop-filter by a clip-path: the whole layer showed as a
- * frosted square around the menu. There the outline keeps its tint, rim and shadow (plain painting, clipped), and the
- * frost under it comes from two rounded boxes that need no clip-path — the chip's column and the menu — moved on the
- * same keyframes.
+ * WebKit (Safari, every iPhone browser) does not clip a backdrop-filter by a clip-path (the whole layer showed as a
+ * frosted square around the menu), nor a clip-path inside a filter (the blurred shadow was the whole layer: a square
+ * shadow). There the outline keeps its tint and rim (plain painting, clipped); the frost comes from two rounded boxes
+ * — the chip's column and the menu — and the shadow is a rounded box's own box-shadow over the outline's bounds, all
+ * moved on the same keyframes.
  * The chip's content and the menu's items sit above the glass, so its rim never crosses them (the sync dot).
  */
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
@@ -104,7 +105,13 @@ function bounds(g: Box, H: number, q: number, up: boolean) {
   const y = up ? H - bottom : g.top;
   const w = g.cx1 - left;
   const h = bottom - g.top;
-  return { box: { left: px(x), top: px(y), width: px(w), height: px(h) }, light: { backgroundPosition: `${px(x)} ${px(y)}`, backgroundSize: `${px(w)} ${px(h)}` } };
+  // WebKit's shadow: rounded as the chip's pill, then as the menu's corners.
+  const r = Math.max(0, Math.min(g.ch / 2 + (CORNER - g.ch / 2) * Math.min(1, q), w / 2, h / 2));
+  return {
+    box: { left: px(x), top: px(y), width: px(w), height: px(h) },
+    rounded: { left: px(x), top: px(y), width: px(w), height: px(h), borderRadius: px(r) },
+    light: { backgroundPosition: `${px(x)} ${px(y)}`, backgroundSize: `${px(w)} ${px(h)}` },
+  };
 }
 
 /**
@@ -164,6 +171,7 @@ export function ChipMenu({
   const light = useRef<HTMLDivElement>(null);
   const tint = useRef<HTMLDivElement>(null);
   const sheen = useRef<HTMLDivElement>(null);
+  const dropShadow = useRef<HTMLDivElement>(null);
   const column = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -205,7 +213,7 @@ export function ChipMenu({
     return () => ro.disconnect();
   }, [sized]);
 
-  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current, sheen.current];
+  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current, sheen.current, dropShadow.current];
 
   /** Every layer at rest at `q` (0: the chip alone, 1: open). */
   const settle = useCallback(
@@ -213,8 +221,9 @@ export function ChipMenu({
       if (!box) return;
       const l = layers(box, W, H, q, up);
       const b = bounds(box, H, q, up);
-      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn] = els();
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, ds] = els();
       if (!sl || !sh || !ss || !rs || !rl) return;
+      if (ds) Object.assign(ds.style, b.rounded);
       sl.style.clipPath = ss.style.clipPath = l.glass;
       sh.style.clipPath = l.shadow;
       rs.style.clipPath = l.shade;
@@ -256,7 +265,7 @@ export function ChipMenu({
       const qs = opening ? SPRING.frames.map(({ p }) => (p > 1 ? 1 + (p - 1) * 0.5 : p)) : Array.from({ length: Math.ceil(CLOSE_MS / FRAME) + 1 }, (_, i) => 1 - ease(Math.min(1, (i * FRAME) / CLOSE_MS)));
       const duration = opening ? SPRING.ms : CLOSE_MS;
       const opts = { duration, easing: 'linear', fill: 'forwards' as const };
-      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn] = all;
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, ds] = all;
       const outlines = qs.map((q) => layers(box, W, H, q, up));
       const spans = qs.map((q) => bounds(box, H, q, up));
       const pieces = co && pa ? qs.map((q) => frost(box, H, q, up)) : [];
@@ -268,6 +277,7 @@ export function ChipMenu({
         // The rim's light and the sheen spread over the whole glass: one piece, no ring left around the chip.
         rl?.animate(outlines.map((o, i) => ({ clipPath: o.light, ...spans[i]!.light })), opts),
         sn?.animate(spans.map((b) => b.box), opts),
+        ds?.animate(spans.map((b) => b.rounded), opts),
         co?.animate(pieces.map((f) => f[0]!), opts),
         pa?.animate(pieces.map((f) => f[1]!), opts),
         // The menu's tint comes with the glass; its items once the glass is mostly out, and they leave first.
@@ -345,14 +355,16 @@ export function ChipMenu({
     <div ref={wrap} className="relative z-40 shrink-0">
       {place && (
         <>
-          <div ref={shadow} aria-hidden style={place} className="pointer-events-none absolute">
+          {/* (WebKit blurs this one as a square: hidden there, see above.) */}
+          <div ref={shadow} aria-hidden style={WEBKIT ? { ...place, display: 'none' } : place} className="pointer-events-none absolute">
             <div className="rail-shadow absolute inset-0">
               <div ref={shadowShape} className="absolute inset-0 bg-current" />
             </div>
           </div>
-          {/* WebKit: the frost, under the clipped tint (see above). */}
+          {/* WebKit: the shadow and the frost, under the clipped tint (see above). */}
           {WEBKIT && (
             <div aria-hidden style={place} className="pointer-events-none absolute">
+              <div ref={dropShadow} className="chip-shadow absolute" />
               <div ref={column} className="chip-frost absolute" />
               <div ref={panel} className="chip-frost absolute" />
             </div>
