@@ -94,6 +94,8 @@ interface Actions {
   setTheme: (theme: ThemeName) => void;
   /** This person's background photo (kept on their member: their other devices follow). */
   setBackdrop: (id: BackdropId) => void;
+  /** How clear this person's glass is, 0 … 100 (on their member, like the photo). */
+  setGlass: (level: number) => void;
   /** the household's icon for a tab (null = the default one) */
   setTabIcon: (tab: View, icon: string | null) => void;
   setName: (name: string) => void;
@@ -235,6 +237,7 @@ export const useApp = create<AppState>()((set, get) => {
 
     setTheme: (theme) => mutate((d) => ({ ...d, settings: { ...d.settings, theme } })),
     setBackdrop: (id) => mutate((d) => ({ ...d, members: d.members.map((m) => (m.id === d.settings.meId ? { ...m, backdrop: id } : m)) })),
+    setGlass: (level) => mutate((d) => ({ ...d, members: d.members.map((m) => (m.id === d.settings.meId ? { ...m, glass: Math.round(Math.max(0, Math.min(100, level))) } : m)) })),
     setTabIcon: (tab, icon) =>
       mutate((d) => {
         const tabIcons = { ...d.prefs?.tabIcons };

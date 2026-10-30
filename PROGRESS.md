@@ -152,6 +152,12 @@
 - Fond d'écran au choix de chacun : 10 photos à thèmes (Paramètres › Fond d'écran), synchronisé sur la personne.
 - Icônes : favicon.ico (Vercel et navigateurs le demandent), liens d'icônes versionnés `?v=2` (caches).
 
+- Curseur « Transparence du verre » dans Paramètres (propre à chacun, synchronisé ; bornes ×1,8 dense … ×0,55
+  transparent, fenêtres et menus à moitié), vérifié dans Chromium et le vrai WebKit (couleurs calculées 59 % / 33 % /
+  18 % pour les panneaux sombres).
+- Favori toujours avec l'ancien logo : l'ancienne icône vivait à `/logo.svg`, supprimée (l'adresse renvoyait la page).
+  `/logo.svg` sert maintenant le nouveau logo, et les icônes ont de nouvelles adresses (`/icons/`).
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

@@ -10,6 +10,8 @@ export interface Member {
   photo?: string;
   /** the background photo this person chose (Paramètres), on all their devices; none = the default */
   backdrop?: BackdropId;
+  /** how clear their glass is, 0 (densest) … 100 (clearest), 50 = as designed (Paramètres › Transparence du verre) */
+  glass?: number;
 }
 /** The background photos (src/ui/backdrop.tsx, public/backdrop/). */
 export type BackdropId = 'dusk' | 'mountain' | 'ocean' | 'forest' | 'city' | 'desert' | 'aurora' | 'lake' | 'stars' | 'fields';

@@ -1,5 +1,5 @@
 /** Paramètres (from the user chip): name, theme, data (export, import, start again). */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, Download, Eraser, Moon, Plus, RefreshCw, RotateCcw, Settings, Sun, Trash2, Upload, Users, X } from 'lucide-react';
 import { relinkMe, useSync } from '../../sync/sync';
 import { MEMBER_HUES } from '../../domain/people';
@@ -7,13 +7,13 @@ import type { Member, MemberHue } from '../../domain/types';
 import { squarePhoto } from '../../lib/image';
 import { Avatar, ICON_STROKE, IconButton } from '../../ui/atoms';
 import { Popover } from '../../ui/popover';
-import { BACKDROPS, backdropThumb } from '../../ui/backdrop';
+import { BACKDROPS, GLASS_DEFAULT, applyGlass, backdropThumb } from '../../ui/backdrop';
 import { DEFAULT_TAB_ICONS, TAB_ICONS } from '../../domain/catalog';
 import { cn } from '../../ui/cn';
 import { useApp, type StartMode, type View } from '../../store/app';
 import { shortDate, todayIso } from '../../lib/dates';
 import { Button } from '../../ui/atoms';
-import { ChoiceChips, Field, TextInput } from '../../ui/forms';
+import { ChoiceChips, Field, Slider, TextInput } from '../../ui/forms';
 import { ConfirmDialog, Dialog } from '../../ui/overlays';
 
 /**
@@ -67,6 +67,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             />
           </Field>
           <BackdropPicker />
+          <GlassSlider />
           <TabIcons />
           <div className="flex flex-col gap-2">
             <p className="text-label-s text-text-secondary">Partage en ligne</p>
@@ -169,6 +170,48 @@ const TABS: { id: View; label: string }[] = [
   { id: 'goals', label: 'Objectifs' },
   { id: 'shopping', label: 'Courses' },
 ];
+
+/**
+ * How clear this person's glass is: shown at once while the knob moves, saved (and sent to their other devices) once it
+ * rests a moment.
+ */
+function GlassSlider() {
+  const saved = useApp((s) => s.data.members.find((m) => m.id === s.data.settings.meId)?.glass ?? GLASS_DEFAULT);
+  const [value, setValue] = useState(saved);
+  const timer = useRef(0);
+  const [seen, setSeen] = useState(saved);
+  // Changed elsewhere (another device): follow it.
+  if (saved !== seen) {
+    setSeen(saved);
+    setValue(saved);
+  }
+  const change = (v: number) => {
+    setValue(v);
+    applyGlass(v);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => useApp.getState().setGlass(v), 400);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const text = value === GLASS_DEFAULT ? 'Par défaut' : value < GLASS_DEFAULT ? 'Plus dense' : 'Plus transparent';
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-label-s text-text-secondary">Transparence du verre</p>
+        {value !== GLASS_DEFAULT && (
+          <button type="button" onClick={() => change(GLASS_DEFAULT)} className="rounded-full px-2 py-0.5 text-caption text-text-accent hover:bg-accent-soft">
+            Rétablir
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-3">
+        <span aria-hidden className="text-caption text-text-muted">Dense</span>
+        <Slider label="Transparence du verre" value={value} onChange={change} valueText={text} className="min-w-0 flex-1" />
+        <span aria-hidden className="text-caption text-text-muted">Transparent</span>
+      </div>
+      <p className="text-caption text-text-muted">Propre à chacun, comme le fond d'écran.</p>
+    </div>
+  );
+}
 
 /** This person's background photo, among ten themes: kept on their member, so it follows them on their devices. */
 function BackdropPicker() {

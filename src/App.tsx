@@ -24,7 +24,7 @@ import { MobileShell } from './screens/shell/MobileShell';
 import { TopBar } from './screens/shell/TopBar';
 import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
-import { Backdrop, applyBackdrop } from './ui/backdrop';
+import { Backdrop, GLASS_DEFAULT, applyBackdrop, applyGlass } from './ui/backdrop';
 import { initSync, useSync, type SyncStatus } from './sync/sync';
 import { HouseholdSetup, RecoveryScreen, SignInScreen, Splash, Unreachable } from './screens/auth/AuthScreens';
 
@@ -48,6 +48,10 @@ export function App() {
   useEffect(() => {
     if (backdrop) applyBackdrop(backdrop);
   }, [backdrop]);
+  const glass = me ? (me.glass ?? GLASS_DEFAULT) : undefined;
+  useEffect(() => {
+    if (glass !== undefined) applyGlass(glass);
+  }, [glass]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

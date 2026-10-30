@@ -266,3 +266,22 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
     </label>
   );
 }
+
+/** Range slider (.range in app.css): a thin track filled in blue up to the value, a white knob; 44 px tall to the finger. */
+export function Slider({ value, onChange, min = 0, max = 100, step = 1, label, valueText, className }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; label: string; valueText?: string; className?: string }) {
+  const fill = `${((value - min) / (max - min)) * 100}%`;
+  return (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      aria-label={label}
+      aria-valuetext={valueText}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={{ ['--fill' as string]: fill }}
+      className={cn('range w-full pointer-coarse:h-11', className)}
+    />
+  );
+}

@@ -48,6 +48,14 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   de chacun sur sa personne (`Member.backdrop`, synchronisé : le même sur ses appareils), Paramètres › Fond d'écran.
   `applyBackdrop()` pose des variables CSS sur `<html>` et garde le dernier sur l'appareil (`cadence.backdrop`, écrans
   de connexion). Pas de pré-cache (2 Mo) : le service worker garde chaque photo une fois affichée.
+- Transparence du verre (Paramètres, curseur 0–100, 50 = d'origine, `Member.glass`) : `applyGlass()` pose `--glass-k`
+  (panneaux, barres, verre clair : ×1,8 … ×0,55) et `--glass-ks` (fenêtres, menus : moitié de l'effet) sur `<html>` ;
+  les teintes sont `rgb(… / min(0.95, a * var(--glass-k, 1)))` (tokens.css, app.css). Toute nouvelle teinte de verre
+  doit suivre ce modèle.
+- Un commentaire CSS fermé trop tôt casse toute la feuille sans bruit côté serveur de dev (il sert l'ancienne) :
+  après une modif de CSS, vérifier `npm run build` (erreur « Invalid declaration »).
+- Icônes : `/icons/cadence-*.png` (index.html, manifeste) ; les anciennes adresses (`/favicon.ico`, `/logo.svg`,
+  `/apple-touch-icon.png`) servent aussi le nouveau logo, car favoris et onglets gardent une icône par adresse.
 - Thème : `night` = verre fumé (défaut), `day` = clair. Chaque appareil passe une fois en `night` (`cadence.look` =
   `verre` dans `load()`, store/app.ts) ; ensuite le choix du menu est gardé. Toute surface du thème sombre est un voile
   (blanc ou gris translucide), jamais une couleur opaque : un fond opaque passe par `--glass-solid`.

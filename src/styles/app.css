@@ -223,7 +223,49 @@
   background-repeat: no-repeat;
 }
 .chip-menu-tint {
-  background: rgb(255 255 255 / 0.68);
+  background: rgb(255 255 255 / min(0.95, 0.68 * var(--glass-ks, 1)));
+}
+/* Range slider (src/ui/forms.tsx Slider): a thin track filled in blue up to the value (--fill), a white knob. */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-accent-default) var(--fill), var(--color-bg-hover) var(--fill));
+}
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-accent-default) var(--fill), var(--color-bg-hover) var(--fill));
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border: none;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(14 16 20 / 0.3), 0 0 0 0.5px rgb(14 16 20 / 0.08);
+}
+.range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(14 16 20 / 0.3);
+}
+.range:focus-visible {
+  box-shadow: none;
+}
+.range:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--shadow-focus-ring);
 }
 /* WebKit: the shadow and the frost under a chip's outline, in rounded boxes (src/ui/chipMenu.tsx). An outer box-shadow
    is never drawn under its own box: only around the glass. */
@@ -238,7 +280,7 @@
   background-image: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.18));
 }
 :root[data-theme='night'] .chip-menu-tint {
-  background: rgb(48 47 50 / 0.66);
+  background: rgb(48 47 50 / min(0.95, 0.66 * var(--glass-ks, 1)));
 }
 :root[data-theme='night'] .rail-sheen {
   background:
@@ -289,12 +331,12 @@
    denser blur, more saturation, a whiter tint. */
 @supports (-webkit-touch-callout: none) {
   .liquid {
-    background: rgb(255 255 255 / 0.36);
+    background: rgb(255 255 255 / min(0.95, 0.36 * var(--glass-k, 1)));
     -webkit-backdrop-filter: blur(18px) saturate(2) brightness(1.06);
     backdrop-filter: blur(18px) saturate(2) brightness(1.06);
   }
   .liquid-strong {
-    background: rgb(255 255 255 / 0.68);
+    background: rgb(255 255 255 / min(0.95, 0.68 * var(--glass-ks, 1)));
   }
   .liquid-bar {
     background: var(--glass-bar);
@@ -303,7 +345,7 @@
     background: var(--glass-panel-strong);
   }
   :root[data-theme='night'] .liquid {
-    background: rgb(70 69 72 / 0.36);
+    background: rgb(70 69 72 / min(0.95, 0.36 * var(--glass-k, 1)));
   }
 }
 :root[data-theme='night'] .liquid::before {
