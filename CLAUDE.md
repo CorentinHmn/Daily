@@ -89,7 +89,18 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   noire). Pendant le mouvement, la réfraction SVG laisse place au même givre en CSS (`paused` de `useLiquidGlass`).
   Replié, la vague sort avec le nom à chaque changement d'onglet (et au survol de l'onglet actif) ; ouvert, pas de
   vague. La vague ne peut pas vivre dans le `<nav>` : un `backdrop-filter` ancêtre la couperait.
-- Pastille du profil (`src/ui/chipMenu.tsx`) : même technique que le rail (calque de verre plus grand que la pastille,
+- WebKit (Safari sur Mac, tous les navigateurs de l'iPhone) ne découpe pas un `backdrop-filter` par un `clip-path` :
+  un calque de verre découpé montrait toute sa boîte givrée (un « carré discret » autour du menu du profil). Là
+  (`webkitBackdrop`, glass.tsx), le givre vient de boîtes arrondies (`.chip-frost` : colonne de la pastille + panneau du
+  menu ; la boîte du rail), la teinte, le liseré et l'ombre gardent le clip-path. Tester ce chemin dans Chromium en
+  donnant au contexte Playwright un `userAgent` d'iPhone ou de Safari.
+- Barre d'état de l'iPhone : `black-translucent`, l'appli dessine dessous (fond photo, `--status-scrim` pour l'heure) ;
+  l'ancien bandeau uni flou venait du style `default`. Changer ce réglage peut demander de réinstaller l'appli sur
+  l'écran d'accueil.
+- Logo : `public/logo/cadence-tile.png` (icône d'appli, `Logo` dans atoms.tsx), `cadence-mark.png` (le C seul,
+  transparent), icônes PWA et favicon recomposées depuis la planche de l'utilisateur (C détouré sur tuile claire).
+- Pastilles qui deviennent leur menu (`src/ui/chipMenu.tsx`) : profil, et le + de l'ajout rapide (barre du haut ;
+  au téléphone, vers le haut : `up`, teinte des barres : `bar`) ; Ctrl K passe par `ref.open()`. Même technique que le rail (calque de verre plus grand que la pastille,
   clip-path animé pastille → pastille + menu, ombre et liseré sur le même tracé, réfraction gardée sur la pastille par
   l'option `lens` de `useLiquidGlass`) ; la liste est toujours montée (mesurée, `inert` fermée) et découpée par le même
   contour ; il descend d'abord à la largeur de la pastille puis s'élargit (sinon un angle vif au raccord), les entrées

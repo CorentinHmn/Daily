@@ -21,6 +21,13 @@ export const refractionSupported: boolean =
   typeof matchMedia === 'function' &&
   !matchMedia('(prefers-reduced-transparency: reduce)').matches;
 
+/**
+ * WebKit (Safari on the Mac, every iPhone browser) does not clip a backdrop-filter by a clip-path: a layer of glass
+ * shaped by a clip-path (rail, chips that grow into their menu) showed its whole box frosted, a square around the shape.
+ * There the frost comes from rounded boxes instead (`.chip-frost`), the tint and rims keep the clip-path.
+ */
+export const webkitBackdrop: boolean = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent);
+
 let defs: SVGDefsElement | null = null;
 function filterDefs(): SVGDefsElement {
   if (defs?.isConnected) return defs;

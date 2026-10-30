@@ -11,7 +11,8 @@ import { tabIcon } from './domain/catalog';
 import { useApp, type View } from './store/app';
 import { todayIso, weekStart } from './lib/dates';
 import { NavRail, readRailOpen, saveRailOpen, type NavItem } from './ui/navigation';
-import { Menu, ToastStack } from './ui/overlays';
+import { ToastStack, type MenuItem } from './ui/overlays';
+import type { ChipMenuHandle } from './ui/chipMenu';
 import { motionTokens } from './theme/motion';
 import { TodayScreen } from './screens/today/TodayScreen';
 import { WeekScreen } from './screens/week/WeekScreen';
@@ -77,10 +78,10 @@ function Workspace() {
   const sessionLive = useApp((s) => !!s.data.active);
   const today = useToday();
   const mobile = useIsMobile();
-  const [quickAdd, setQuickAdd] = useState(false);
+  // Ctrl K opens the quick add (the +, in the top bar or beside the tab bar, that grows into its menu).
+  const quickAdd = useRef<ChipMenuHandle>(null);
   const [railOpen, setRailOpen] = useState(readRailOpen);
-  const fab = useRef<HTMLButtonElement | null>(null);
-  useShortcuts(useCallback(() => setQuickAdd(true), []));
+  useShortcuts(useCallback(() => quickAdd.current?.open(), []));
 
   // A new week is filled from the semaine type as soon as it starts — once the household's latest data is here, so a
   // device back from offline does not refill (and untick) a week the other one already filled.
@@ -102,35 +103,26 @@ function Workspace() {
   const t = motionTokens();
   const open = useApp.getState().openDialog;
 
+  const adds: MenuItem[] = [
+    { label: 'Tâche', icon: CalendarDays, hint: mobile ? undefined : 'Ctrl N', onSelect: () => open({ kind: 'task', date: todayIso() }) },
+    { label: 'Routine de la semaine type', icon: Repeat, onSelect: () => open({ kind: 'routine' }) },
+    { label: 'Article de courses', icon: ListPlus, onSelect: () => open({ kind: 'item' }) },
+    { label: 'Sortie running', icon: Footprints, onSelect: () => open({ kind: 'run' }) },
+    { label: 'Objectif', icon: Target, onSelect: () => open({ kind: 'goal' }) },
+  ];
+
   const overlays = (
     <>
-      <Menu
-        open={quickAdd}
-        anchor={fab}
-        onClose={() => setQuickAdd(false)}
-        align="end"
-        width={250}
-        items={[
-          { label: 'Tâche', icon: CalendarDays, hint: mobile ? undefined : 'Ctrl N', onSelect: () => open({ kind: 'task', date: todayIso() }) },
-          { label: 'Routine de la semaine type', icon: Repeat, onSelect: () => open({ kind: 'routine' }) },
-          { label: 'Article de courses', icon: ListPlus, onSelect: () => open({ kind: 'item' }) },
-          { label: 'Sortie running', icon: Footprints, onSelect: () => open({ kind: 'run' }) },
-          { label: 'Objectif', icon: Target, onSelect: () => open({ kind: 'goal' }) },
-        ]}
-      />
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <Celebrations />
       <Dialogs />
     </>
   );
-  const setFab = (el: HTMLButtonElement | null) => {
-    fab.current = el;
-  };
 
   if (mobile) {
     return (
       <>
-        <MobileShell items={nav} active={view} onNavigate={navigate} onFab={() => setQuickAdd((o) => !o)} fabRef={setFab} screenKey={`${view}-${today}`}>
+        <MobileShell items={nav} active={view} onNavigate={navigate} adds={adds} addRef={quickAdd} screenKey={`${view}-${today}`}>
           <Screen />
         </MobileShell>
         {overlays}
@@ -148,8 +140,8 @@ function Workspace() {
             saveRailOpen(!railOpen);
             setRailOpen(!railOpen);
           }}
-          onFab={() => setQuickAdd((o) => !o)}
-          fabRef={setFab}
+          adds={adds}
+          addRef={quickAdd}
         />
         <div className="flex min-h-0 flex-1 gap-5">
           <div className="flex shrink-0 flex-col justify-center pb-(--layout-topbar)">

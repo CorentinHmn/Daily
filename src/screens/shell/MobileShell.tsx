@@ -1,15 +1,18 @@
 /**
  * Phone shell (below 1200 px, Halo Guide « rail en barre basse »; on a tablet the column stays phone-width, centred): the whole page scrolls under two pieces of glass —
  * the compact title bar (PageHeader, once scrolled) and the floating tab bar at the bottom, with the round + next to it
- * (the rail's FAB). Safe areas of the iPhone (notch, home bar) are kept clear.
+ * (the quick add: it grows upwards into its menu, as the user chip). Safe areas of the iPhone (notch, home bar) are
+ * kept clear.
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 import { cn } from '../../ui/cn';
 import { ICON_STROKE } from '../../ui/atoms';
 import { useLiquidGlass } from '../../ui/glass';
 import type { NavItem } from '../../ui/navigation';
+import { ChipMenu, type ChipMenuHandle } from '../../ui/chipMenu';
+import type { MenuItem } from '../../ui/overlays';
 import { motionTokens } from '../../theme/motion';
 import { PageScrollContext } from './scroll';
 import { Backdrop } from '../../ui/backdrop';
@@ -19,16 +22,16 @@ export function MobileShell<T extends string>({
   items,
   active,
   onNavigate,
-  onFab,
-  fabRef,
+  adds,
+  addRef,
   screenKey,
   children,
 }: {
   items: NavItem<T>[];
   active: T;
   onNavigate: (id: T) => void;
-  onFab: () => void;
-  fabRef: (el: HTMLButtonElement | null) => void;
+  adds: MenuItem[];
+  addRef: Ref<ChipMenuHandle>;
   screenKey: string;
   children: ReactNode;
 }) {
@@ -60,15 +63,16 @@ export function MobileShell<T extends string>({
             </motion.div>
           </AnimatePresence>
         </main>
-        <TabBar items={items} active={active} onNavigate={onNavigate} onFab={onFab} fabRef={fabRef} />
+        {/* Under the status bar (the app draws beneath it): a shade, so the clock stays legible over the page. */}
+        <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-20 h-[calc(env(safe-area-inset-top)+16px)] bg-(image:--status-scrim)" />
+        <TabBar items={items} active={active} onNavigate={onNavigate} adds={adds} addRef={addRef} />
       </div>
     </PageScrollContext.Provider>
   );
 }
 
-function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; onFab: () => void; fabRef: (el: HTMLButtonElement | null) => void }) {
+function TabBar<T extends string>({ items, active, onNavigate, adds, addRef }: { items: NavItem<T>[]; active: T; onNavigate: (id: T) => void; adds: MenuItem[]; addRef: Ref<ChipMenuHandle> }) {
   const glass = useLiquidGlass<HTMLSpanElement>({ bezel: 20, strength: 14 });
-  const plus = useLiquidGlass<HTMLButtonElement>({ bezel: 20, strength: 14 });
   const shell = useRef<HTMLSpanElement | null>(null);
   const bubble = useRef<HTMLSpanElement>(null);
   const tabs = useRef(new Map<T, HTMLButtonElement>());
@@ -188,18 +192,9 @@ function TabBar<T extends string>({ items, active, onNavigate, onFab, fabRef }: 
           );
         })}
       </nav>
-      <button
-        ref={(el) => {
-          plus(el);
-          fabRef(el);
-        }}
-        type="button"
-        aria-label="Ajouter"
-        onClick={onFab}
-        className="liquid liquid-bar pointer-events-auto inline-flex size-16 shrink-0 items-center justify-center rounded-full text-text-accent transition-transform duration-200 active:scale-95"
-      >
-        <Plus size={26} strokeWidth={2} aria-hidden />
-      </button>
+      <ChipMenu ref={addRef} items={adds} label="Ajouter" width={250} up bar className="pointer-events-auto inline-flex size-16 items-center justify-center rounded-full text-text-accent transition-transform duration-200 active:scale-95">
+        {() => <Plus size={26} strokeWidth={2} aria-hidden />}
+      </ChipMenu>
     </div>
   );
 }

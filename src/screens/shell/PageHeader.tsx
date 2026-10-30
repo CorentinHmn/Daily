@@ -25,8 +25,8 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
         <header className="flex shrink-0 flex-col gap-3 pb-4">
           <div className="flex min-h-14 items-center gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-heading-page text-text-primary [text-shadow:var(--title-shadow)]">{title}</h1>
-              {subtitle && <p className="line-clamp-2 text-body-s text-text-secondary [text-shadow:var(--title-shadow)]">{subtitle}</p>}
+              <h1 className="truncate text-heading-page text-text-primary">{title}</h1>
+              {subtitle && <p className="line-clamp-2 text-body-s text-text-secondary">{subtitle}</p>}
             </div>
             <UserChip compact />
           </div>
@@ -44,8 +44,8 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
   return (
     <header className="flex min-h-[76px] shrink-0 items-center gap-4 pb-3 pl-1">
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-heading-page text-text-primary [text-shadow:var(--title-shadow)]">{title}</h1>
-        {subtitle && <p className="truncate text-body-s text-text-secondary [text-shadow:var(--title-shadow)]">{subtitle}</p>}
+        <h1 className="truncate text-heading-page text-text-primary">{title}</h1>
+        {subtitle && <p className="truncate text-body-s text-text-secondary">{subtitle}</p>}
       </div>
       {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
     </header>

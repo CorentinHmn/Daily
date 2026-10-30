@@ -37,7 +37,17 @@ verre liquide. Ce qui en est repris :
 - **KPI** : carré d'icône teinté (bleu, ambre, vert, violet), pastille d'évolution en haut à droite (vert ↗ / rouge ↘ /
   gris), libellé, valeur, petite courbe des dernières semaines (ou des 7 derniers jours).
 - **Barres** : voiles de verre en dégradé, la barre du moment en bleu lumineux.
-- **Titres** : nom du menu + une ligne de sous-titre ; Aujourd'hui = « Bonjour, Corentin ».
+- **Titres** : nom du menu + une ligne de sous-titre ; Aujourd'hui = « Bonjour, Corentin ». Pas d'ombre sous les
+  titres (elle les rendait flous sur l'iPhone).
+- **Ajout rapide** : le + (barre du haut ; au téléphone, à côté de la barre d'onglets) devient son menu en une pièce
+  de verre, comme la pastille du profil (vers le haut au téléphone).
+
+## Logo (30/10/2026)
+Planche fournie par l'utilisateur : un « C » en ruban bleu translucide et une pastille menthe, sur une tuile de verre
+clair (version principale), plus des variantes claire, sombre et monochrome. Le C est détouré (fond clair estimé puis
+retiré, couleurs restituées) dans `public/logo/cadence-mark.png`, recomposé sur une tuile claire (`cadence-tile.png`,
+coins à 22,5 %, liseré blanc) ; icônes de l'écran d'accueil pleines (iOS arrondit lui-même), version « maskable » avec
+marge, favicon 64 px.
 
 ## Règles appliquées (HALO.md + Guide)
 - Titre de page = nom du menu (Aujourd'hui : la salutation), avec une ligne de sous-titre depuis le verre fumé.

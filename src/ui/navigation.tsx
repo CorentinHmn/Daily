@@ -6,7 +6,7 @@ import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from '
 import { type LucideIcon } from 'lucide-react';
 import { cn } from './cn';
 import { ICON_STROKE } from './atoms';
-import { useLiquidGlass } from './glass';
+import { useLiquidGlass, webkitBackdrop } from './glass';
 import { SPRING, reducedMotion, stretchAt, travel, useDeferredPick, useLiquidBubble } from './liquid';
 import { cssPx } from '../theme/tokens';
 
@@ -387,13 +387,15 @@ export function NavRail<T extends string>({ items, active, onNavigate, open }: {
           <div ref={shadowShape} className="absolute inset-0 bg-current" />
         </div>
       </div>
+      {/* WebKit: the frost in the rail's own rounded box (it ignores the clip-path); the wave keeps the tint only. */}
+      {webkitBackdrop && <div aria-hidden className="chip-frost pointer-events-none absolute inset-0 rounded-(--radius-rail)" />}
       <div
         ref={(el) => {
           shell.current = el;
           glass(el);
         }}
         aria-hidden
-        style={layerWidth}
+        style={webkitBackdrop ? { ...layerWidth, backdropFilter: 'none', WebkitBackdropFilter: 'none' } : layerWidth}
         className="rail-glass pointer-events-none absolute inset-y-0 left-0"
       >
         <div ref={sheen} className="rail-sheen absolute inset-y-0 left-0 w-(--layout-rail) rounded-(--radius-rail)" />

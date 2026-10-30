@@ -20,7 +20,7 @@ export function UserChip({ compact }: { compact?: boolean }) {
   return (
     <ChipMenu
       label={compact ? `${name || 'Moi'}, menu` : undefined}
-      className={compact ? 'inline-flex size-12 items-center justify-center rounded-full md:size-11' : 'flex h-[52px] items-center gap-3 rounded-full py-1 pr-1.5 pl-4 text-left'}
+      className={compact ? 'inline-flex size-11 items-center justify-center rounded-full' : 'flex h-[52px] items-center gap-3 rounded-full py-1 pr-1.5 pl-4 text-left'}
       width={240}
       items={[
         { label: 'Foyer et compte', icon: Users, onSelect: () => app.openDialog({ kind: 'account' }) },
@@ -41,7 +41,7 @@ export function UserChip({ compact }: { compact?: boolean }) {
             </>
           )}
           <span className="relative">
-            <Avatar name={name || 'Moi'} hue={hue} photo={photo} />
+            <Avatar name={name || 'Moi'} hue={hue} photo={photo} size={compact ? 'chip' : 'm'} />
             <SyncDot />
           </span>
         </>
@@ -60,7 +60,7 @@ function SyncDot() {
       role="img"
       aria-label={label}
       className={cn(
-        'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-bg-card',
+        'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-(--glass-solid)',
         status === 'synced' && 'bg-signal-default',
         (status === 'syncing' || status === 'connecting') && 'live-halo bg-accent-default text-accent-default',
         (status === 'offline' || status === 'error') && 'bg-warn-default',

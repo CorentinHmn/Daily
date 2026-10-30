@@ -118,8 +118,8 @@ const avatarGradient = {
   violet: 'bg-(image:--gradient-avatar-violet)',
 } as const;
 
-/** Initials on the person's gradient, or their photo. */
-export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { name: string; hue?: keyof typeof avatarGradient; size?: 'xs' | 's' | 'm'; photo?: string; className?: string }) {
+/** Initials on the person's gradient, or their photo. `chip`: the user chip's (the whole chip, a fine light ring). */
+export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { name: string; hue?: keyof typeof avatarGradient; size?: 'xs' | 's' | 'm' | 'chip'; photo?: string; className?: string }) {
   return (
     <span
       aria-hidden
@@ -127,7 +127,7 @@ export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { n
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full bg-cover bg-center font-medium text-text-on-accent',
         !photo && avatarGradient[hue],
-        size === 'xs' ? 'size-5 border border-bg-card text-[8px]' : size === 's' ? 'size-8 border-2 border-bg-card text-caption' : 'size-11 border-2 border-bg-card text-label-m',
+        size === 'xs' ? 'size-5 border border-bg-card text-[8px]' : size === 's' ? 'size-8 border-2 border-bg-card text-caption' : size === 'chip' ? 'size-11 border-[1.5px] border-(--avatar-ring) text-label-m shadow-[0_6px_16px_-6px_rgb(0_0_0/0.45)]' : 'size-11 border-2 border-bg-card text-label-m',
         className,
       )}
     >
@@ -136,31 +136,9 @@ export function Avatar({ name, hue = 'warm', size = 'm', photo, className }: { n
   );
 }
 
-/** Cadence logo: the Halo logo disc (gradient/logo + Glow/Accent), the week as seven arcs and a tick. */
+/** Cadence logo: the app icon (the blue C and its mint dot on a light glass tile), public/logo/cadence-tile.png. */
 export function Logo({ size = 44, className }: { size?: number; className?: string }) {
-  const arcs = [
-    'M137.9 52.7 A76 76 0 0 1 180.7 73.3',
-    'M193.1 88.8 A76 76 0 0 1 203.7 135.1',
-    'M199.3 154.4 A76 76 0 0 1 169.6 191.6',
-    'M151.8 200.2 A76 76 0 0 1 104.2 200.2',
-    'M86.4 191.6 A76 76 0 0 1 56.7 154.4',
-    'M52.3 135.1 A76 76 0 0 1 62.9 88.8',
-    'M75.3 73.3 A76 76 0 0 1 118.1 52.7',
-  ];
-  return (
-    <span aria-hidden className={cn('relative inline-flex shrink-0 rounded-full bg-(image:--gradient-logo) shadow-glow-accent', className)} style={{ width: size, height: size }}>
-      <svg viewBox="0 0 256 256" className="absolute inset-0 size-full">
-        <ellipse cx="128" cy="62" rx="96" ry="54" fill="white" opacity="0.22" />
-        <circle cx="128" cy="128" r="122" fill="none" stroke="white" strokeOpacity="0.45" strokeWidth="6" />
-        <g fill="none" stroke="white" strokeWidth="17" strokeLinecap="round">
-          {arcs.map((d, i) => (
-            <path key={d} d={d} strokeOpacity={i >= 5 ? 0.45 : 1} />
-          ))}
-        </g>
-        <path d="M97 130 L119 152 L161 106" fill="none" stroke="white" strokeWidth="19" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
-  );
+  return <img src="/logo/cadence-tile.png" alt="" aria-hidden width={size} height={size} draggable={false} className={cn('shrink-0 rounded-[22.5%] shadow-[0_6px_18px_-8px_rgb(0_0_0/0.45)] select-none', className)} style={{ width: size, height: size }} />;
 }
 
 /** Square icon holder of list items and card headers. */

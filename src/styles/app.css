@@ -199,8 +199,8 @@
   color: #ffffff;
   box-shadow: 0 6px 16px -6px rgb(0 0 0 / 0.4);
 }
-/* The profile chip that grows into its menu (src/ui/chipMenu.tsx): the rim's light over the chip (placed inline),
-   and the menu's denser tint (the .liquid-strong level over the clear glass), fading in over the neck. */
+/* The chips that grow into their menu (src/ui/chipMenu.tsx: profile, quick add): the rim's light over the chip (placed
+   inline), and the menu's denser tint (the .liquid-strong level over the clear glass), fading in over the neck. */
 .chip-rim {
   background-image: linear-gradient(140deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.12) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.55));
   background-repeat: no-repeat;
@@ -208,6 +208,14 @@
 .chip-menu-tint {
   background: rgb(255 255 255 / 0.68);
   mask-image: linear-gradient(to bottom, transparent, #000 14px);
+}
+.chip-menu-tint-up {
+  mask-image: linear-gradient(to top, transparent, #000 14px);
+}
+/* WebKit: the frost under a chip's outline, in rounded boxes (src/ui/chipMenu.tsx). */
+.chip-frost {
+  -webkit-backdrop-filter: blur(18px) saturate(var(--liquid-saturate)) brightness(1.04);
+  backdrop-filter: blur(18px) saturate(var(--liquid-saturate)) brightness(1.04);
 }
 :root[data-theme='night'] .chip-rim {
   background-image: linear-gradient(140deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.04) 34%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.18));

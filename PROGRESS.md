@@ -121,6 +121,15 @@
   console ; sous-titres raccourcis pour le téléphone ; les autres remarques du rapport existaient avant). Comptes de
   test supprimés. Passé par la branche `glassy-dashboard`, puis mis sur `main` à la demande de l'utilisateur.
 
+## Session 7 bis (30/10/2026) — retours sur l'iPhone, nouveau logo
+- Le + (barre du haut, et au téléphone à côté de la barre d'onglets) devient son menu comme la pastille du profil
+  (vers le haut au téléphone) ; Ctrl K l'ouvre.
+- « Carré discret » autour du menu du profil sur l'iPhone : WebKit ne découpe pas le flou d'un calque par son
+  clip-path ; le givre y vient maintenant de boîtes arrondies (pastilles et rail).
+- Haut de l'écran au téléphone : plus d'ombre floue sous les titres ; l'appli passe sous la barre d'état (plus de
+  bandeau flou), avec une ombre douce pour l'heure ; avatar du profil net (anneau fin, point de synchro cerclé).
+- Nouveau logo (planche de l'utilisateur) : C détouré, tuile recomposée, icônes de l'écran d'accueil, favicon.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur
