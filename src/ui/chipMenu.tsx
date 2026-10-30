@@ -7,8 +7,9 @@
  * WebKit (Safari, every iPhone browser) does not clip a backdrop-filter by a clip-path (the whole layer showed as a
  * frosted square around the menu), nor a clip-path inside a filter (the blurred shadow was the whole layer: a square
  * shadow). There the outline keeps its tint and rim (plain painting, clipped); the frost comes from two rounded boxes
- * — the chip's column and the menu — and the shadow is a rounded box's own box-shadow over the outline's bounds, all
- * moved on the same keyframes.
+ * — the chip's column and the menu — and the shadow from the box-shadows of two such boxes, clipped (no filter) to
+ * what lies outside the outline, all moved on the same keyframes. (A single box over the outline's bounds left a faint
+ * rectangle beside the chip.)
  * The chip's content and the menu's items sit above the glass, so its rim never crosses them (the sync dot).
  */
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
@@ -105,11 +106,8 @@ function bounds(g: Box, H: number, q: number, up: boolean) {
   const y = up ? H - bottom : g.top;
   const w = g.cx1 - left;
   const h = bottom - g.top;
-  // WebKit's shadow: rounded as the chip's pill, then as the menu's corners.
-  const r = Math.max(0, Math.min(g.ch / 2 + (CORNER - g.ch / 2) * Math.min(1, q), w / 2, h / 2));
   return {
     box: { left: px(x), top: px(y), width: px(w), height: px(h) },
-    rounded: { left: px(x), top: px(y), width: px(w), height: px(h), borderRadius: px(r) },
     light: { backgroundPosition: `${px(x)} ${px(y)}`, backgroundSize: `${px(w)} ${px(h)}` },
   };
 }
@@ -171,7 +169,9 @@ export function ChipMenu({
   const light = useRef<HTMLDivElement>(null);
   const tint = useRef<HTMLDivElement>(null);
   const sheen = useRef<HTMLDivElement>(null);
-  const dropShadow = useRef<HTMLDivElement>(null);
+  const shadowClip = useRef<HTMLDivElement>(null);
+  const shadowColumn = useRef<HTMLDivElement>(null);
+  const shadowPanel = useRef<HTMLDivElement>(null);
   const column = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -213,7 +213,7 @@ export function ChipMenu({
     return () => ro.disconnect();
   }, [sized]);
 
-  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current, sheen.current, dropShadow.current];
+  const els = () => [shell.current, shadow.current, shadowShape.current, shade.current, light.current, tint.current, list.current, column.current, panel.current, sheen.current, shadowClip.current, shadowColumn.current, shadowPanel.current];
 
   /** Every layer at rest at `q` (0: the chip alone, 1: open). */
   const settle = useCallback(
@@ -221,9 +221,9 @@ export function ChipMenu({
       if (!box) return;
       const l = layers(box, W, H, q, up);
       const b = bounds(box, H, q, up);
-      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, ds] = els();
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, sc, scol, span] = els();
       if (!sl || !sh || !ss || !rs || !rl) return;
-      if (ds) Object.assign(ds.style, b.rounded);
+      if (sc) sc.style.clipPath = l.shadow;
       sl.style.clipPath = ss.style.clipPath = l.glass;
       sh.style.clipPath = l.shadow;
       rs.style.clipPath = l.shade;
@@ -239,6 +239,10 @@ export function ChipMenu({
         const [c, p] = frost(box, H, q, up);
         Object.assign(co.style, c);
         Object.assign(pa.style, p);
+        if (scol && span) {
+          Object.assign(scol.style, c);
+          Object.assign(span.style, p);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the box is derived from size and items
@@ -265,7 +269,7 @@ export function ChipMenu({
       const qs = opening ? SPRING.frames.map(({ p }) => (p > 1 ? 1 + (p - 1) * 0.5 : p)) : Array.from({ length: Math.ceil(CLOSE_MS / FRAME) + 1 }, (_, i) => 1 - ease(Math.min(1, (i * FRAME) / CLOSE_MS)));
       const duration = opening ? SPRING.ms : CLOSE_MS;
       const opts = { duration, easing: 'linear', fill: 'forwards' as const };
-      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, ds] = all;
+      const [sl, sh, ss, rs, rl, tn, li, co, pa, sn, sc, scol, span] = all;
       const outlines = qs.map((q) => layers(box, W, H, q, up));
       const spans = qs.map((q) => bounds(box, H, q, up));
       const pieces = co && pa ? qs.map((q) => frost(box, H, q, up)) : [];
@@ -277,7 +281,9 @@ export function ChipMenu({
         // The rim's light and the sheen spread over the whole glass: one piece, no ring left around the chip.
         rl?.animate(outlines.map((o, i) => ({ clipPath: o.light, ...spans[i]!.light })), opts),
         sn?.animate(spans.map((b) => b.box), opts),
-        ds?.animate(spans.map((b) => b.rounded), opts),
+        sc?.animate(outlines.map((o) => ({ clipPath: o.shadow })), opts),
+        scol?.animate(pieces.map((f) => f[0]!), opts),
+        span?.animate(pieces.map((f) => f[1]!), opts),
         co?.animate(pieces.map((f) => f[0]!), opts),
         pa?.animate(pieces.map((f) => f[1]!), opts),
         // The menu's tint comes with the glass; its items once the glass is mostly out, and they leave first.
@@ -364,7 +370,11 @@ export function ChipMenu({
           {/* WebKit: the shadow and the frost, under the clipped tint (see above). */}
           {WEBKIT && (
             <div aria-hidden style={place} className="pointer-events-none absolute">
-              <div ref={dropShadow} className="chip-shadow absolute" />
+              {/* The shadow: the pieces' box-shadows, seen only outside the outline. */}
+              <div ref={shadowClip} className="absolute inset-0">
+                <div ref={shadowColumn} className="chip-shadow absolute" />
+                <div ref={shadowPanel} className="chip-shadow absolute" />
+              </div>
               <div ref={column} className="chip-frost absolute" />
               <div ref={panel} className="chip-frost absolute" />
             </div>

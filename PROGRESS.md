@@ -145,6 +145,10 @@
 - Retour : ombre carrée autour des menus sur l'iPhone et l'iPad. C'était l'ombre (calque flouté découpé par
   clip-path : WebKit floute toute la boîte), invisible dans Chromium même avec le chemin WebKit forcé. WebKit : ombre
   = box-shadow d'une boîte arrondie qui suit la forme (menus, rail).
+- Retour : une traîne rectangulaire restait à côté des pastilles ouvertes (profil, +) sur l'iPhone : l'ombre WebKit
+  était une seule boîte aux bornes de la forme. Elle vient maintenant de deux boîtes (colonne + menu) découpées à
+  l'extérieur du contour. Reproduit puis vérifié dans le vrai WebKit (Playwright) : avant, zone assombrie uniforme
+  au-dessus / à côté ; après, seule l'ombre douce sous le bord du menu.
 - Fond d'écran au choix de chacun : 10 photos à thèmes (Paramètres › Fond d'écran), synchronisé sur la personne.
 - Icônes : favicon.ico (Vercel et navigateurs le demandent), liens d'icônes versionnés `?v=2` (caches).
 

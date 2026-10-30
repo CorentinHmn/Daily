@@ -100,8 +100,12 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   (`webkitBackdrop`, glass.tsx), le givre vient de boîtes arrondies (`.chip-frost` : colonne de la pastille + panneau du
   menu ; la boîte du rail ; deux boîtes autour de l'encoche de la NotchCard), la teinte, le liseré et l'ombre gardent
   le clip-path ; et l'ombre floutée (calque `filter` + clip-path dedans, que WebKit floute comme une boîte : ombre
-  carrée) y devient la `box-shadow` d'une boîte arrondie qui suit les bornes de la forme (`.chip-shadow`). Chromium ne
-  montre aucun de ces défauts, même avec un user-agent d'iPhone : ne pas conclure « corrigé » sur une capture Chromium.
+  carrée) y devient les `box-shadow` de deux boîtes arrondies (colonne + menu, `.chip-shadow`) dans un calque découpé
+  à l'extérieur du contour (une seule boîte aux bornes de la forme laissait une traîne rectangulaire à côté de la
+  pastille). Chromium ne montre aucun de ces défauts, même avec un user-agent d'iPhone : vérifier dans le **vrai
+  WebKit** de Playwright, installé à part : `PLAYWRIGHT_BROWSERS_PATH=<dossier> npx playwright install webkit` puis
+  `npx playwright install-deps webkit`, et `webkit.launch()` avec le même `PLAYWRIGHT_BROWSERS_PATH` ; comparer capture
+  fermée / ouverte (différence de pixels) plutôt qu'à l'œil.
   Détecter le **moteur**, pas le nom du navigateur : Chrome sur iPad se présente en « Chrome/… » de Mac
   (sites pour ordinateur) mais c'est WebKit (`navigator.vendor` Apple, `-webkit-touch-callout`). Tester ce chemin dans
   Chromium avec un `userAgent` d'iPhone, ou en forçant `navigator.vendor` à « Apple Computer, Inc. ».
