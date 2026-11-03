@@ -147,7 +147,10 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   Chromium avec un `userAgent` d'iPhone, ou en forçant `navigator.vendor` à « Apple Computer, Inc. ».
 - Barre d'état de l'iPhone : `black-translucent`, l'appli dessine dessous (fond photo, `--status-scrim` pour l'heure) ;
   l'ancien bandeau uni flou venait du style `default`. Changer ce réglage peut demander de réinstaller l'appli sur
-  l'écran d'accueil.
+  l'écran d'accueil. iOS 26, appli installée : la fenêtre est plus courte que l'écran de la hauteur de la barre d'état
+  (bug WebKit 301108 : `innerHeight` 793 sur 852 pt ; barre d'onglets et photo arrêtées ~59 pt trop haut, bande grise
+  dessous) tant que la page n'est pas plus haute qu'elle ; d'où `html { min-height: min(100lvh, 100% + inset haut) }`
+  en `display-mode: standalone` (app.css). Ne se reproduit ni dans Chromium ni dans le WebKit Linux.
 - Logo : `public/logo/cadence-tile.png` (icône d'appli, `Logo` dans atoms.tsx), `cadence-mark.png` (le C seul,
   transparent), icônes PWA et favicon recomposées depuis la planche de l'utilisateur (C détouré sur tuile claire).
 - Pastilles qui deviennent leur menu (`src/ui/chipMenu.tsx`) : profil, et le + de l'ajout rapide (barre du haut ;

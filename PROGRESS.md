@@ -198,9 +198,11 @@
 - Scripts : e2e cherche les textes visibles seulement (les écrans cachés gardent les leurs). Vérifié : tsc, eslint,
   vitest 20/20, e2e 15/15, shoot (pc, téléphone, fenêtres : aucune erreur console ; « Saisir » coupé = étiquette cachée
   du bouton d'une sortie running, déjà là), chronologies Chromium et WebKit.
-- Vu sur la capture de l'utilisateur, non traité : une bande grise de ~60 pt sous la barre d'onglets (la page plus
-  courte que l'écran de la hauteur de la barre d'état) ; ressemble au bug d'iOS des applis installées dont l'écran
-  rétrécit (souvent après le clavier) jusqu'à les quitter tout à fait.
+- Retour : « une barre opaque en bas » (bande grise de ~59 pt sous la barre d'onglets, toujours là après réouverture).
+  Bug d'iOS 26 pour les applis installées en `black-translucent` + `viewport-fit=cover` (WebKit 301108) : la fenêtre
+  est courte de la hauteur de la barre d'état tant que la page n'est pas plus haute qu'elle ; or la page fait 100 % (seul
+  `main` défile). Correctif repris de frappe-ui (vérifié par eux dans le simulateur iOS 26.2) : en `display-mode:
+  standalone`, `html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))) }`. À confirmer sur l'iPhone.
 
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).

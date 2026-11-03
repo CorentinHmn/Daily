@@ -36,6 +36,18 @@
   #root {
     overflow: clip;
   }
+  /*
+   * iOS 26, app installed on the home screen (viewport-fit=cover + black-translucent status bar): its window comes out
+   * short by the status bar's height (WebKit bug 301108; innerHeight 793 on an 852 pt screen) as long as the page is
+   * no taller than that window — the tab bar, the photo and the sheets stopped ~59 pt above the bottom, over a grey band.
+   * A page at least as tall as the screen gets the whole window. min(): no taller than the screen where the window is
+   * right already (100 % = 100lvh there).
+   */
+  @media (display-mode: standalone) {
+    html {
+      min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+    }
+  }
   body {
     margin: 0;
     background: var(--backdrop-base);
