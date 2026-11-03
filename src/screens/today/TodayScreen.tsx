@@ -5,8 +5,8 @@
  */
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Check, Dumbbell, ListChecks, Plus, Repeat, ShoppingCart, Target } from 'lucide-react';
-import { useApp } from '../../store/app';
+import { ArrowRight, Check, Dumbbell, ListChecks, Play, Plus, Repeat, ShoppingCart, Target } from 'lucide-react';
+import { runningTrip, useApp } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, HABIT_ICONS, guessCategory } from '../../domain/catalog';
 import { goalProgress, goalStatus, habitDueOn, nextGymSession } from '../../domain/stats';
 import type { Habit, Task } from '../../domain/types';
@@ -22,6 +22,7 @@ import { TextInput } from '../../ui/forms';
 import { revealVariants } from '../../theme/motion';
 import { PageHeader } from '../shell/PageHeader';
 import { TaskRow } from '../common/TaskRow';
+import { parseItem } from '../shopping/ShoppingScreen';
 
 export function TodayScreen() {
   const data = useApp((s) => s.data);
@@ -289,42 +290,51 @@ function WeekGlance() {
   );
 }
 
+/** Courses: the session running (to tick), else the core list shown, with a way to start a session. */
 function ShoppingGlance() {
+  const trip = useApp((s) => runningTrip(s.data));
   const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0]);
   const app = useApp.getState();
   const [draft, setDraft] = useState('');
-  const todo = list?.items.filter((i) => !i.checked) ?? [];
+  const todo = trip ? trip.items.filter((i) => !i.checked) : (list?.items ?? []);
   return (
     <Panel className="min-h-0 flex-1">
-      <PanelHeader title={list?.name ?? 'Courses'} icon={ShoppingCart} count={list ? `${todo.length}` : undefined}>
+      <PanelHeader title={trip ? 'Courses en cours' : (list?.name ?? 'Courses')} icon={ShoppingCart} count={trip || list ? `${todo.length}` : undefined}>
         <Button variant="ghost" size="s" trailingIcon={ArrowRight} onClick={() => app.navigate('shopping')}>
-          Liste
+          {trip ? 'Session' : 'Liste'}
         </Button>
       </PanelHeader>
       <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pt-1">
-        {todo.length === 0 && <li className="px-2 py-3 text-body-s text-text-secondary">La liste est vide.</li>}
+        {todo.length === 0 && <li className="px-2 py-3 text-body-s text-text-secondary">{trip ? 'Tout est dans le panier.' : 'La liste de base est vide.'}</li>}
         {todo.map((i) => (
           <li key={i.id} className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-bg-card/60">
-            <CheckCircle checked={i.checked} onChange={() => app.toggleItem(i.id)} label={`Cocher ${i.name}`} size="s" />
+            {trip && <CheckCircle checked={false} onChange={() => app.toggleTripItem(i.id)} label={`Cocher ${i.name}`} size="s" />}
             <span className="min-w-0 flex-1 truncate text-body-s text-text-primary">{i.name}</span>
             {i.qty && <span className="tnum text-caption text-text-secondary">{i.qty}</span>}
           </li>
         ))}
       </ul>
-      <div className="shrink-0 p-3">
+      <div className="flex shrink-0 flex-col gap-2 p-3">
         <TextInput
           icon={Plus}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && draft.trim()) {
-              app.addItem(draft);
+              const p = parseItem(draft);
+              if (trip) app.addTripItem(p.name, p.qty);
+              else app.addItem(p.name, p.qty);
               setDraft('');
             }
           }}
-          placeholder="Ajouter un article"
-          aria-label="Ajouter un article à la liste"
+          placeholder={trip ? 'Ajouter pour cette fois' : 'Ajouter à la liste de base'}
+          aria-label={trip ? 'Ajouter un article aux courses en cours' : 'Ajouter un article à la liste'}
         />
+        {!trip && (
+          <Button variant="secondary" size="s" icon={Play} onClick={() => app.openDialog({ kind: 'trip' })}>
+            Lancer les courses
+          </Button>
+        )}
       </div>
     </Panel>
   );

@@ -1,14 +1,14 @@
 /** Every dialog of the app, driven by `dialog` in the store. */
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Dumbbell, Flag, Footprints, ListPlus, Plus, Repeat, Target, Trash2, Flame, X } from 'lucide-react';
-import { useApp, type DialogState } from '../../store/app';
+import { CalendarDays, Dumbbell, Flag, Footprints, ListPlus, Play, Plus, Repeat, ShoppingCart, Target, Trash2, Flame, X } from 'lucide-react';
+import { runningTrip, useApp, type DialogState } from '../../store/app';
 import { CATEGORIES, CATEGORY_ORDER, GOAL_ICONS, GOAL_SOURCES, HABIT_ICONS, PERIOD_LABEL, guessCategory } from '../../domain/catalog';
 import { NOUS, type CategoryId, type GoalIcon, type GoalKind, type GoalPeriod, type GoalSource, type GoalStep, type HabitIcon } from '../../domain/types';
 import { PeopleChips, WhoChips } from '../../ui/people';
 import { goalOwners, habitPeople } from '../../domain/people';
 import { sessionVolume } from '../../domain/stats';
 import { addDays, todayIso, weekStart, weekdayIndex } from '../../lib/dates';
-import { duration, kg, uid } from '../../lib/format';
+import { duration, kg, normalize, uid } from '../../lib/format';
 import { Button, ICON_STROKE, IconButton } from '../../ui/atoms';
 import { cn } from '../../ui/cn';
 import { ChoiceChips, DayPicker, Field, NumberStepper, Select, TextArea, TextInput, Toggle } from '../../ui/forms';
@@ -33,6 +33,7 @@ export function Dialogs() {
       <RunDialog dialog={dialog?.kind === 'run' ? dialog : null} onClose={close} />
       <ProgramDialog key={`p${key}`} dialog={dialog?.kind === 'program' ? dialog : null} onClose={close} />
       <ItemDialog key={`i${key}`} open={dialog?.kind === 'item'} onClose={close} />
+      <TripDialog key={`c${key}`} open={dialog?.kind === 'trip'} onClose={close} />
       <FinishDialog open={dialog?.kind === 'finish-session'} onClose={close} />
       <SettingsDialog open={dialog?.kind === 'settings'} onClose={close} />
       <AccountDialog open={dialog?.kind === 'account'} onClose={close} />
@@ -480,26 +481,31 @@ function ProgramDialog({ dialog, onClose }: { dialog: Extract<DialogState, { kin
 function ItemDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const app = useApp.getState();
   const lists = app.data.lists;
+  // A session running: the items go to it, for this time; else to a core list.
+  const trip = runningTrip(app.data);
   const [text, setText] = useState('');
   const [listId, setListId] = useState(app.data.activeListId ?? lists[0]?.id);
   const [added, setAdded] = useState<string[]>([]);
   const add = () => {
     if (!text.trim()) return;
-    if (listId) app.setActiveList(listId);
     const p = parseItem(text);
-    app.addItem(p.name, p.qty);
+    if (trip) app.addTripItem(p.name, p.qty);
+    else {
+      if (listId) app.setActiveList(listId);
+      app.addItem(p.name, p.qty);
+    }
     setAdded([...added, p.name]);
     setText('');
   };
   return (
-    <Dialog open={open} onClose={onClose} title="Ajouter aux courses" icon={ListPlus} width="s" footer={<Button onClick={onClose}>Terminé</Button>}>
+    <Dialog open={open} onClose={onClose} title={trip ? 'Ajouter aux courses en cours' : 'Ajouter aux courses'} icon={ListPlus} width="s" footer={<Button onClick={onClose}>Terminé</Button>}>
       <div className="flex flex-col gap-4">
-        {lists.length > 1 && (
-          <Field label="Liste">
-            <ChoiceChips label="Liste" value={listId ?? ''} onChange={setListId} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
+        {!trip && lists.length > 1 && (
+          <Field label="Liste de base">
+            <ChoiceChips label="Liste de base" value={listId ?? ''} onChange={setListId} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
           </Field>
         )}
-        <Field label="Article" help="Entrée pour ajouter, puis le suivant.">
+        <Field label="Article" help={trip ? `Pour cette fois, dans « ${trip.listName} ». Entrée pour ajouter, puis le suivant.` : 'Entrée pour ajouter, puis le suivant.'}>
           <TextInput
             data-autofocus=""
             icon={Plus}
@@ -516,6 +522,141 @@ function ItemDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
         </Field>
         {added.length > 0 && <p className="text-body-s text-text-signal">Ajouté : {added.join(', ')}</p>}
       </div>
+    </Dialog>
+  );
+}
+
+// ── Lancer les courses ───────────────────────────────────────────────────────
+
+/** A shopping session: which core list, what is not needed this time, what to add for this time only; then go. */
+function TripDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const app = useApp.getState();
+  const lists = useApp((s) => s.data.lists);
+  const frequent = useApp((s) => s.data.frequent);
+  const [listId, setListId] = useState(app.data.activeListId ?? lists[0]?.id ?? '');
+  const list = lists.find((l) => l.id === listId) ?? lists[0];
+  const [skip, setSkip] = useState<string[]>([]);
+  const [extras, setExtras] = useState<{ name: string; qty?: string }[]>([]);
+  const [text, setText] = useState('');
+  const present = new Set([...(list?.items ?? []).map((i) => normalize(i.name)), ...extras.map((x) => normalize(x.name))]);
+  const addExtra = (raw: string) => {
+    const p = parseItem(raw);
+    if (!p.name || present.has(normalize(p.name))) {
+      // Already in the core list (left out?): back in.
+      const core = list?.items.find((i) => normalize(i.name) === normalize(p.name));
+      if (core) setSkip(skip.filter((id) => id !== core.id));
+      setText('');
+      return;
+    }
+    setExtras([...extras, p]);
+    setText('');
+  };
+  const ideas = Object.entries(frequent)
+    .filter(([k]) => !present.has(k))
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 10);
+  const count = (list?.items.length ?? 0) - skip.length + extras.length;
+  const chip = 'inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-label-s transition-[background-color,border-color,color]';
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Lancer les courses"
+      icon={ShoppingCart}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button type="submit" form="dialog-form" icon={Play} disabled={count === 0}>
+            C'est parti{count ? ` · ${count}` : ''}
+          </Button>
+        </>
+      }
+    >
+      <Form
+        onSubmit={() => {
+          if (!count) return;
+          app.startTrip(list?.id ?? null, skip, extras);
+          onClose();
+          app.navigate('shopping');
+        }}
+      >
+        {lists.length > 1 ? (
+          <Field label="Liste de base">
+            <ChoiceChips
+              label="Liste de base"
+              value={list?.id ?? ''}
+              onChange={(v) => {
+                setListId(v);
+                setSkip([]);
+              }}
+              options={lists.map((l) => ({ value: l.id, label: l.name }))}
+            />
+          </Field>
+        ) : (
+          !list && <p className="text-body-s text-text-secondary">Pas encore de liste de base : ajoute ce qu'il te faut pour cette fois.</p>
+        )}
+        {list && list.items.length > 0 && (
+          <Field label={`Dans « ${list.name} »`} help="Touche un article pour le laisser de côté cette fois.">
+            <div className="flex flex-wrap gap-2">
+              {list.items.map((i) => {
+                const off = skip.includes(i.id);
+                return (
+                  <button
+                    key={i.id}
+                    type="button"
+                    aria-pressed={!off}
+                    onClick={() => setSkip(off ? skip.filter((x) => x !== i.id) : [...skip, i.id])}
+                    className={cn(chip, off ? 'border-border-default text-text-muted line-through decoration-text-muted/60' : 'border-border-accent bg-accent-soft text-text-primary')}
+                  >
+                    {i.name}
+                    {i.qty && <span className="tnum text-text-secondary">{i.qty}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+        )}
+        <Field label="En plus, pour cette fois" help="Entrée pour ajouter, puis le suivant.">
+          <TextInput
+            icon={Plus}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (text.trim()) addExtra(text);
+              }
+            }}
+            placeholder="ex. 6 œufs, charbon, bougies"
+            aria-label="Ajouter un article pour cette fois"
+          />
+        </Field>
+        {extras.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {extras.map((x) => (
+              <span key={x.name} className={cn(chip, 'border-border-accent bg-accent-soft pr-1.5 text-text-primary')}>
+                {x.name}
+                {x.qty && <span className="tnum text-text-secondary">{x.qty}</span>}
+                <IconButton icon={X} label={`Retirer ${x.name}`} variant="ghost" size="xs" onClick={() => setExtras(extras.filter((e) => e !== x))} />
+              </span>
+            ))}
+          </div>
+        )}
+        {ideas.length > 0 && (
+          <Field label="Souvent pris">
+            <div className="flex flex-wrap gap-2">
+              {ideas.map(([k, f]) => (
+                <button key={k} type="button" onClick={() => setExtras([...extras, { name: f.name }])} className={cn(chip, 'border-border-default bg-bg-card/70 text-text-secondary hover:border-border-accent hover:text-text-primary')} aria-label={`Ajouter ${f.name} pour cette fois`}>
+                  <Plus size={13} strokeWidth={2} aria-hidden />
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          </Field>
+        )}
+      </Form>
     </Dialog>
   );
 }

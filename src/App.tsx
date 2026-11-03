@@ -5,9 +5,9 @@
  * MobileShell, the same menus in a floating tab bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { CalendarDays, Footprints, ListPlus, Target, Repeat } from 'lucide-react';
+import { CalendarDays, Footprints, ListPlus, ShoppingCart, Target, Repeat } from 'lucide-react';
 import { tabIcon } from './domain/catalog';
-import { useApp, type View } from './store/app';
+import { runningTrip, useApp, type View } from './store/app';
 import { todayIso, weekStart } from './lib/dates';
 import { NavRail, readRailOpen, saveRailOpen, type NavItem } from './ui/navigation';
 import { ToastStack, type MenuItem } from './ui/overlays';
@@ -81,10 +81,9 @@ function Workspace() {
   const dismiss = useApp((s) => s.dismissToast);
   const onboarded = useApp((s) => s.data.onboarded);
   const caughtUp = useSync((s) => s.caughtUp);
-  const remaining = useApp((s) => {
-    const list = s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0];
-    return list ? list.items.filter((i) => !i.checked).length : 0;
-  });
+  // Courses: what is left to take in the session running (none: no badge).
+  const remaining = useApp((s) => runningTrip(s.data)?.items.filter((i) => !i.checked).length ?? 0);
+  const shopping = useApp((s) => !!runningTrip(s.data));
   const sessionLive = useApp((s) => !!s.data.active);
   const today = useToday();
   const mobile = useIsMobile();
@@ -106,7 +105,7 @@ function Workspace() {
     { id: 'week', label: 'Semaine', icon: tabIcon('week', prefs) },
     { id: 'sport', label: 'Sport', icon: tabIcon('sport', prefs), live: sessionLive && view !== 'sport' },
     { id: 'goals', label: 'Objectifs', icon: tabIcon('goals', prefs) },
-    { id: 'shopping', label: 'Courses', icon: tabIcon('shopping', prefs), badge: remaining ? String(remaining) : undefined },
+    { id: 'shopping', label: 'Courses', icon: tabIcon('shopping', prefs), live: shopping && !remaining && view !== 'shopping', badge: remaining ? String(remaining) : undefined },
   ];
 
   const open = useApp.getState().openDialog;
@@ -115,6 +114,7 @@ function Workspace() {
     { label: 'Tâche', icon: CalendarDays, hint: mobile ? undefined : 'Ctrl N', onSelect: () => open({ kind: 'task', date: todayIso() }) },
     { label: 'Routine de la semaine type', icon: Repeat, onSelect: () => open({ kind: 'routine' }) },
     { label: 'Article de courses', icon: ListPlus, onSelect: () => open({ kind: 'item' }) },
+    { label: 'Lancer les courses', icon: ShoppingCart, onSelect: () => (runningTrip(useApp.getState().data) ? useApp.getState().navigate('shopping') : open({ kind: 'trip' })) },
     { label: 'Sortie running', icon: Footprints, onSelect: () => open({ kind: 'run' }) },
     { label: 'Objectif', icon: Target, onSelect: () => open({ kind: 'goal' }) },
   ];

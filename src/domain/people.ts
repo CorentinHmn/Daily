@@ -138,5 +138,6 @@ export function keepPeople(d: AppData, members: Member[], meId: string | undefin
     sessions: d.sessions.map(owner),
     runs: d.runs.map(owners),
     goals: d.goals.map(owners),
+    trips: (d.trips ?? []).map((t) => (t.by === gen ? { ...t, by: meId } : t)),
   };
 }

@@ -4,20 +4,27 @@
  *
  * Links between screens:
  *  - the semaine type (routines) fills each new week; editing a routine updates its future, unchecked tasks;
- *  - finishing a gym session ticks that day's gym task, logging a run ticks that day's running task, completing the
- *    shopping list ticks today's shopping task;
+ *  - finishing a gym session ticks that day's gym task, logging a run ticks that day's running task, ending a
+ *    shopping session ticks today's shopping task;
  *  - « auto » goals read sessions, runs and ticked tasks (domain/stats.ts).
  */
 import { create } from 'zustand';
 import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib/dates';
-import { normalize, uid } from '../lib/format';
+import { duration, normalize, uid } from '../lib/format';
 import { guessRayon } from '../domain/catalog';
 import { blankData, emptyData, exampleData, modelData, tasksFromRoutines } from '../domain/seed';
 import { keepPeople, newMember, normalizeData, withHabitCheck, withHabitPeople } from '../domain/people';
-import { NOUS, type AppData, type BackdropId, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type Task, type ThemeName } from '../domain/types';
+import { NOUS, type AppData, type BackdropId, type CategoryId, type Goal, type GoalPeriod, type Habit, type Member, type Program, type RayonId, type Routine, type Run, type ShopItem, type ShopTrip, type Task, type ThemeName, type TripItem } from '../domain/types';
 import type { ToastItem } from '../ui/overlays';
 
 export type View = 'today' | 'week' | 'sport' | 'goals' | 'shopping';
+
+/** The shopping session running for the household (the latest started, if two were). */
+export function runningTrip(d: AppData): ShopTrip | undefined {
+  let found: ShopTrip | undefined;
+  for (const t of d.trips) if (!t.endedAt && (!found || t.startedAt > found.startedAt)) found = t;
+  return found;
+}
 /** Screens shared by the whole household: no person filter there. */
 export const SHARED_VIEWS: readonly View[] = ['shopping'];
 export type StartMode = 'modele' | 'exemple' | 'vide';
@@ -30,6 +37,7 @@ export type DialogState =
   | { kind: 'run'; id?: string; date?: ISODate }
   | { kind: 'program'; id?: string }
   | { kind: 'item' }
+  | { kind: 'trip' }
   | { kind: 'finish-session' }
   | { kind: 'settings' }
   | { kind: 'account' };
@@ -141,11 +149,21 @@ interface Actions {
   setActiveList: (id: string) => void;
   addItem: (name: string, qty?: string, rayon?: RayonId) => void;
   updateItem: (id: string, patch: Partial<Omit<ShopItem, 'id'>>) => void;
-  toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
   /** forget a frequent item (key = normalized name) */
   removeFrequent: (key: string) => void;
-  clearChecked: () => void;
+
+  /** A shopping session from a core list: its items but `skip` (not needed this time), plus `extras`. */
+  startTrip: (listId: string | null, skip: string[], extras: { name: string; qty?: string }[]) => void;
+  /** An item for this time only, in the session running. */
+  addTripItem: (name: string, qty?: string) => void;
+  updateTripItem: (id: string, patch: Partial<Omit<TripItem, 'id'>>) => void;
+  toggleTripItem: (id: string) => void;
+  deleteTripItem: (id: string) => void;
+  /** Ends the session running: kept in the history (time, what was taken), today's shopping task ticked. */
+  endTrip: () => void;
+  cancelTrip: () => void;
+  deleteTrip: (id: string) => void;
 }
 
 export type AppState = UiState & { data: AppData } & Actions;
@@ -179,6 +197,18 @@ export const useApp = create<AppState>()((set, get) => {
     const list = activeList(d);
     if (!list) return d;
     return { ...d, lists: d.lists.map((l) => (l.id === list.id ? { ...l, items: fn(l.items) } : l)) };
+  };
+  const mapTrip = (d: AppData, fn: (items: TripItem[]) => TripItem[]): AppData => {
+    const trip = runningTrip(d);
+    if (!trip) return d;
+    return { ...d, trips: d.trips.map((t) => (t.id === trip.id ? { ...t, items: fn(t.items) } : t)) };
+  };
+  /** One more use of an item: its aisle (the one already known, else guessed) and its count in the frequent ones. */
+  const remember = (d: AppData, name: string, rayon?: RayonId): { frequent: AppData['frequent']; rayon: RayonId } => {
+    const key = normalize(name);
+    const known = d.frequent[key];
+    const r = rayon ?? known?.rayon ?? guessRayon(name);
+    return { rayon: r, frequent: { ...d.frequent, [key]: { name: known?.name ?? name, rayon: r, count: (known?.count ?? 0) + 1 } } };
   };
 
   return {
@@ -472,13 +502,12 @@ export const useApp = create<AppState>()((set, get) => {
           target = { ...d, lists: [{ id, name: 'Supermarché', items: [] }], activeListId: id };
         }
         const key = normalize(clean);
-        const known = target.frequent[key];
-        const r = rayon ?? known?.rayon ?? guessRayon(clean);
+        const r = remember(target, clean, rayon);
         const existing = activeList(target)!.items.find((i) => normalize(i.name) === key);
         const withItem = mapActiveList(target, (items) =>
-          existing ? items.map((i) => (i.id === existing.id ? { ...i, checked: false, qty: qty || i.qty } : i)) : [...items, { id: uid(), name: clean, qty: qty || undefined, rayon: r, checked: false }],
+          existing ? items.map((i) => (i.id === existing.id ? { ...i, qty: qty || i.qty } : i)) : [...items, { id: uid(), name: clean, qty: qty || undefined, rayon: r.rayon, checked: false }],
         );
-        return { ...withItem, frequent: { ...target.frequent, [key]: { name: known?.name ?? clean, rayon: r, count: (known?.count ?? 0) + 1 } } };
+        return { ...withItem, frequent: r.frequent };
       });
     },
     updateItem: (id, patch) =>
@@ -494,19 +523,6 @@ export const useApp = create<AppState>()((set, get) => {
         }
         return next;
       }),
-    toggleItem: (id) => {
-      mutate((d) => mapActiveList(d, (items) => items.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i))));
-      const list = activeList(get().data);
-      if (list && list.items.length > 0 && list.items.every((i) => i.checked)) {
-        let ticked: Task | null = null;
-        mutate((d) => {
-          const linked = tickFirst(d.tasks, todayIso(), 'courses');
-          ticked = linked.ticked;
-          return { ...d, tasks: linked.tasks };
-        });
-        toast({ tone: 'success', title: `Liste « ${list.name} » terminée`, text: ticked ? `« ${(ticked as Task).title} » est cochée dans l'agenda.` : undefined });
-      }
-    },
     deleteItem: (id) => mutate((d) => mapActiveList(d, (items) => items.filter((i) => i.id !== id))),
     removeFrequent: (key) => {
       const f = get().data.frequent[key];
@@ -517,10 +533,75 @@ export const useApp = create<AppState>()((set, get) => {
         return { ...d, frequent };
       });
     },
-    clearChecked: () => {
-      const n = activeList(get().data)?.items.filter((i) => i.checked).length ?? 0;
-      if (n) undoable(`${n} article${n > 1 ? 's' : ''} retiré${n > 1 ? 's' : ''} de la liste`, (d) => mapActiveList(d, (items) => items.filter((i) => !i.checked)));
+
+    // ── Shopping sessions
+    startTrip: (listId, skip, extras) => {
+      if (runningTrip(get().data)) return;
+      mutate((d) => {
+        const list = d.lists.find((l) => l.id === listId);
+        let frequent = d.frequent;
+        const items: TripItem[] = (list?.items ?? []).filter((i) => !skip.includes(i.id)).map((i) => ({ id: uid(), name: i.name, qty: i.qty, rayon: i.rayon, checked: false }));
+        for (const x of extras) {
+          const known = items.find((i) => normalize(i.name) === normalize(x.name));
+          if (known) {
+            if (x.qty) known.qty = x.qty;
+            continue;
+          }
+          const r = remember({ ...d, frequent }, x.name);
+          frequent = r.frequent;
+          items.push({ id: uid(), name: x.name, qty: x.qty || undefined, rayon: r.rayon, checked: false, extra: true });
+        }
+        const trip: ShopTrip = { id: uid(), listId: list?.id ?? '', listName: list?.name ?? 'Courses', startedAt: Date.now(), by: d.settings.meId, items };
+        return { ...d, frequent, trips: [...d.trips, trip], activeListId: list?.id ?? d.activeListId };
+      });
     },
+    addTripItem: (name, qty) => {
+      const clean = name.trim();
+      if (!clean) return;
+      mutate((d) => {
+        const trip = runningTrip(d);
+        if (!trip) return d;
+        const existing = trip.items.find((i) => normalize(i.name) === normalize(clean));
+        if (existing) return mapTrip(d, (items) => items.map((i) => (i.id === existing.id ? { ...i, checked: false, qty: qty || i.qty } : i)));
+        const r = remember(d, clean);
+        return { ...mapTrip(d, (items) => [...items, { id: uid(), name: clean, qty: qty || undefined, rayon: r.rayon, checked: false, extra: true }]), frequent: r.frequent };
+      });
+    },
+    updateTripItem: (id, patch) =>
+      mutate((d) => {
+        const next = mapTrip(d, (items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+        const it = patch.rayon && runningTrip(next)?.items.find((i) => i.id === id);
+        if (!it) return next;
+        const key = normalize(it.name);
+        const known = next.frequent[key];
+        return { ...next, frequent: { ...next.frequent, [key]: { name: known?.name ?? it.name, count: known?.count ?? 1, rayon: patch.rayon! } } };
+      }),
+    toggleTripItem: (id) => mutate((d) => mapTrip(d, (items) => items.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)))),
+    deleteTripItem: (id) => mutate((d) => mapTrip(d, (items) => items.filter((i) => i.id !== id))),
+    endTrip: () => {
+      const trip = runningTrip(get().data);
+      if (!trip) return;
+      const before = get().data;
+      const endedAt = Date.now();
+      let ticked: Task | null = null;
+      mutate((d) => {
+        const linked = tickFirst(d.tasks, todayIso(), 'courses');
+        ticked = linked.ticked;
+        return { ...d, tasks: linked.tasks, trips: d.trips.map((t) => (t.id === trip.id ? { ...t, endedAt } : t)) };
+      });
+      const taken = trip.items.filter((i) => i.checked).length;
+      toast({
+        tone: 'success',
+        title: `Courses terminées en ${duration(Math.max(1, (endedAt - trip.startedAt) / 60000))}`,
+        text: `${taken} article${taken > 1 ? 's' : ''} pris sur ${trip.items.length}${ticked ? `, « ${(ticked as Task).title} » cochée dans l'agenda` : ''}.`,
+        action: { label: 'Annuler', onClick: () => set({ data: before }) },
+      });
+    },
+    cancelTrip: () => {
+      const trip = runningTrip(get().data);
+      if (trip) undoable('Session de courses annulée', (d) => ({ ...d, trips: d.trips.filter((t) => t.id !== trip.id) }));
+    },
+    deleteTrip: (id) => undoable('Session retirée de l’historique', (d) => ({ ...d, trips: d.trips.filter((t) => t.id !== id) })),
   };
 });
 

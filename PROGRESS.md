@@ -204,6 +204,16 @@
   `main` défile). Correctif repris de frappe-ui (vérifié par eux dans le simulateur iOS 26.2) : en `display-mode:
   standalone`, `html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))) }`. À confirmer sur l'iPhone.
 
+- Demande : listes de courses « core » + sessions. Les listes deviennent des **listes de base** (articles pris à chaque
+  fois, sans coches). « Lancer les courses » (Courses, widget d'Aujourd'hui, menu +) : choix de la liste de base,
+  articles laissés de côté cette fois, articles en plus (saisie + « Souvent pris »), puis « C'est parti ». Pendant la
+  session : chrono, coches par rayon, ajouts « pour cette fois » (marqués « En plus »), panier ; session partagée en
+  direct avec l'autre personne (« Louise a coché … »). « Terminer les courses » : historique (jour, liste, durée,
+  pris / pas pris, dépliable) et tâche courses du jour cochée. Migration `sessions_de_courses` appliquée (types de
+  lignes `trips`, `tripitems`). Vérifié : tsc, eslint, vitest 21/21 (nouveau test : une coche = une ligne
+  `tripitems`), e2e 15/15 (Sam lance et coche, Alex prévenu, termine, la session est dans l'historique de Sam),
+  captures téléphone et ordinateur sans erreur console.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

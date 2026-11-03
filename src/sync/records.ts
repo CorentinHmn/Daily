@@ -2,16 +2,16 @@
  * AppData ⇄ records of the `records` table (one row per object, keyed by collection + id). Pure functions, tested in
  * records.test.ts.
  *  - shopping lists are split: the list (without its items) and each item (with its listId), so two people ticking
- *    items of the same list at the same time do not overwrite each other;
+ *    items of the same list at the same time do not overwrite each other; shopping sessions too (`trips`, `tripitems`);
  *  - generatedWeeks become « weeks » records, so a device does not refill a week the other one already filled;
  *  - a habit for several people is one record where each person ticks their own (`checksBy`): an unsent local tick and
  *    the other's tick that arrives meanwhile are merged (mergeHabit), not overwritten;
  *  - the household's settings (prefs) are one record;
  *  - settings (this device's name, theme, me) and the session in progress stay on the device.
  */
-import type { AppData, FrequentItem, GoalStep, Habit, HouseholdPrefs, Member, ShopItem, ShopList, Task } from '../domain/types';
+import type { AppData, FrequentItem, GoalStep, Habit, HouseholdPrefs, Member, ShopItem, ShopList, ShopTrip, Task, TripItem } from '../domain/types';
 
-export type Collection = 'members' | 'tasks' | 'routines' | 'weeks' | 'programs' | 'sessions' | 'runs' | 'goals' | 'habits' | 'lists' | 'items' | 'frequent' | 'prefs';
+export type Collection = 'members' | 'tasks' | 'routines' | 'weeks' | 'programs' | 'sessions' | 'runs' | 'goals' | 'habits' | 'lists' | 'items' | 'trips' | 'tripitems' | 'frequent' | 'prefs';
 
 export interface Rec {
   collection: Collection;
@@ -40,6 +40,11 @@ export function flatten(d: AppData): Flat {
   for (const l of d.lists) {
     put('lists', l.id, { id: l.id, name: l.name });
     for (const it of l.items) put('items', it.id, { ...it, listId: l.id });
+  }
+  for (const t of d.trips) {
+    const { items, ...trip } = t;
+    put('trips', t.id, trip);
+    for (const it of items) put('tripitems', it.id, { ...it, tripId: t.id });
   }
   for (const [k, v] of Object.entries(d.frequent)) put('frequent', k, v);
   if (d.prefs && Object.keys(d.prefs).length) put('prefs', 'foyer', d.prefs);
@@ -93,6 +98,19 @@ export function unflatten(base: AppData, flat: Flat): AppData {
         return it;
       }),
   }));
+  const tripItems = of<TripItem & { tripId: string }>('tripitems');
+  const trips: ShopTrip[] = of<Omit<ShopTrip, 'items'>>('trips')
+    .map((t) => ({
+      ...t,
+      items: tripItems
+        .filter((i) => i.tripId === t.id)
+        .map((i) => {
+          const it: TripItem & { tripId?: string } = { ...i };
+          delete it.tripId;
+          return it;
+        }),
+    }))
+    .sort((a, b) => a.startedAt - b.startedAt);
   const frequent: Record<string, FrequentItem> = {};
   for (const r of flat.values()) if (r.collection === 'frequent') frequent[r.id] = r.data as FrequentItem;
   return {
@@ -110,6 +128,7 @@ export function unflatten(base: AppData, flat: Flat): AppData {
     habits: of('habits'),
     lists,
     activeListId: lists.some((l) => l.id === base.activeListId) ? base.activeListId : (lists[0]?.id ?? null),
+    trips,
     frequent,
     prefs: flat.get(keyOf('prefs', 'foyer'))?.data as HouseholdPrefs | undefined,
   };

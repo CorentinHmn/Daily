@@ -9,7 +9,7 @@
 import { addDays, todayIso, weekStart, weekdayIndex, type ISODate } from '../lib/dates';
 import { uid } from '../lib/format';
 import { guessRayon } from './catalog';
-import type { AppData, ExerciseTemplate, FrequentItem, GymSession, Habit, Program, Routine, Run, ShopItem, Task } from './types';
+import type { AppData, ExerciseTemplate, FrequentItem, GymSession, Habit, Program, Routine, Run, ShopItem, ShopTrip, Task } from './types';
 import { normalizeData } from './people';
 
 const ex = (name: string, sets: number, reps: number, weight: number, restSec = 90): ExerciseTemplate => ({ id: uid(), name, sets, reps, weight, restSec });
@@ -78,6 +78,7 @@ export function emptyData(): AppData {
     habits: [],
     lists: [],
     activeListId: null,
+    trips: [],
     frequent: {},
   };
 }
@@ -218,6 +219,14 @@ export function exampleData(name: string, today = todayIso()): AppData {
     { id: uid(), name: 'Pharmacie', items: [item('Magnésium'), item('Pansements')] },
   ];
 
+  // ── Shopping sessions of the last weeks (the history).
+  const trips: ShopTrip[] = [12, 8, 5, 1].map((ago, n) => {
+    const start = new Date(`${addDays(today, -ago)}T18:${String(10 + n * 7).padStart(2, '0')}:00`).getTime();
+    const taken = lists[0]!.items.map((i, k) => ({ id: uid(), name: i.name, qty: i.qty, rayon: i.rayon, checked: (k + n) % 5 !== 0 }));
+    const extra = { id: uid(), name: ['Bougies', 'Charbon', 'Crème fraîche', 'Citrons'][n]!, rayon: guessRayon(['Bougies', 'Charbon', 'Crème fraîche', 'Citrons'][n]!), checked: true, extra: true };
+    return { id: uid(), listId, listName: 'Supermarché', startedAt: start, endedAt: start + (24 + n * 6) * 60_000, by: base.settings.meId, items: [...taken, extra] };
+  });
+
   tasks.sort((a, b) => (a.date === b.date ? (a.time ?? '99').localeCompare(b.time ?? '99') : a.date.localeCompare(b.date)));
   const me = base.settings.meId;
   const mine = <T extends object>(x: T): T => ({ ...x, owner: me });
@@ -230,5 +239,6 @@ export function exampleData(name: string, today = todayIso()): AppData {
     goals: goals.map(mine),
     habits: habits.map(mine),
     lists,
+    trips,
   };
 }

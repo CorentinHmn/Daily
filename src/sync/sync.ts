@@ -217,7 +217,7 @@ async function announce(rows: Row[], before: Flat): Promise<void> {
     if (!r.updated_by || r.updated_by === userId || r.deleted) return false;
     const prev = before.get(keyOf(r.collection, r.id))?.data as { done?: boolean; checked?: boolean } | undefined;
     const now = r.data as { done?: boolean; checked?: boolean; title?: string; name?: string };
-    return (r.collection === 'tasks' && now.done && !prev?.done) || (r.collection === 'items' && now.checked && !prev?.checked);
+    return (r.collection === 'tasks' && now.done && !prev?.done) || ((r.collection === 'items' || r.collection === 'tripitems') && now.checked && !prev?.checked);
   });
   if (!ticked.length) return;
   const author = ticked[0]!.updated_by;

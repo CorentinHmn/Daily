@@ -1,22 +1,28 @@
 /**
- * Courses: the lists (left), the active list sorted by aisle in shop order (middle; the aisle is guessed from the
- * name, « 2 avocats » → 2 × avocats in Fruits et légumes), the cart progress and the frequent items to add in one
- * click (right). Completing the list ticks today's shopping task.
+ * Courses, in two moments:
+ *  - between two shops, the lists « de base » (core): what is bought every time, by aisle, without ticks (left: the
+ *    lists, middle: the one chosen, right: the frequent items and the history);
+ *  - a shopping session (« Lancer les courses », dialog TripDialog): the core list chosen, the items not needed this
+ *    time left out, items added for this time only; then the items ticked in the shop, by aisle in shop order, a
+ *    stopwatch running; « Terminer » keeps it in the history (time, what was taken) and ticks today's shopping task.
+ * The aisle is guessed from the name (« 2 avocats » → 2 × avocats in Fruits et légumes).
  */
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Copy, EllipsisVertical, ListX, Pencil, Plus, ShoppingBasket, ShoppingCart, Sparkles, Trash2, X } from 'lucide-react';
-import { useApp } from '../../store/app';
+import { ChevronDown, Copy, EllipsisVertical, Flag, History, Pencil, Play, Plus, ShoppingBasket, ShoppingCart, Sparkles, Timer, Trash2, X } from 'lucide-react';
+import { runningTrip, useApp } from '../../store/app';
 import { RAYONS, RAYON_ORDER, guessRayon } from '../../domain/catalog';
-import type { RayonId, ShopItem } from '../../domain/types';
-import { normalize } from '../../lib/format';
+import type { RayonId, ShopItem, ShopTrip, TripItem } from '../../domain/types';
+import { clock, duration, normalize } from '../../lib/format';
+import { relativeDay, toIso } from '../../lib/dates';
 import { cn } from '../../ui/cn';
 import { Button, CheckCircle, EmptyState, ICON_STROKE, IconBox, IconButton, Panel, PanelHeader } from '../../ui/atoms';
 import { Ring } from '../../ui/charts';
 import { ChoiceChips, Field, NumberStepper, TextInput } from '../../ui/forms';
 import { Popover } from '../../ui/popover';
 import { Menu, MenuButton } from '../../ui/overlays';
+import { useNow } from '../../ui/useNow';
 import { revealVariants } from '../../theme/motion';
 import { PageHeader } from '../shell/PageHeader';
 
@@ -33,53 +39,54 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function ShoppingScreen() {
   const lists = useApp((s) => s.data.lists);
-  const activeId = useApp((s) => s.data.activeListId);
-  const list = lists.find((l) => l.id === activeId) ?? lists[0];
+  const trip = useApp((s) => runningTrip(s.data));
   const app = useApp.getState();
   const reveal = revealVariants();
-  const copy = async () => {
-    if (!list) return;
-    const text = [
-      list.name,
-      ...RAYON_ORDER.flatMap((r) => {
-        const items = list.items.filter((i) => i.rayon === r && !i.checked);
-        return items.length ? ['', RAYONS[r].label, ...items.map((i) => `- ${i.name}${i.qty ? ` (${i.qty})` : ''}`)] : [];
-      }),
-    ].join('\n');
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      ta.remove();
-    }
-    app.toast({ tone: 'success', title: 'Liste copiée', text: 'Colle-la dans un message pour l’avoir sur ton téléphone.' });
-  };
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Courses" subtitle="Les listes du foyer, rangées par rayon">
-        <Button variant="secondary" icon={Copy} onClick={() => void copy()} disabled={!list || list.items.every((i) => i.checked)}>
-          <span className="max-md:hidden">Copier la liste</span>
-          <span className="md:hidden">Copier</span>
-        </Button>
+      <PageHeader title="Courses" subtitle={trip ? `Session en cours · ${trip.listName}` : 'Tes listes de base et tes sessions de courses'}>
+        {!trip && (
+          <Button icon={Play} onClick={() => app.openDialog({ kind: 'trip' })}>
+            Lancer les courses
+          </Button>
+        )}
       </PageHeader>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,250px)_minmax(340px,1fr)_minmax(0,320px)] gap-4 pb-1 max-md:grid-cols-1">
         <motion.div initial="hidden" animate="show" variants={reveal} className="flex min-h-0 flex-col">
-          <Lists />
+          {trip ? <TripCard trip={trip} /> : <Lists />}
         </motion.div>
         <motion.div initial="hidden" animate="show" variants={reveal} custom={1} className="flex min-h-0 flex-col">
-          {list ? <ListPanel /> : <Panel className="flex-1"><EmptyState icon={ShoppingCart} title="Aucune liste" text="Crée une liste pour commencer." /></Panel>}
+          {trip ? <TripPanel trip={trip} /> : lists.length ? <CorePanel /> : <Panel className="flex-1"><EmptyState icon={ShoppingBasket} title="Aucune liste" text="Crée une liste de base : ce que tu prends à chaque fois." /></Panel>}
         </motion.div>
         <motion.div initial="hidden" animate="show" variants={reveal} custom={2} className="flex min-h-0 flex-col gap-4">
-          <CartPanel />
           <Frequent />
+          <TripHistory />
         </motion.div>
       </div>
     </div>
   );
+}
+
+/** The items as text, by aisle (to paste in a message). */
+async function copyItems(title: string, items: { name: string; qty?: string; rayon: RayonId }[]) {
+  const text = [
+    title,
+    ...RAYON_ORDER.flatMap((r) => {
+      const of = items.filter((i) => i.rayon === r);
+      return of.length ? ['', RAYONS[r].label, ...of.map((i) => `- ${i.name}${i.qty ? ` (${i.qty})` : ''}`)] : [];
+    }),
+  ].join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  useApp.getState().toast({ tone: 'success', title: 'Liste copiée', text: 'Colle-la dans un message pour l’avoir sur ton téléphone.' });
 }
 
 function Lists() {
@@ -91,13 +98,12 @@ function Lists() {
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   return (
     <Panel className="flex-1">
-      <PanelHeader title="Listes">
-        <IconButton icon={Plus} label="Nouvelle liste" variant="ghost" size="s" onClick={() => setAdding(true)} />
+      <PanelHeader title="Listes de base">
+        <IconButton icon={Plus} label="Nouvelle liste de base" variant="ghost" size="s" onClick={() => setAdding(true)} />
       </PanelHeader>
       <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 pt-2 pb-3 max-md:flex-row max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&>li]:w-[210px] max-md:[&>li]:shrink-0">
         {lists.map((l) => {
           const on = l.id === activeId;
-          const left = l.items.filter((i) => !i.checked).length;
           if (renaming?.id === l.id) {
             return (
               <li key={l.id}>
@@ -126,7 +132,7 @@ function Lists() {
                 <IconBox icon={ShoppingBasket} tone={on ? 'accent' : 'glass'} size="s" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-label-m text-text-primary">{l.name}</span>
-                  <span className="block text-caption text-text-secondary">{left ? `${left} article${left > 1 ? 's' : ''} à prendre` : 'Rien à prendre'}</span>
+                  <span className="block text-caption text-text-secondary">{l.items.length ? `${l.items.length} article${l.items.length > 1 ? 's' : ''}` : 'Vide'}</span>
                 </span>
               </button>
               <div className="absolute top-1/2 right-1.5 -translate-y-1/2">
@@ -166,73 +172,99 @@ function Lists() {
   );
 }
 
-function ListPanel() {
-  const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0])!;
+/** The field to add an item, with the aisle it would go in. */
+function AddField({ label, placeholder, onAdd }: { label: string; placeholder: string; onAdd: (name: string, qty?: string) => void }) {
   const frequent = useApp((s) => s.data.frequent);
-  const app = useApp.getState();
   const [draft, setDraft] = useState('');
   const parsed = draft.trim() ? parseItem(draft) : null;
   const rayon: RayonId | null = parsed ? (frequent[normalize(parsed.name)]?.rayon ?? guessRayon(parsed.name)) : null;
-  const todo = list.items.filter((i) => !i.checked);
-  const inCart = list.items.filter((i) => i.checked);
-  const add = () => {
-    if (!parsed) return;
-    app.addItem(parsed.name, parsed.qty);
-    setDraft('');
-  };
+  return (
+    <TextInput
+      icon={Plus}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && parsed) {
+          onAdd(parsed.name, parsed.qty);
+          setDraft('');
+        }
+      }}
+      placeholder={placeholder}
+      aria-label={label}
+      trailing={
+        rayon && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-bg-raised px-2 py-1 text-caption text-text-secondary">
+            {(() => {
+              const R = RAYONS[rayon].icon;
+              return <R size={12} strokeWidth={ICON_STROKE} aria-hidden />;
+            })()}
+            {RAYONS[rayon].label}
+          </span>
+        )
+      }
+    />
+  );
+}
+
+/** Items by aisle, in shop order. */
+function ByAisle<T extends { id: string; rayon: RayonId }>({ items, row }: { items: T[]; row: (i: T) => React.ReactNode }) {
+  return RAYON_ORDER.map((r) => {
+    const of = items.filter((i) => i.rayon === r);
+    if (!of.length) return null;
+    const R = RAYONS[r];
+    return (
+      <section key={r} className="mb-3">
+        <h3 className="flex items-center gap-2 px-2 pb-1 text-label-s text-text-secondary">
+          <R.icon size={14} strokeWidth={ICON_STROKE} aria-hidden />
+          {R.label}
+          <span className="tnum text-text-muted">{of.length}</span>
+        </h3>
+        <ul className="flex flex-col">
+          <AnimatePresence initial={false}>{of.map(row)}</AnimatePresence>
+        </ul>
+      </section>
+    );
+  });
+}
+
+/** A core list: what is bought every time (no ticks: they belong to a session). */
+function CorePanel() {
+  const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0])!;
+  const app = useApp.getState();
   return (
     <Panel className="flex-1">
-      <PanelHeader title={list.name} count={`${todo.length} à prendre`}>
-        <Button variant="ghost" size="s" icon={ListX} aria-label="Retirer les cochés" onClick={() => app.clearChecked()} disabled={inCart.length === 0}>
-          <span className="max-xl:hidden">Retirer les cochés</span>
-        </Button>
+      <PanelHeader title={list.name} count={`${list.items.length} article${list.items.length > 1 ? 's' : ''}`}>
+        <IconButton icon={Copy} label="Copier la liste" variant="ghost" size="s" onClick={() => void copyItems(list.name, list.items)} disabled={!list.items.length} />
       </PanelHeader>
       <div className="px-4 pt-2">
-        <TextInput
-          icon={Plus}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') add();
-          }}
-          placeholder="Ajouter un article, ex. 2 avocats"
-          aria-label="Ajouter un article"
-          trailing={
-            rayon && (
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-bg-raised px-2 py-1 text-caption text-text-secondary">
-                {(() => {
-                  const R = RAYONS[rayon].icon;
-                  return <R size={12} strokeWidth={ICON_STROKE} aria-hidden />;
-                })()}
-                {RAYONS[rayon].label}
-              </span>
-            )
-          }
-        />
+        <AddField label="Ajouter un article" placeholder="Ajouter un article, ex. 2 avocats" onAdd={(n, q) => app.addItem(n, q)} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3">
-        {list.items.length === 0 && <EmptyState icon={ShoppingCart} title="Liste vide" text="Tape un article ci-dessus ou pioche dans tes articles fréquents." />}
-        {RAYON_ORDER.map((r) => {
-          const items = todo.filter((i) => i.rayon === r);
-          if (!items.length) return null;
-          const R = RAYONS[r];
-          return (
-            <section key={r} className="mb-3">
-              <h3 className="flex items-center gap-2 px-2 pb-1 text-label-s text-text-secondary">
-                <R.icon size={14} strokeWidth={ICON_STROKE} aria-hidden />
-                {R.label}
-                <span className="tnum text-text-muted">{items.length}</span>
-              </h3>
-              <ul className="flex flex-col">
-                <AnimatePresence initial={false}>
-                  {items.map((i) => (
-                    <ItemRow key={i.id} item={i} />
-                  ))}
-                </AnimatePresence>
-              </ul>
-            </section>
-          );
-        })}
+        {list.items.length === 0 && <EmptyState icon={ShoppingBasket} title="Liste vide" text="Ce que tu prends à chaque fois : tape un article ci-dessus ou pioche dans tes articles fréquents." />}
+        <ByAisle items={list.items} row={(i) => <ItemRow key={i.id} item={i} onUpdate={(p) => app.updateItem(i.id, p)} onDelete={() => app.deleteItem(i.id)} />} />
+      </div>
+    </Panel>
+  );
+}
+
+/** The session running: its items to tick, by aisle; what is in the cart below. */
+function TripPanel({ trip }: { trip: ShopTrip }) {
+  const app = useApp.getState();
+  const todo = trip.items.filter((i) => !i.checked);
+  const inCart = trip.items.filter((i) => i.checked);
+  const row = (i: TripItem) => <ItemRow key={i.id} item={i} onToggle={() => app.toggleTripItem(i.id)} onUpdate={(p) => app.updateTripItem(i.id, p)} onDelete={() => app.deleteTripItem(i.id)} />;
+  return (
+    <Panel className="flex-1">
+      <PanelHeader title={trip.listName} count={`${todo.length} à prendre`}>
+        <IconButton icon={Copy} label="Copier ce qu'il reste à prendre" variant="ghost" size="s" onClick={() => void copyItems(trip.listName, todo)} disabled={!todo.length} />
+      </PanelHeader>
+      <div className="px-4 pt-2">
+        <AddField label="Ajouter pour cette fois" placeholder="Ajouter pour cette fois, ex. 6 œufs" onAdd={(n, q) => app.addTripItem(n, q)} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-3">
+        {trip.items.length === 0 && <EmptyState icon={ShoppingCart} title="Rien à prendre" text="Ajoute un article ci-dessus." />}
+        {todo.length === 0 && trip.items.length > 0 && <p className="px-2 pb-3 text-body-s text-text-signal">Tout est dans le panier : tu peux terminer les courses.</p>}
+        <ByAisle items={todo} row={row} />
         {inCart.length > 0 && (
           <section className="mt-2 border-t border-border-subtle pt-3">
             <h3 className="flex items-center gap-2 px-2 pb-1 text-label-s text-text-signal">
@@ -241,11 +273,7 @@ function ListPanel() {
               <span className="tnum">{inCart.length}</span>
             </h3>
             <ul className="flex flex-col">
-              <AnimatePresence initial={false}>
-                {inCart.map((i) => (
-                  <ItemRow key={i.id} item={i} />
-                ))}
-              </AnimatePresence>
+              <AnimatePresence initial={false}>{inCart.map(row)}</AnimatePresence>
             </ul>
           </section>
         )}
@@ -254,29 +282,140 @@ function ListPanel() {
   );
 }
 
-function ItemRow({ item }: { item: ShopItem }) {
+/** « 12:05 » under an hour, « 1 h 05 » after. */
+function elapsed(ms: number): string {
+  return ms < 3_600_000 ? clock(ms / 1000) : duration(ms / 60000);
+}
+
+const hhmm = (t: number) => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+/** The session running: the cart, the stopwatch, the way out. */
+function TripCard({ trip }: { trip: ShopTrip }) {
   const app = useApp.getState();
+  const now = useNow(1000);
+  const total = trip.items.length;
+  const done = trip.items.filter((i) => i.checked).length;
+  const all = total > 0 && done === total;
+  return (
+    <Panel className="shrink-0">
+      <div className="flex flex-col gap-4 p-5">
+        <div className="flex items-center gap-4">
+          <Ring value={total ? done / total : 0} size={88} stroke={8} tone={all ? 'signal' : 'accent'}>
+            <ShoppingCart size={20} strokeWidth={ICON_STROKE} aria-hidden className={all ? 'text-text-signal' : 'text-text-accent'} />
+          </Ring>
+          <div className="min-w-0">
+            <p className="text-label-s text-text-secondary">Dans le panier</p>
+            <p className="tnum text-data-l text-text-primary">
+              {done}
+              <span className="text-title-m text-text-muted"> / {total}</span>
+            </p>
+          </div>
+        </div>
+        <p className="flex items-center gap-2 text-body-s text-text-secondary">
+          <Timer size={16} strokeWidth={ICON_STROKE} aria-hidden className="text-text-accent" />
+          <span className="tnum text-label-m text-text-primary" aria-label={`Durée : ${duration((now - trip.startedAt) / 60000)}`}>
+            {elapsed(Math.max(0, now - trip.startedAt))}
+          </span>
+          depuis {hhmm(trip.startedAt)}
+        </p>
+        <Button icon={Flag} variant={all ? 'primary' : 'secondary'} onClick={() => app.endTrip()}>
+          Terminer les courses
+        </Button>
+        <Button variant="ghost" size="s" className="self-center" onClick={() => app.cancelTrip()}>
+          Annuler la session
+        </Button>
+      </div>
+    </Panel>
+  );
+}
+
+/** The sessions ended: when, which list, how long, what was taken (and what was not). */
+function TripHistory() {
+  const trips = useApp((s) => s.data.trips);
+  const app = useApp.getState();
+  const [open, setOpen] = useState<string | null>(null);
+  const [more, setMore] = useState(false);
+  const ended = trips.filter((t) => t.endedAt).sort((a, b) => b.startedAt - a.startedAt);
+  const shown = more ? ended : ended.slice(0, 8);
+  return (
+    <Panel className="min-h-0 flex-1">
+      <PanelHeader title="Historique" icon={History} count={ended.length || undefined} />
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-1 pb-3">
+        {ended.length === 0 && <p className="px-1 py-2 text-body-s text-text-secondary">Tes sessions terminées apparaîtront ici, avec leur durée et ce que tu as pris.</p>}
+        <ul className="flex flex-col gap-1">
+          {shown.map((t) => {
+            const taken = t.items.filter((i) => i.checked);
+            const left = t.items.filter((i) => !i.checked);
+            const on = open === t.id;
+            const day = relativeDay(toIso(new Date(t.startedAt)));
+            return (
+              <li key={t.id} className={cn('rounded-lg border transition-[background-color,border-color]', on ? 'border-border-subtle bg-bg-card/50' : 'border-transparent')}>
+                <button type="button" onClick={() => setOpen(on ? null : t.id)} aria-expanded={on} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-bg-card/60">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-label-m text-text-primary">
+                      {day.charAt(0).toUpperCase() + day.slice(1)} · {t.listName}
+                    </span>
+                    <span className="tnum block text-caption text-text-secondary">
+                      à {hhmm(t.startedAt)} · {duration(Math.max(1, (t.endedAt! - t.startedAt) / 60000))}
+                    </span>
+                  </span>
+                  <span className="tnum shrink-0 text-label-s text-text-secondary">
+                    {taken.length}/{t.items.length}
+                  </span>
+                  <ChevronDown size={16} strokeWidth={ICON_STROKE} aria-hidden className={cn('shrink-0 text-text-muted transition-transform', on && 'rotate-180')} />
+                </button>
+                {on && (
+                  <div className="flex flex-col gap-2.5 px-2.5 pb-3">
+                    {taken.length > 0 && (
+                      <div>
+                        <p className="pb-1 text-caption text-text-signal">Pris</p>
+                        <p className="text-body-s text-text-primary">{taken.map((i) => (i.qty ? `${i.name} (${i.qty})` : i.name)).join(', ')}</p>
+                      </div>
+                    )}
+                    {left.length > 0 && (
+                      <div>
+                        <p className="pb-1 text-caption text-text-muted">Pas pris</p>
+                        <p className="text-body-s text-text-secondary">{left.map((i) => i.name).join(', ')}</p>
+                      </div>
+                    )}
+                    <Button variant="ghost" size="s" icon={Trash2} className="self-start text-text-danger! hover:bg-danger-soft" onClick={() => app.deleteTrip(t.id)}>
+                      Retirer de l'historique
+                    </Button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {ended.length > shown.length && (
+          <Button variant="ghost" size="s" className="mt-1 self-start" onClick={() => setMore(true)}>
+            Voir les {ended.length - shown.length} plus anciennes
+          </Button>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+/** An item: ticked in a session (`onToggle`), or of a core list (no tick). */
+function ItemRow({ item, onToggle, onUpdate, onDelete }: { item: ShopItem | TripItem; onToggle?: () => void; onUpdate: (patch: { qty?: string; rayon?: RayonId }) => void; onDelete: () => void }) {
   const anchor = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const R = RAYONS[item.rayon];
+  const checked = !!onToggle && item.checked;
   return (
     <motion.li layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} className="group/item">
       <div className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-bg-card/60">
-        <CheckCircle checked={item.checked} onChange={() => app.toggleItem(item.id)} label={item.checked ? `Remettre ${item.name}` : `Cocher ${item.name}`} />
-        <span className={cn('min-w-0 flex-1 truncate text-body-m', item.checked ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{item.name}</span>
-        <QtyButton item={item} />
+        {onToggle && <CheckCircle checked={checked} onChange={onToggle} label={checked ? `Remettre ${item.name}` : `Cocher ${item.name}`} />}
+        <span className={cn('min-w-0 flex-1 truncate text-body-m', checked ? 'text-text-muted line-through decoration-text-muted/60' : 'text-text-primary')}>{item.name}</span>
+        {'extra' in item && item.extra && <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-caption text-text-accent">En plus</span>}
+        <QtyButton item={item} onChange={(qty) => onUpdate({ qty })} />
         <button ref={anchor} type="button" onClick={() => setOpen(true)} aria-label={`Rayon de ${item.name} : ${R.label}`} className="inline-flex size-8 items-center justify-center rounded-full text-text-muted opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-bg-hover hover:text-text-primary focus-visible:opacity-100 pointer-coarse:opacity-70">
           <R.icon size={15} strokeWidth={ICON_STROKE} aria-hidden />
         </button>
-        <IconButton icon={X} label={`Retirer ${item.name}`} variant="danger" size="xs" className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-70" onClick={() => app.deleteItem(item.id)} />
+        <IconButton icon={X} label={`Retirer ${item.name}`} variant="danger" size="xs" className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-70" onClick={onDelete} />
       </div>
-      <Menu
-        open={open}
-        anchor={anchor}
-        onClose={() => setOpen(false)}
-        width={220}
-        items={RAYON_ORDER.map((r) => ({ label: RAYONS[r].label, icon: RAYONS[r].icon, onSelect: () => app.updateItem(item.id, { rayon: r }) }))}
-      />
+      <Menu open={open} anchor={anchor} onClose={() => setOpen(false)} width={220} items={RAYON_ORDER.map((r) => ({ label: RAYONS[r].label, icon: RAYONS[r].icon, onSelect: () => onUpdate({ rayon: r }) }))} />
     </motion.li>
   );
 }
@@ -307,15 +446,14 @@ export function joinQty(amount: number, unit: Unit): string | undefined {
 }
 
 /** The quantity of an item (or « Qté » on hover): opens the quantity and its unit, chosen like the aisle. */
-function QtyButton({ item }: { item: ShopItem }) {
-  const app = useApp.getState();
+function QtyButton({ item, onChange }: { item: { name: string; qty?: string }; onChange: (qty: string | undefined) => void }) {
   const anchor = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const parsed = splitQty(item.qty);
   const amount = parsed?.amount ?? 0;
   const unit = parsed?.unit ?? 'u';
   const def = UNITS.find((u) => u.value === unit)!;
-  const set = (a: number, u: Unit) => app.updateItem(item.id, { qty: joinQty(a, u) });
+  const set = (a: number, u: Unit) => onChange(joinQty(a, u));
   return (
     <>
       <button
@@ -342,35 +480,13 @@ function QtyButton({ item }: { item: ShopItem }) {
             <ChoiceChips label="Unité" value={unit} onChange={(u) => set(u === unit ? amount : (UNITS.find((x) => x.value === u)!.start), u)} options={UNITS.map((u) => ({ value: u.value, label: u.label }))} />
           </Field>
           {item.qty && (
-            <Button variant="ghost" size="s" className="self-start" onClick={() => (app.updateItem(item.id, { qty: undefined }), setOpen(false))}>
+            <Button variant="ghost" size="s" className="self-start" onClick={() => (onChange(undefined), setOpen(false))}>
               Sans quantité
             </Button>
           )}
         </div>
       </Popover>
     </>
-  );
-}
-
-function CartPanel() {
-  const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0]);
-  const total = list?.items.length ?? 0;
-  const done = list?.items.filter((i) => i.checked).length ?? 0;
-  return (
-    <Panel className="shrink-0">
-      <div className="flex items-center gap-5 p-5">
-        <Ring value={total ? done / total : 0} size={96} stroke={9} tone={total && done === total ? 'signal' : 'accent'}>
-          <ShoppingCart size={22} strokeWidth={ICON_STROKE} aria-hidden className={total && done === total ? 'text-text-signal' : 'text-text-accent'} />
-        </Ring>
-        <div>
-          <p className="text-label-s text-text-secondary">Dans le panier</p>
-          <p className="tnum text-data-l text-text-primary">
-            {done}
-            <span className="text-title-m text-text-muted"> / {total}</span>
-          </p>
-        </div>
-      </div>
-    </Panel>
   );
 }
 
@@ -386,14 +502,16 @@ interface Drag {
   over: boolean;
 }
 
+/** The items added most often, one click to add them (to the session running, else to the core list shown). */
 function Frequent() {
   const frequent = useApp((s) => s.data.frequent);
+  const trip = useApp((s) => runningTrip(s.data));
   const list = useApp((s) => s.data.lists.find((l) => l.id === s.data.activeListId) ?? s.data.lists[0]);
   const app = useApp.getState();
   const [drag, setDrag] = useState<Drag | null>(null);
   const bin = useRef<HTMLDivElement>(null);
   const dragged = useRef(false);
-  const onList = new Set(list?.items.filter((i) => !i.checked).map((i) => normalize(i.name)));
+  const onList = new Set((trip ? trip.items.filter((i) => !i.checked) : (list?.items ?? [])).map((i) => normalize(i.name)));
   const items = Object.entries(frequent)
     .filter(([k]) => !onList.has(k))
     .sort((a, b) => b[1].count - a[1].count)
@@ -467,7 +585,8 @@ function Frequent() {
                           dragged.current = false;
                           return;
                         }
-                        app.addItem(f.name);
+                        if (trip) app.addTripItem(f.name);
+                        else app.addItem(f.name);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Delete' || e.key === 'Backspace') app.removeFrequent(k);

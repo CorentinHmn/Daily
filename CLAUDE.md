@@ -24,7 +24,8 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 ## Structure
 - `src/domain/` : types, catalogue (catégories, rayons, icônes, devinettes), statistiques, données d'exemple, personnes.
 - `src/store/app.ts` : zustand ; copie locale dans `localStorage` (`cadence.data.v1`) pour ouvrir vite et marcher hors
-  ligne ; liens séance → agenda, sortie → agenda, liste terminée → agenda ; semaine type → semaines à venir.
+  ligne ; liens séance → agenda, sortie → agenda, session de courses terminée → agenda ; semaine type → semaines à
+  venir.
 - `src/sync/` : `client.ts` (Supabase), `records.ts` (données ⇄ lignes `records`, testé), `sync.ts` (compte, foyer,
   file d'envoi hors ligne, Realtime, lien d'invitation `?invite=CODE`).
 - `src/screens/auth/AuthScreens.tsx` : connexion, création de compte, mot de passe oublié, création / accès au foyer.
@@ -173,6 +174,12 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
   file d'envoi), pas écrasées.
 - Sorties running : une personne ou plusieurs qui ont couru ensemble (`owners`, `owner` = NOUS), une seule ligne qui
   compte pour chacune (filtre `goalFor`, distances, objectifs « km » / « sorties » de chacun ; une fois pour le foyer).
+- Courses : les listes (`lists`) sont des **listes de base** (ce qu'on prend à chaque fois, sans coches). On coche
+  dans une **session** (`trips`, `ShopTrip` : `runningTrip()` = celle sans `endedAt`, une à la fois pour le foyer),
+  lancée par la fenêtre `trip` (liste de base, articles laissés de côté, articles « en plus » pour cette fois) ;
+  « Terminer » la garde dans l'historique (durée, pris / pas pris) et coche la tâche courses du jour. Synchro : une
+  ligne `trips` par session, une ligne `tripitems` par article (deux personnes cochent sans s'écraser ; migration
+  `sessions_de_courses`). Le badge de l'onglet = ce qu'il reste à prendre dans la session.
 - Photo de profil : `Member.photo`, JPEG carré de 160 px en data URL (quelques Ko), synchronisé avec la personne.
 - Flux d'auth « implicit » (pas PKCE) : le lien de réinitialisation s'ouvre souvent dans Safari et non dans l'appli
   installée sur l'écran d'accueil ; PKCE exigerait le même navigateur.

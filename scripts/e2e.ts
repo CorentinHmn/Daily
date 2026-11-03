@@ -2,7 +2,8 @@
  * End-to-end test against the real Supabase project: two people, two browsers (PC and iPhone sizes).
  *  1. Alex creates an account, then the household (« Ma semaine »), and reads the invite code;
  *  2. Sam opens the invite link on a phone, creates an account, lands in the household;
- *  3. Alex adds a shopping item → Sam sees it live; Sam ticks it → Alex is told « Sam a coché … »;
+ *  3. Alex adds an item to the core list → Sam sees it live; Sam starts a shopping session and ticks it → Alex is told
+ *     « Sam a coché … », ends the session → it is in Sam's history;
  *  4. reload keeps Sam signed in; Alex signs out, then back in, and finds the household.
  * Run: npm run build && npx vite preview --port 4320 &  then  npx tsx scripts/e2e.ts [base-url]
  * The test accounts (cadence-e2e-…@example.com) are left in the project: delete them afterwards (see the end).
@@ -135,10 +136,15 @@ try {
     await b.getByText(item).filter({ visible: true }).first().waitFor({ timeout: 15_000 });
   });
 
-  await step('Sam coche → Alex est prévenu', async () => {
+  await step('Sam lance les courses et coche → Alex est prévenu, termine, la session est dans l’historique', async () => {
+    await b.getByRole('button', { name: 'Lancer les courses' }).filter({ visible: true }).first().click();
+    await b.getByRole('button', { name: /^C'est parti/ }).click();
     await b.getByRole('checkbox', { name: `Cocher ${item}` }).click();
     await a.getByText(`${sam.name} a coché « ${item} »`).waitFor({ timeout: 15_000 });
     await a.getByRole('checkbox', { name: `Remettre ${item}` }).waitFor({ timeout: 5_000 });
+    await a.getByRole('button', { name: 'Terminer les courses' }).click();
+    await a.getByText(/^Courses terminées en /).waitFor({ timeout: 5_000 });
+    await b.getByRole('button', { name: /^Aujourd'hui · / }).filter({ visible: true }).first().waitFor({ timeout: 15_000 });
   });
 
   await step('Sam : après rechargement, toujours connectée avec les données', async () => {

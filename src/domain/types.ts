@@ -171,10 +171,35 @@ export interface ShopItem {
   checked: boolean;
 }
 
+/** A list « de base » (core): what is bought every time; its items are copied into each shopping session. */
 export interface ShopList {
   id: string;
   name: string;
   items: ShopItem[];
+}
+
+/** An item of a shopping session: from the core list, or added for this time only (`extra`). */
+export interface TripItem {
+  id: string;
+  name: string;
+  qty?: string;
+  rayon: RayonId;
+  checked: boolean;
+  extra?: boolean;
+}
+
+/** A shopping session: started from a core list, its items ticked in the shop, kept in the history once ended. */
+export interface ShopTrip {
+  id: string;
+  /** the core list it started from (it may have been deleted since: `listName` stays) */
+  listId: string;
+  listName: string;
+  startedAt: number;
+  /** unset while the session is running (one at a time for the household) */
+  endedAt?: number;
+  /** the member who started it */
+  by?: string;
+  items: TripItem[];
 }
 
 export interface FrequentItem {
@@ -215,6 +240,8 @@ export interface AppData {
   habits: Habit[];
   lists: ShopList[];
   activeListId: string | null;
+  /** shopping sessions: the one running (no endedAt) and the history */
+  trips: ShopTrip[];
   frequent: Record<string, FrequentItem>;
   prefs?: HouseholdPrefs;
 }

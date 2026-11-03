@@ -6,8 +6,8 @@ const data = exampleData('Corentin', '2026-10-25');
 
 describe('records', () => {
   it('rebuilds the same data from its records', () => {
-    const back = unflatten({ ...data, members: [], tasks: [], lists: [], frequent: {} }, flatten(data));
-    for (const k of ['members', 'tasks', 'routines', 'generatedWeeks', 'programs', 'sessions', 'runs', 'goals', 'habits', 'lists', 'frequent'] as const) {
+    const back = unflatten({ ...data, members: [], tasks: [], lists: [], trips: [], frequent: {} }, flatten(data));
+    for (const k of ['members', 'tasks', 'routines', 'generatedWeeks', 'programs', 'sessions', 'runs', 'goals', 'habits', 'lists', 'trips', 'frequent'] as const) {
       expect(back[k], k).toEqual(data[k]);
     }
   });
@@ -25,6 +25,17 @@ describe('records', () => {
     const changes = diff(flatten(data), flatten(next));
     expect(changes).toHaveLength(1);
     expect(changes[0]).toMatchObject({ collection: 'items', id: list.items[0]!.id });
+  });
+
+  it('a shopping session is split: ticking one of its items changes that item only', () => {
+    expect(data.trips.length).toBeGreaterThan(0);
+    const trip = data.trips[0]!;
+    const next = { ...data, trips: data.trips.map((t) => (t.id === trip.id ? { ...t, items: t.items.map((i, n) => (n === 0 ? { ...i, checked: !i.checked } : i)) } : t)) };
+    const changes = diff(flatten(data), flatten(next));
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ collection: 'tripitems', id: trip.items[0]!.id });
+    const ended = { ...data, trips: data.trips.map((t) => (t.id === trip.id ? { ...t, endedAt: t.startedAt + 1 } : t)) };
+    expect(diff(flatten(data), flatten(ended)).map((c) => c.collection)).toEqual(['trips']);
   });
 
   it('a deleted task becomes a deletion', () => {
