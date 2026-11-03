@@ -181,6 +181,27 @@
   20/20, e2e 15/15, séquences ralenties ×10 téléphone et bureau, chronologie dans le vrai WebKit. Comptes de test à
   supprimer (`cadence-e2e-mvvf0oeh-%`, `cadence-e2e-tabs-mvvehugc`) : la suppression attendait une confirmation.
 
+## Session 8 (03/11/2026) — onglets gardés vivants, carte à encoche sur l'iPhone
+- Retour : transitions entre onglets « mieux mais pas encore assez smooth » sur l'iPhone ; bande nette sur le côté
+  droit de la carte de séance.
+- Cause des transitions : l'ancien écran s'effaçait, puis la page restait **vide** le temps de construire et peindre
+  le nouveau (mesuré, téléphone simulé ×4 : ~0,3 s par changement, 2,8 s sur 9 changements), puis le nouveau
+  apparaissait. Maintenant (`ScreenStack.tsx`) : les 5 écrans restent montés (React `Activity`, préparés en
+  arrière-plan dès l'ouverture, sans retarder le premier écran) ; l'ancien part dès le tap, le nouveau est mis en page
+  invisible pendant ce temps et entre 100 ms après. Trou mesuré : 0 à 33 ms sans ralentissement (simple fondu
+  enchaîné), ~1 s cumulée sur 9 changements à ×4 (au lieu de 2,8 s). Aucun texte ne surgit sans fondu (vérifié sur les
+  5 écrans, téléphone et ordinateur). Au téléphone, l'ancien écran part là où il était défilé.
+- Carte de séance sur WebKit : le givre venait de deux boîtes côte à côte (l'encoche doit rester nette) qui floutaient
+  chacune leur morceau de photo, d'où la couture sous le bouton. Maintenant un seul givre découpé par `mask-image`
+  (WebKit découpe un flou par le masque de l'élément lui-même, pas par clip-path). Vérifié dans Chromium avec le
+  chemin WebKit forcé ; le WebKit Linux de Playwright ne rend pas les `backdrop-filter`, à confirmer sur l'iPhone.
+- Scripts : e2e cherche les textes visibles seulement (les écrans cachés gardent les leurs). Vérifié : tsc, eslint,
+  vitest 20/20, e2e 15/15, shoot (pc, téléphone, fenêtres : aucune erreur console ; « Saisir » coupé = étiquette cachée
+  du bouton d'une sortie running, déjà là), chronologies Chromium et WebKit.
+- Vu sur la capture de l'utilisateur, non traité : une bande grise de ~60 pt sous la barre d'onglets (la page plus
+  courte que l'écran de la hauteur de la barre d'état) ; ressemble au bug d'iOS des applis installées dont l'écran
+  rétrécit (souvent après le clavier) jusqu'à les quitter tout à fait.
+
 ## Reste à faire / idées
 1. Retours de l'utilisateur après usage réel (sa vraie semaine type, ses programmes).
 2. Rappels avant une tâche à heure fixe (notifications web push ; sur iPhone, iOS 16.4+ et appli installée sur

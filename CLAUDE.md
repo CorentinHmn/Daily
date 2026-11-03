@@ -71,18 +71,26 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - Un ancêtre avec `opacity < 1` ou `filter` coupe le verre de ses descendants (backdrop root) : pas de fondu ni de flou
   sur un élément de verre ou un de ses parents (il paraissait clair puis givré une fois opaque). Entrées et changements
   d'écran = glissements (`revealVariants`, écrans, semaine, fenêtres, menus, notifications) ; le voile des fenêtres fond
-  sur son propre calque, à côté du panneau. Changement d'écran (`ScreenFrame.tsx`, dans AnimatePresence) : l'ancien
-  glisse un peu vers le haut et ses pièces fondent (`[data-leaving]` → `screen-out` + `glass-out`, 140 ms), puis le
-  nouveau glisse à sa place et ses pièces fondent en cascade (`screen-in` + `glass-in`, retard `--ri` posé par
-  `revealVariants`) : surfaces de verre, titres et boutons d'en-tête dans `<main>`, pièces d'un `.fade-pieces`
-  (verre, bulle et boutons d'un SegmentedControl ou du filtre), chacun lui-même, jamais un conteneur. Le filtre des
-  personnes de la barre du haut reste en place sur Courses et fond (`hidden`, `.fade-pieces`).
+  sur son propre calque, à côté du panneau. Changement d'écran (`ScreenStack.tsx` + `ScreenFrame.tsx`) : les 5 écrans
+  restent montés (React `Activity` : cachés en `display: none`, préparés en arrière-plan dès l'ouverture), comme les
+  onglets d'iOS. L'ancien part tout de suite (`[data-leaving]` → `screen-out` + `glass-out`, 140 ms) pendant que le
+  nouveau est mis en page invisible (`[data-preparing]` : `visibility: hidden`, animations en pause), puis il entre
+  100 ms après le début de la sortie (`screen-in` + `glass-in` en cascade, retard `--ri` posé par `revealVariants`).
+  Avant, l'écran restait vide le temps de construire le nouveau (~0,3 s sur un téléphone lent). Ce qui fond :
+  surfaces de verre, titres et boutons d'en-tête dans `<main>`, pièces d'un `.fade-pieces` (verre, bulle et boutons
+  d'un SegmentedControl ou du filtre), chacun lui-même, jamais un conteneur. Le filtre des personnes de la barre du
+  haut reste en place sur Courses et fond (`hidden`, `.fade-pieces`).
 - Transitions d'écran et de vue : **animations CSS de `transform` / `opacity` seulement** (jouées par le compositeur),
   jamais `y` / `x` de Motion (calculés en JavaScript image par image : ils saccadaient pendant le rendu du nouvel
   écran, surtout au téléphone). Si Motion reste, `transform: 'translateY(…)'` (Web Animations, ex. la barre compacte).
-  Un écran ou une vue qui arrive porte `data-entering=""` + `ref={releaseEntrance}` (motion.ts) : ses animations
-  restent à leur début jusqu'à sa première image peinte (sinon elles apparaissaient déjà à moitié). Au téléphone,
-  l'ancien écran part là où il était défilé ; le nouveau remonte en haut en arrivant (`ScreenFrame`).
+  Une vue qui arrive dans un écran (Semaine) porte `data-entering=""` + `ref={releaseEntrance}` (motion.ts), un écran
+  `data-preparing` (ScreenStack) : leurs animations restent à leur début le temps de la mise en page (sinon elles
+  apparaissaient déjà à moitié). Au téléphone, la page remonte en haut pour le nouvel écran et l'ancien est décalé
+  (`translate`) d'autant : il part là où il était vu.
+- Écrans gardés vivants (ScreenStack) : un écran caché n'a plus ses effets (Activity les retire, ils reviennent quand
+  il est montré) ; ce qu'il met dans `<body>` (barre de titre compacte, minuteur de repos) attend `useScreenCurrent()`
+  (screen.ts), sinon tous les écrans cachés l'affichaient. Leurs textes restent dans la page : dans les scripts,
+  `filter({ visible: true })` ou `exact` (« Ajouter un article » existe aussi dans Aujourd'hui).
 - `el.getAnimations().forEach(a => a.cancel())` annule aussi les animations CSS (fondu d'entrée de l'écran) : pour ne
   stopper que les mouvements lancés par `el.animate`, `stopMoves(el)` (liquid.ts). La bulle d'un SegmentedControl
   apparaissait blanche avant tout le reste.
@@ -125,8 +133,9 @@ Branche `main` = l'appli en ligne. Branche `original` = l'ancienne version de bu
 - WebKit (Safari sur Mac, tous les navigateurs de l'iPhone) ne découpe pas un `backdrop-filter` par un `clip-path` :
   un calque de verre découpé montrait toute sa boîte givrée (un « carré discret » autour du menu du profil). Là
   (`webkitBackdrop`, glass.tsx), le givre vient de boîtes arrondies (`.chip-frost` : colonne de la pastille + panneau du
-  menu ; la boîte du rail ; deux boîtes autour de l'encoche de la NotchCard), la teinte, le liseré et l'ombre gardent
-  le clip-path ; et l'ombre floutée (calque `filter` + clip-path dedans, que WebKit floute comme une boîte : ombre
+  menu ; la boîte du rail), la teinte, le liseré et l'ombre gardent le clip-path. WebKit découpe en revanche un flou
+  par le **masque de l'élément flouté lui-même** (`mask-image`) : la NotchCard y a un seul givre masqué par son tracé
+  (deux boîtes autour de l'encoche floutaient chacune leur morceau de photo : une couture nette sous le bouton) ; et l'ombre floutée (calque `filter` + clip-path dedans, que WebKit floute comme une boîte : ombre
   carrée) y devient les `box-shadow` de deux boîtes arrondies (colonne + menu, `.chip-shadow`) dans un calque découpé
   à l'extérieur du contour (une seule boîte aux bornes de la forme laissait une traîne rectangulaire à côté de la
   pastille). Chromium ne montre aucun de ces défauts, même avec un user-agent d'iPhone : vérifier dans le **vrai

@@ -14,6 +14,7 @@ import { useIsMobile } from '../../ui/useMedia';
 import { motionTokens } from '../../theme/motion';
 import { PersonSwitcher } from '../../ui/people';
 import { usePageScroll } from './scroll';
+import { useScreenCurrent } from './screen';
 import { UserChip } from './UserChip';
 
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: ReactNode; children?: ReactNode }) {
@@ -55,11 +56,13 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
 /** Title bar shown once the large title has scrolled away (portalled: a transformed parent would trap `fixed`). */
 function CompactBar({ title }: { title: string }) {
   const { scrolled } = usePageScroll();
+  // The screens kept alive behind (ScreenStack) share the page's scroll: only the one on view shows its bar.
+  const current = useScreenCurrent();
   const glass = useLiquidGlass<HTMLDivElement>({ bezel: 16, strength: 10 });
   const t = motionTokens();
   return createPortal(
     <AnimatePresence>
-      {scrolled && (
+      {scrolled && current && (
         <motion.div
           // Slides down from above the screen, without a fade (its glass would show clear until opaque). `transform`,
           // not `y`: Motion hands it to the compositor (Web Animations), it does not stutter while the page renders.

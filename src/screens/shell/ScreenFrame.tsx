@@ -1,47 +1,68 @@
 /**
- * The frame of a screen in the shell (computer and phone), inside AnimatePresence (mode « wait »): the old screen slides
- * up a little as its pieces fade out, then the new one slides into place as its pieces fade in, one card after the
- * other. Everything is a CSS animation of transform or opacity (app.css, « screen-in », « glass-in »…), played by the
- * compositor: a JS-driven slide (Motion's `y`) stuttered while the new screen was being rendered, above all on a phone.
- * The fades are on each glass surface and text of the frame, never on the frame itself: a frame with opacity < 1 would
- * be a backdrop root, its glass clear until the end.
+ * The frame of one screen in ScreenStack: its phase as data attributes, read by app.css.
+ * - `next`: shown but invisible and held at the start of its entrance (`data-preparing`), the time it takes to lay it
+ *   out, while the old screen stays on view.
+ * - `on`: on view; its entrance plays: it slides into place as its pieces fade in, one card after the other.
+ * - `out`: leaving (`data-leaving`): it slides up a little as its pieces fade out, then `onLeft` hides it.
+ * Everything is a CSS animation of transform or opacity, played by the compositor. The fades are on each glass surface
+ * and text of the frame, never on the frame itself: a frame with opacity < 1 would be a backdrop root, its glass clear
+ * until the end.
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
-import { usePresence } from 'motion/react';
-import { releaseEntrance } from '../../theme/motion';
-import { usePageScroll } from './scroll';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { cn } from '../../ui/cn';
+import { ScreenContext } from './screen';
 
-export function ScreenFrame({ children, className }: { children: ReactNode; className?: string }) {
+export type ScreenPhase = 'next' | 'on' | 'out' | 'hidden';
+
+export function ScreenFrame<K extends string>({
+  id,
+  phase,
+  onLeft,
+  register,
+  className,
+  children,
+}: {
+  id: K;
+  phase: ScreenPhase;
+  onLeft: (id: K) => void;
+  register: (id: K, el: HTMLDivElement | null) => void;
+  className?: string;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [present, safeToRemove] = usePresence();
-  const { element: page } = usePageScroll();
-  const frame = useCallback((el: HTMLDivElement | null) => {
-    ref.current = el;
-    releaseEntrance(el);
-  }, []);
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      ref.current = el;
+      register(id, el);
+    },
+    [id, register],
+  );
 
-  // Phone: the page scrolls as a whole; the new screen starts at its top (the old one left where it was).
-  useLayoutEffect(() => {
-    page?.scrollTo({ top: 0 });
-    // Once, as the screen arrives.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Leaving: removed once its slide (as long as its pieces' fade) is over.
+  // Leaving: hidden once its slide (as long as its pieces' fade) is over.
   useEffect(() => {
-    if (present) return;
+    if (phase !== 'out') return;
     const slide = ref.current?.getAnimations().find((a) => (a as CSSAnimation).animationName === 'screen-out');
-    if (!slide) return safeToRemove?.();
+    if (!slide) return onLeft(id);
     let back = false;
-    slide.finished.then(() => !back && safeToRemove?.(), () => {});
+    slide.finished.then(() => !back && onLeft(id), () => {});
     return () => {
       back = true;
     };
-  }, [present, safeToRemove]);
+  }, [phase, id, onLeft]);
 
   return (
-    <div ref={frame} data-screen="" data-entering="" data-leaving={present ? undefined : ''} className={className}>
-      {children}
-    </div>
+    <ScreenContext.Provider value={phase === 'on'}>
+      <div
+        ref={setRef}
+        data-screen=""
+        data-preparing={phase === 'next' ? '' : undefined}
+        data-leaving={phase === 'out' ? '' : undefined}
+        // Only the screen on view takes taps and focus (the old one is still fading out, the new one invisible).
+        inert={phase !== 'on'}
+        className={cn('[grid-area:1/1]', className)}
+      >
+        {children}
+      </div>
+    </ScreenContext.Provider>
   );
 }

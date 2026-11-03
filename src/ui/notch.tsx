@@ -4,9 +4,11 @@
  * screen at most, only for an object (here: the next gym session).
  * The shape is a path computed for the measured size (Benchmark › « clip-path avec le tracé SVG »); clip-path cuts
  * box-shadow and border, so the rim and the soft shadow are drawn in SVG around it. WebKit does not cut a backdrop-filter
- * by a clip-path (the notch showed frosted): there the frost lies in two rounded boxes beside and under the notch.
+ * by a clip-path (the notch showed frosted), but it does by a mask on the frosted element itself: there the frost is one
+ * layer under the card, masked by the same path. (Two rounded boxes beside and under the notch blurred each their own
+ * part of the photo: a sharp seam ran down the card under the button.)
  */
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from './cn';
 import { ICON_STROKE } from './atoms';
@@ -34,6 +36,12 @@ function notchPath(w: number, h: number): string {
     `A${R} ${R} 0 0 1 ${R},0`,
     'Z',
   ].join(' ');
+}
+
+/** The card's shape as a mask (WebKit's frost, see above). */
+function maskOf(d: string, w: number, h: number): CSSProperties {
+  const url = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><path d='${d}'/></svg>`)}")`;
+  return { WebkitMaskImage: url, maskImage: url, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' };
 }
 
 export function NotchCard({ children, onAction, actionLabel, className }: { children: ReactNode; onAction: () => void; actionLabel: string; className?: string }) {
@@ -69,12 +77,7 @@ export function NotchCard({ children, onAction, actionLabel, className }: { chil
           </g>
         </svg>
       )}
-      {d && webkitBackdrop && (
-        <>
-          <span aria-hidden className="glass-in chip-frost pointer-events-none absolute inset-y-0 left-0" style={{ right: S, borderRadius: `${R}px ${R}px 0 ${R}px` }} />
-          <span aria-hidden className="glass-in chip-frost pointer-events-none absolute right-0 bottom-0" style={{ top: S, width: S, borderRadius: `0 ${R}px ${R}px 0` }} />
-        </>
-      )}
+      {d && size && webkitBackdrop && <span aria-hidden className="glass-in chip-frost pointer-events-none absolute inset-0" style={maskOf(d, size.w, size.h)} />}
       <div
         className={cn('relative h-full overflow-hidden', d ? cn('glass-in bg-(--glass-panel)', !webkitBackdrop && 'backdrop-blur-[24px] backdrop-saturate-[1.7]') : 'glass-panel rounded-2xl')}
         style={d ? { clipPath: `path('${d}')` } : undefined}

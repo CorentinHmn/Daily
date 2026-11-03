@@ -6,6 +6,8 @@
  *  4. reload keeps Sam signed in; Alex signs out, then back in, and finds the household.
  * Run: npm run build && npx vite preview --port 4320 &  then  npx tsx scripts/e2e.ts [base-url]
  * The test accounts (cadence-e2e-…@example.com) are left in the project: delete them afterwards (see the end).
+ * The screens are kept alive, hidden (ScreenStack): a text or a label can also be in a hidden one, so lookups keep to the
+ * visible ones (`filter({ visible: true })`, `exact`).
  */
 import { chromium, type Browser, type Page } from '@playwright/test';
 import { exampleData } from '../src/domain/seed';
@@ -122,15 +124,15 @@ try {
   await step('Sam : la semaine type du foyer est là', async () => {
     await nav(b, 'Semaine').click();
     await b.getByRole('heading', { name: 'Semaine' }).waitFor();
-    await b.getByText('Batch cooking').first().waitFor({ timeout: 10_000 });
+    await b.getByText('Batch cooking').filter({ visible: true }).first().waitFor({ timeout: 10_000 });
   });
 
   await step('Alex ajoute un article → Sam le voit en direct', async () => {
     await openShopping(a);
     await openShopping(b);
-    await a.getByLabel('Ajouter un article').fill(item);
-    await a.getByLabel('Ajouter un article').press('Enter');
-    await b.getByText(item).first().waitFor({ timeout: 15_000 });
+    await a.getByLabel('Ajouter un article', { exact: true }).fill(item);
+    await a.getByLabel('Ajouter un article', { exact: true }).press('Enter');
+    await b.getByText(item).filter({ visible: true }).first().waitFor({ timeout: 15_000 });
   });
 
   await step('Sam coche → Alex est prévenu', async () => {
@@ -141,9 +143,9 @@ try {
 
   await step('Sam : après rechargement, toujours connectée avec les données', async () => {
     await b.reload();
-    await b.getByRole('heading', { name: 'Courses' }).or(b.getByRole('heading', { name: TODAY })).first().waitFor({ timeout: 15_000 });
+    await b.getByRole('heading', { name: 'Courses' }).or(b.getByRole('heading', { name: TODAY })).filter({ visible: true }).first().waitFor({ timeout: 15_000 });
     await openShopping(b);
-    await b.getByText(item).first().waitFor({ timeout: 10_000 });
+    await b.getByText(item).filter({ visible: true }).first().waitFor({ timeout: 10_000 });
   });
 
   await step("Alex : supprimer une tâche depuis son menu n'ouvre aucune fenêtre", async () => {
@@ -169,7 +171,7 @@ try {
     await a.getByRole('button', { name: 'Se connecter' }).click();
     await a.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
     await openShopping(a);
-    await a.getByText(item).first().waitFor({ timeout: 10_000 });
+    await a.getByText(item).filter({ visible: true }).first().waitFor({ timeout: 10_000 });
   });
 
   await step("Données saisies dans l'ancienne version : proposées à la création du foyer", async () => {
@@ -190,7 +192,7 @@ try {
     await c.getByRole('button', { name: 'Créer le foyer' }).click();
     await c.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
     await openShopping(c);
-    await c.getByText('Épinards frais').first().waitFor({ timeout: 10_000 });
+    await c.getByText('Épinards frais').filter({ visible: true }).first().waitFor({ timeout: 10_000 });
     // The copy set aside goes once the household holds the data (after the first upload).
     await c.waitForFunction(() => !localStorage.getItem('cadence.legacy'), null, { timeout: 30_000 });
   });
@@ -204,12 +206,12 @@ try {
     await d.getByRole('radio', { name: /^Vide/ }).click();
     await d.getByRole('button', { name: 'Créer le foyer' }).click();
     await d.getByRole('heading', { name: TODAY }).waitFor({ timeout: 20_000 });
-    await d.getByText("Rien de prévu aujourd'hui").waitFor({ timeout: 5_000 });
+    await d.getByText("Rien de prévu aujourd'hui").filter({ visible: true }).waitFor({ timeout: 5_000 });
     if (process.env.SHOTS) await d.screenshot({ path: `${process.env.SHOTS}/vide-aujourdhui.png` });
     await nav(d, 'Sport').click();
-    await d.getByText('Aucun programme').first().waitFor({ timeout: 5_000 });
+    await d.getByText('Aucun programme').filter({ visible: true }).first().waitFor({ timeout: 5_000 });
     await openShopping(d);
-    await d.getByText('Aucune liste').first().waitFor({ timeout: 5_000 });
+    await d.getByText('Aucune liste').filter({ visible: true }).first().waitFor({ timeout: 5_000 });
     if (process.env.SHOTS) await d.screenshot({ path: `${process.env.SHOTS}/vide-courses.png` });
   });
 

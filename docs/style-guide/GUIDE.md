@@ -47,7 +47,7 @@ Les ingrédients :
 | `src/ui/navigation.tsx` | Rail (vague, ouverture), `SegmentedControl` |
 | `src/ui/chipMenu.tsx` | Pastille qui devient son menu (profil, +) |
 | `src/screens/shell/MobileShell.tsx` | Barre d'onglets du téléphone |
-| `src/screens/shell/ScreenFrame.tsx` | Transition entre écrans |
+| `src/screens/shell/ScreenStack.tsx`, `ScreenFrame.tsx` | Écrans gardés vivants, transition entre écrans |
 | `src/ui/backdrop.tsx` | Fonds d'écran (10 photos) et réglage de transparence |
 | `src/ui/charts.tsx` | Cartes KPI, mini-courbes, barres |
 | `src/theme/motion.ts` | Préréglages de mouvement (`revealVariants`) |
@@ -253,18 +253,23 @@ Pas de réfraction SVG ici : refiltrer le fond à chaque image saccadait le cale
 ### 6.6 Changer d'écran
 ![Changement d'onglet](captures/seq-onglet.jpg)
 
-- **Sortie** : l'ancien écran glisse de 6 px vers le haut, ses pièces fondent en 140 ms.
-- **Entrée** : le nouveau glisse de 10 px vers le bas jusqu'à sa place (400 ms), ses pièces fondent en 416 ms,
-  **en cascade** (60 ms par carte, retard posé en variable CSS `--ri` par `revealVariants`).
+- **Les écrans restent vivants**, comme les onglets d'une appli iOS : chacun est construit une fois (les autres en
+  arrière-plan dès l'ouverture, `Activity` de React) puis seulement caché. Un changement d'onglet n'a jamais à
+  construire un écran pendant que l'ancien est déjà parti (voir le piège 24).
+- **Sortie** : dès le tap (deux images après, le temps que la bulle parte), l'ancien écran glisse de 6 px vers le
+  haut, ses pièces fondent en 140 ms. Pendant ce temps, le nouveau est mis en page, invisible.
+- **Entrée** : 100 ms après le début de la sortie (l'ancien est presque effacé), le nouveau glisse de 10 px vers le
+  bas jusqu'à sa place (400 ms), ses pièces fondent en 416 ms, **en cascade** (60 ms par carte, retard posé en
+  variable CSS `--ri` par `revealVariants`).
 - **Ce qui fond** : chaque surface de verre, les titres, les boutons d'en-tête, et chaque pièce d'un contrôle en
   plusieurs couches (verre, bulle, boutons d'un contrôle segmenté). Chacun fond lui-même, jamais un conteneur (voir le
   piège 1). Une animation CSS joue à l'insertion de l'élément, donc aussi pour une vue qui apparaît (Salle / Running).
 - **Rien en JavaScript** : glissements et fondus sont des animations CSS de `transform` et `opacity`, que le
-  compositeur joue même pendant que le nouvel écran se dessine. L'écran et la vue qui arrivent restent à leur première
-  image (`data-entering`, `animation-play-state: paused`) jusqu'à ce qu'ils aient été peints une fois, deux images
-  après leur insertion.
-- **Au téléphone** (toute la page défile) : l'ancien écran part là où il était défilé, le nouveau commence en haut,
-  et la barre de titre compacte s'en va avec l'ancien.
+  compositeur joue même pendant que le nouvel écran se met en page. L'écran qui arrive reste invisible et ses
+  animations en pause (`data-preparing` : `visibility: hidden`, `animation-play-state: paused`) le temps de sa mise
+  en page, deux images ; une vue qui arrive dans un écran, de même (`data-entering`).
+- **Au téléphone** (toute la page défile) : la page remonte en haut pour le nouvel écran, et l'ancien est décalé
+  d'autant (`translate`) : il part là où il était vu. La barre de titre compacte s'en va avec lui.
 - Le filtre des personnes de la barre du haut **reste en place** sur Courses et s'efface (chaque pièce fond et se
   réduit à 94 %), au lieu de disparaître d'un coup.
 
@@ -323,7 +328,10 @@ Toutes les durées se réduisent avec « réduire les animations » (pas de glis
    propre `opacity` est sans danger) et glissez les conteneurs (`transform` est sans danger).
 2. **Safari (WebKit) ne découpe pas un `backdrop-filter` par un `clip-path`** : un calque découpé montre toute sa
    boîte givrée, un « carré discret » autour du menu. Là, le givre vient de **boîtes arrondies** (`border-radius`)
-   qui suivent la forme ; la teinte et le liseré gardent leur `clip-path` (peinture simple, bien découpée).
+   qui suivent la forme ; la teinte et le liseré gardent leur `clip-path` (peinture simple, bien découpée). Il le
+   découpe en revanche par le **`mask-image` de l'élément flouté lui-même** : pour une forme fixe (la carte à
+   encoche), un seul givre masqué par le tracé. Deux boîtes givrées côte à côte floutent chacune leur morceau de
+   photo, et leur jonction se voit (une couture nette sous le bouton de la carte, devant un immeuble sombre).
 3. **Safari floute aussi toute la boîte d'un calque `filter: blur()` dont l'enfant a un `clip-path`** : ombre
    carrée. Là, l'ombre devient le `box-shadow` de boîtes arrondies, dans un calque découpé à l'extérieur du contour.
 4. **Une ombre unique aux bornes d'une forme non rectangulaire dessine ces bornes** : une traîne rectangulaire à côté
@@ -334,8 +342,9 @@ Toutes les durées se réduisent avec « réduire les animations » (pas de glis
 6. **Chromium ne montre aucun défaut WebKit**, même avec un user-agent d'iPhone : une capture Chrome ne prouve rien
    pour Safari. Installez le vrai WebKit de Playwright à part
    (`PLAYWRIGHT_BROWSERS_PATH=<dossier> npx playwright install webkit`, puis `install-deps webkit`) et comparez des
-   captures fermé / ouvert pixel par pixel. Cela a trouvé ce que l'œil ne voyait pas. Son WebKit Linux ne rend pas
-   le flou, mais reproduit les problèmes de découpe.
+   captures fermé / ouvert pixel par pixel. Cela a trouvé ce que l'œil ne voyait pas. Son WebKit Linux ne rend aucun
+   `backdrop-filter` (ni flou, ni inversion) : il reproduit les découpes de la teinte et des ombres, pas celles du
+   givre.
 7. **Réfraction SVG = coûteuse** : à chaque image d'une animation, elle saccade. Pendant le mouvement, remplacez-la
    par le même givre en CSS (`paused`), et n'en mettez pas sur les panneaux qui grandissent.
 
@@ -384,8 +393,16 @@ Toutes les durées se réduisent avec « réduire les animations » (pas de glis
     fois (deux `requestAnimationFrame`), puis relâchez-la.
 22. **`el.getAnimations()` rend aussi les animations CSS** : les annuler toutes avant de lancer un mouvement coupait
     le fondu d'entrée (la bulle blanche apparaissait avant le reste). N'annulez que celles lancées par `el.animate`.
-23. **Au téléphone, ne remontez pas la page avant que l'ancien écran soit parti** : il sautait en haut en fondant.
-    Remettez le défilement à zéro à l'insertion du nouvel écran, avant sa première image.
+23. **Au téléphone, l'ancien écran ne doit pas sauter quand la page remonte pour le nouveau** : il sautait en haut en
+    fondant. Décalez-le (`translate`) de ce dont la page remonte, dans la même image.
+24. **Le pire défaut d'une transition, c'est le trou** : l'ancien écran s'effaçait, puis la page restait vide le temps
+    de construire et peindre le nouveau (0,1 s sur un iPhone, 0,3 s sur un téléphone lent), puis le nouveau
+    apparaissait. Fluide image par image, la transition paraissait quand même accrocher. Gardez les écrans vivants
+    (cachés, pas détruits) et mettez le nouveau en page, invisible, pendant que l'ancien s'efface. Mesurez-le : par
+    image, l'opacité du titre de chaque écran visible ; un trou = des images où aucun n'est visible.
+25. **Écrans gardés vivants** : leurs effets s'arrêtent quand ils sont cachés (Activity) ; ce qu'ils posent dans
+    `<body>` (barre compacte, minuteur) doit savoir s'ils sont à l'écran ; leurs textes restent dans la page (scripts
+    de test : ne chercher que les éléments visibles).
 
 ---
 

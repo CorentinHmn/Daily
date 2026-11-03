@@ -19,6 +19,7 @@ import { NumberStepper } from '../../ui/forms';
 import { Ring } from '../../ui/charts';
 import { useLiquidGlass } from '../../ui/glass';
 import { revealVariants } from '../../theme/motion';
+import { useScreenCurrent } from '../shell/screen';
 
 export function SessionView() {
   const active = useApp((s) => s.data.active)!;
@@ -144,6 +145,8 @@ function SetRow({ index, reps, weight, done, onReps, onWeight, onToggle }: { ind
 function RestTimer() {
   const rest = useApp((s) => s.rest);
   const mobile = useIsMobile();
+  // In <body> on a phone: shown only while Sport is the screen on view (ScreenStack keeps it alive behind the others).
+  const current = useScreenCurrent();
   const app = useApp.getState();
   const now = useNow(250);
   const glass = useLiquidGlass<HTMLDivElement>({ bezel: 22, strength: 16 });
@@ -153,7 +156,7 @@ function RestTimer() {
   }, [rest, left, app]);
   const timer = (
     <AnimatePresence>
-      {rest && (
+      {rest && current && (
         <motion.div
           initial={{ y: 40, opacity: mobile ? 0 : 1 }}
           animate={{ y: 0, opacity: 1 }}

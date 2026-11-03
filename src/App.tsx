@@ -5,7 +5,6 @@
  * MobileShell, the same menus in a floating tab bar.
  */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { AnimatePresence } from 'motion/react';
 import { CalendarDays, Footprints, ListPlus, Target, Repeat } from 'lucide-react';
 import { tabIcon } from './domain/catalog';
 import { useApp, type View } from './store/app';
@@ -21,7 +20,7 @@ import { ShoppingScreen } from './screens/shopping/ShoppingScreen';
 import { Dialogs } from './screens/dialogs/Dialogs';
 import { MobileShell } from './screens/shell/MobileShell';
 import { TopBar } from './screens/shell/TopBar';
-import { ScreenFrame } from './screens/shell/ScreenFrame';
+import { ScreenStack } from './screens/shell/ScreenStack';
 import { Celebrations } from './screens/shell/Celebrations';
 import { useIsMobile } from './ui/useMedia';
 import { Backdrop, GLASS_DEFAULT, applyBackdrop, applyGlass } from './ui/backdrop';
@@ -110,7 +109,6 @@ function Workspace() {
     { id: 'shopping', label: 'Courses', icon: tabIcon('shopping', prefs), badge: remaining ? String(remaining) : undefined },
   ];
 
-  const Screen = SCREENS[view];
   const open = useApp.getState().openDialog;
 
   const adds: MenuItem[] = [
@@ -132,8 +130,8 @@ function Workspace() {
   if (mobile) {
     return (
       <>
-        <MobileShell items={nav} active={view} onNavigate={navigate} adds={adds} addRef={quickAdd} screenKey={`${view}-${today}`}>
-          <Screen />
+        <MobileShell items={nav} active={view} onNavigate={navigate} adds={adds} addRef={quickAdd}>
+          <ScreenStack key={today} active={view} screens={SCREENS} frameClassName="mx-auto flex w-full max-w-[720px] flex-col" />
         </MobileShell>
         {overlays}
       </>
@@ -158,11 +156,7 @@ function Workspace() {
             <NavRail items={nav} active={view} onNavigate={navigate} open={railOpen} />
           </div>
           <main className="relative z-10 flex min-w-0 flex-1 flex-col pr-2">
-            <AnimatePresence mode="wait" initial={false}>
-              <ScreenFrame key={`${view}-${today}`} className="flex min-h-0 flex-1 flex-col">
-                <Screen />
-              </ScreenFrame>
-            </AnimatePresence>
+            <ScreenStack key={today} active={view} screens={SCREENS} className="min-h-0 flex-1 grid-rows-[minmax(0,1fr)]" frameClassName="flex min-h-0 flex-col" />
           </main>
         </div>
       </div>
